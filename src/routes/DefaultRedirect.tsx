@@ -12,5 +12,5 @@ export function DefaultRedirect() {
   if (mustChangePassword) {
     return <Navigate to="/change-password-required" replace />;
   }
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/modules" replace />;
 }
