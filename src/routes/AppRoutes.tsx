@@ -1,16 +1,10 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { MandatoryPasswordChangePage } from '@/pages/auth/MandatoryPasswordChangePage';
-import { Loader2 } from 'lucide-react';
-
-const DashboardGlobalPage = lazy(() =>
-  import('@/pages/dashboard/DashboardGlobalPage').then((m) => ({
-    default: m.DashboardGlobalPage,
-  })),
-);
 import { UsersPage } from '@/pages/administration/UsersPage';
 import { UserFormPage } from '@/pages/administration/UserFormPage';
 import { HotelsPage } from '@/pages/administration/HotelsPage';
@@ -45,20 +39,33 @@ import { FacturesPage } from '@/pages/portmaster/FacturesPage';
 import { FactureDetailPage } from '@/pages/portmaster/FactureDetailPage';
 import { TarifsPage } from '@/pages/portmaster/TarifsPage';
 import { ValidationsPortPage } from '@/pages/portmaster/ValidationsPortPage';
-import { RapportsPage } from '@/pages/rapports/RapportsPage';
-import { RequireReportsExport } from '@/routes/RequireReportsExport';
 import { MouvementsPage } from '@/pages/portmaster/MouvementsPage';
 import { RecouvrementPage } from '@/pages/portmaster/RecouvrementPage';
+import { RapportsPage } from '@/pages/rapports/RapportsPage';
+import { RequireReportsExport } from '@/routes/RequireReportsExport';
 import { SyncPage } from '@/pages/system/SyncPage';
 import { SettingsPage } from '@/pages/system/SettingsPage';
 import { DatabasePage } from '@/pages/system/DatabasePage';
 import { BackupPage } from '@/pages/system/BackupPage';
-import { RequireSystemAdmin } from '@/routes/RequireSystemAdmin';
 import { InterfaceThemePage } from '@/pages/system/InterfaceThemePage';
 import { NotificationsPage } from '@/pages/system/NotificationsPage';
 import { SecuriteAccesPage } from '@/pages/system/SecuriteAccesPage';
+import { RequireSystemAdmin } from '@/routes/RequireSystemAdmin';
 import { RequireSync } from '@/routes/RequireSync';
+import { ModulesIndexPage } from '@/pages/modules/ModulesIndexPage';
+import { ModulePlaceholderPage } from '@/pages/modules/ModulePlaceholderPage';
 import { PERMISSIONS } from '@/shared/permissions';
+
+const DashboardGlobalPage = lazy(() =>
+  import('@/pages/dashboard/DashboardGlobalPage').then((m) => ({ default: m.DashboardGlobalPage })),
+);
+
+const dashboardFallback = (
+  <div className="flex min-h-[320px] items-center justify-center gap-2 text-muted-foreground">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    Chargement…
+  </div>
+);
 
 export function AppRoutes() {
   return (
@@ -80,340 +87,56 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           >
-        <Route
-          path="/dashboard"
-          element={
-            <Suspense
-              fallback={
-                <div className="flex min-h-[320px] items-center justify-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  Chargement…
-                </div>
-              }
-            >
-              <DashboardGlobalPage />
-            </Suspense>
-          }
-        />
+            <Route path="/dashboard" element={<Suspense fallback={dashboardFallback}><DashboardGlobalPage /></Suspense>} />
+            <Route path="/modules" element={<ModulesIndexPage />} />
+            <Route path="/modules/:moduleId" element={<ModulePlaceholderPage />} />
 
-        <Route
-          path="/objectifs"
-          element={
-            <RequireObjectifsView>
-              <ObjectifsPage />
-            </RequireObjectifsView>
-          }
-        />
-        <Route
-          path="/objectifs/edit"
-          element={
-            <RequireObjectifsView>
-              <ObjectifFormPage />
-            </RequireObjectifsView>
-          }
-        />
+            <Route path="/objectifs" element={<RequireObjectifsView><ObjectifsPage /></RequireObjectifsView>} />
+            <Route path="/objectifs/edit" element={<RequireObjectifsView><ObjectifFormPage /></RequireObjectifsView>} />
 
-        <Route
-          path="/admin/users"
-          element={
-            <RequirePermission permission={PERMISSIONS.USERS_MANAGE}>
-              <UsersPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/admin/users/new"
-          element={
-            <RequirePermission permission={PERMISSIONS.USERS_MANAGE}>
-              <UserFormPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/admin/users/:id"
-          element={
-            <RequirePermission permission={PERMISSIONS.USERS_MANAGE}>
-              <UserFormPage />
-            </RequirePermission>
-          }
-        />
+            <Route path="/admin/users" element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE}><UsersPage /></RequirePermission>} />
+            <Route path="/admin/users/new" element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE}><UserFormPage /></RequirePermission>} />
+            <Route path="/admin/users/:id" element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE}><UserFormPage /></RequirePermission>} />
+            <Route path="/admin/hotels" element={<RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}><HotelsPage /></RequirePermission>} />
+            <Route path="/admin/hotels/new" element={<RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}><HotelFormPage /></RequirePermission>} />
+            <Route path="/admin/hotels/:id" element={<RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}><HotelFormPage /></RequirePermission>} />
+            <Route path="/admin/roles" element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE}><RolesPage /></RequirePermission>} />
+            <Route path="/admin/rubriques" element={<RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}><RubriquesPage /></RequirePermission>} />
 
-        <Route
-          path="/admin/hotels"
-          element={
-            <RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}>
-              <HotelsPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/admin/hotels/new"
-          element={
-            <RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}>
-              <HotelFormPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/admin/hotels/:id"
-          element={
-            <RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}>
-              <HotelFormPage />
-            </RequirePermission>
-          }
-        />
+            <Route path="/recettes/journalieres" element={<RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}><SaisieJournalierePage /></RequirePermission>} />
+            <Route path="/recettes/historique" element={<RequireRecettesView><HistoriqueRecettesPage /></RequireRecettesView>} />
+            <Route path="/recettes/validation" element={<RequirePermission permission={PERMISSIONS.RECETTES_VALIDATE}><ValidationRecettesPage /></RequirePermission>} />
+            <Route path="/recettes/mensuelles" element={<RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}><SaisieMensuellePage /></RequirePermission>} />
 
-        <Route
-          path="/admin/roles"
-          element={
-            <RequirePermission permission={PERMISSIONS.USERS_MANAGE}>
-              <RolesPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/admin/rubriques"
-          element={
-            <RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}>
-              <RubriquesPage />
-            </RequirePermission>
-          }
-        />
+            <Route path="/portmaster" element={<RequirePortmaster><PortDashboardPage /></RequirePortmaster>} />
+            <Route path="/portmaster/bateaux" element={<RequirePortmaster><BateauxPage /></RequirePortmaster>} />
+            <Route path="/portmaster/bateaux/new" element={<RequirePortmaster><BateauFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/bateaux/:id" element={<RequirePortmaster><BateauFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/contrats" element={<RequirePortmaster><ContratsPage /></RequirePortmaster>} />
+            <Route path="/portmaster/contrats/new" element={<RequirePortmaster><ContratFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/contrats/:id" element={<RequirePortmaster><ContratFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/emplacements" element={<RequirePortmaster><EmplacementsPage /></RequirePortmaster>} />
+            <Route path="/portmaster/referentiel" element={<RequirePortmaster><ReferentielPortPage /></RequirePortmaster>} />
+            <Route path="/portmaster/clients" element={<RequirePortmaster><ClientsPage /></RequirePortmaster>} />
+            <Route path="/portmaster/clients/new" element={<RequirePortmaster><ClientFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/clients/:id" element={<RequirePortmaster><ClientFormPage /></RequirePortmaster>} />
+            <Route path="/portmaster/factures" element={<RequirePortmaster><FacturesPage /></RequirePortmaster>} />
+            <Route path="/portmaster/factures/new" element={<RequirePortmaster><FactureDetailPage /></RequirePortmaster>} />
+            <Route path="/portmaster/factures/:id" element={<RequirePortmaster><FactureDetailPage /></RequirePortmaster>} />
+            <Route path="/portmaster/tarifs" element={<RequirePortmaster><TarifsPage /></RequirePortmaster>} />
+            <Route path="/portmaster/validations" element={<RequirePortmaster><ValidationsPortPage /></RequirePortmaster>} />
+            <Route path="/portmaster/mouvements" element={<RequirePortmaster><MouvementsPage /></RequirePortmaster>} />
+            <Route path="/portmaster/recouvrement" element={<RequirePortmaster><RecouvrementPage /></RequirePortmaster>} />
 
-        <Route
-          path="/recettes/journalieres"
-          element={
-            <RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}>
-              <SaisieJournalierePage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/recettes/historique"
-          element={
-            <RequireRecettesView>
-              <HistoriqueRecettesPage />
-            </RequireRecettesView>
-          }
-        />
-        <Route
-          path="/recettes/validation"
-          element={
-            <RequirePermission permission={PERMISSIONS.RECETTES_VALIDATE}>
-              <ValidationRecettesPage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/recettes/mensuelles"
-          element={
-            <RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}>
-              <SaisieMensuellePage />
-            </RequirePermission>
-          }
-        />
-
-        <Route
-          path="/portmaster"
-          element={
-            <RequirePortmaster>
-              <PortDashboardPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/bateaux"
-          element={
-            <RequirePortmaster>
-              <BateauxPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/bateaux/new"
-          element={
-            <RequirePortmaster>
-              <BateauFormPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/bateaux/:id"
-          element={
-            <RequirePortmaster>
-              <BateauFormPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/contrats"
-          element={
-            <RequirePortmaster>
-              <ContratsPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/contrats/new"
-          element={
-            <RequirePortmaster>
-              <ContratFormPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/contrats/:id"
-          element={
-            <RequirePortmaster>
-              <ContratFormPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/emplacements"
-          element={
-            <RequirePortmaster>
-              <EmplacementsPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/referentiel"
-          element={
-            <RequirePortmaster>
-              <ReferentielPortPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/clients"
-          element={
-            <RequirePortmaster>
-              <ClientsPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/clients/new"
-          element={
-            <RequirePortmaster>
-              <ClientFormPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/clients/:id"
-          element={
-            <RequirePortmaster>
-              <ClientFormPage />
-            </RequirePortmaster>
-          }
-        />
-
-        <Route
-          path="/portmaster/factures"
-          element={
-            <RequirePortmaster>
-              <FacturesPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/factures/new"
-          element={
-            <RequirePortmaster>
-              <FactureDetailPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/factures/:id"
-          element={
-            <RequirePortmaster>
-              <FactureDetailPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/tarifs"
-          element={
-            <RequirePortmaster>
-              <TarifsPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/validations"
-          element={
-            <RequirePortmaster>
-              <ValidationsPortPage />
-            </RequirePortmaster>
-          }
-        />
-
-        <Route
-          path="/portmaster/mouvements"
-          element={
-            <RequirePortmaster>
-              <MouvementsPage />
-            </RequirePortmaster>
-          }
-        />
-        <Route
-          path="/portmaster/recouvrement"
-          element={
-            <RequirePortmaster>
-              <RecouvrementPage />
-            </RequirePortmaster>
-          }
-        />
-
-        <Route
-          path="/rapports"
-          element={
-            <RequireReportsExport>
-              <RapportsPage />
-            </RequireReportsExport>
-          }
-        />
-
-        <Route
-          path="/system/sync"
-          element={
-            <RequireSync>
-              <SyncPage />
-            </RequireSync>
-          }
-        />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/settings/interface" element={<InterfaceThemePage />} />
-        <Route path="/settings/notifications" element={<NotificationsPage />} />
-        <Route path="/settings/securite" element={<SecuriteAccesPage />} />
-        <Route
-          path="/settings/database"
-          element={
-            <RequireSystemAdmin>
-              <DatabasePage />
-            </RequireSystemAdmin>
-          }
-        />
-        <Route
-          path="/settings/backup"
-          element={
-            <RequireSystemAdmin>
-              <BackupPage />
-            </RequireSystemAdmin>
-          }
-        />
-
-        <Route
-          path="/audit/logs"
-          element={
-            <RequirePermission permission={PERMISSIONS.AUDIT_READ}>
-              <AuditLogPage />
-            </RequirePermission>
-          }
-        />
+            <Route path="/rapports" element={<RequireReportsExport><RapportsPage /></RequireReportsExport>} />
+            <Route path="/system/sync" element={<RequireSync><SyncPage /></RequireSync>} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/interface" element={<InterfaceThemePage />} />
+            <Route path="/settings/notifications" element={<NotificationsPage />} />
+            <Route path="/settings/securite" element={<SecuriteAccesPage />} />
+            <Route path="/settings/database" element={<RequireSystemAdmin><DatabasePage /></RequireSystemAdmin>} />
+            <Route path="/settings/backup" element={<RequireSystemAdmin><BackupPage /></RequireSystemAdmin>} />
+            <Route path="/audit/logs" element={<RequirePermission permission={PERMISSIONS.AUDIT_READ}><AuditLogPage /></RequirePermission>} />
           </Route>
         </Route>
       </Route>
