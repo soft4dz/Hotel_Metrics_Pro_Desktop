@@ -10,15 +10,41 @@ import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
 import { canManageSync, canManageUsers } from '@/shared/permissions';
-import type { AppInfoDto } from '@/shared/types/settings';
+import type { AppInfoDto, AppSettingsDto } from '@/shared/types/settings';
 
-export function SettingsPage() {  const user = useAuthStore((s) => s.user);
+const DEFAULT_SETTINGS: AppSettingsDto = {
+  companyName: 'EGT Sidi Fredj',
+  companyLegalName: 'Entreprise de Gestion Touristique de Sidi Fredj',
+  companyAddress: 'Sidi Fredj, Staoueli, Alger',
+  companyPhone: '',
+  companyEmail: '',
+  defaultHomePage: '/modules',
+  defaultCurrency: 'DZD',
+  amountDecimals: 2,
+  dailyRevenueDeadline: '09:30',
+  validationRequired: true,
+  correctionRequiresReason: true,
+  autoBackupEnabled: true,
+  autoBackupTime: '18:00',
+  backupRetentionCount: 30,
+  auditEnabled: true,
+  reportHeader: 'Hotel Metrics Pro - Rapport interne',
+  reportFooter: 'Document généré automatiquement',
+  tauxTvaPort: 19,
+  maxLoginAttempts: 5,
+  lockoutMinutes: 15,
+};
+
+function mergeSettings(partial?: Partial<AppSettingsDto>): AppSettingsDto {
+  return { ...DEFAULT_SETTINGS, ...partial };
+}
+
+export function SettingsPage() {
+  const user = useAuthStore((s) => s.user);
   const isAdmin = canManageUsers(user?.role);
 
   const [info, setInfo] = useState<AppInfoDto | null>(null);
-  const [tauxTva, setTauxTva] = useState('19');
-  const [maxAttempts, setMaxAttempts] = useState('5');
-  const [lockoutMin, setLockoutMin] = useState('15');
+  const [form, setForm] = useState<AppSettingsDto>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -30,15 +56,19 @@ export function SettingsPage() {  const user = useAuthStore((s) => s.user);
       try {
         const data = unwrapIpc(await ipcClient.settings.getAppInfo());
         setInfo(data);
-        setTauxTva(String(data.settings.tauxTvaPort));
-        setMaxAttempts(String(data.settings.maxLoginAttempts));
-        setLockoutMin(String(data.settings.lockoutMinutes));
+        setForm(mergeSettings(data.settings));
+      } catch {
+        setForm(DEFAULT_SETTINGS);
       } finally {
         setLoading(false);
       }
     };
     void load();
   }, []);
+
+  const setField = <K extends keyof AppSettingsDto>(key: K, value: AppSettingsDto[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,32 +77,34 @@ export function SettingsPage() {  const user = useAuthStore((s) => s.user);
     setError('');
     setMessage('');
     try {
-      const updated = unwrapIpc(
-        await ipcClient.settings.update({
-          tauxTvaPort: parseFloat(tauxTva),
-          maxLoginAttempts: parseInt(maxAttempts, 10),
-          lockoutMinutes: parseInt(lockoutMin, 10),
-        }),
-      );
-      setMessage('Paramètres enregistrés.');
+      const updated = unwrapIpc(await ipcClient.settings.update(form));
+      setForm(mergeSettings(updated));
       if (info) {
-        setInfo({ ...info, settings: updated });
+        setInfo({ ...info, settings: mergeSettings(updated) });
       }
+      setMessage('Paramètres enregistrés.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Chargement…</p>;
+    return (
+      <div className="flex min-h-[200px] items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Chargement…
+      </div>
+    );
   }
+
+  const disabled = !isAdmin;
 
   return (
     <div className="page-shell">
       <PageHeader
-        title="Paramètres"
+        title="Paramètres généraux"
         description="Compte, application et préférences métier"
       />
 
@@ -112,7 +144,7 @@ export function SettingsPage() {  const user = useAuthStore((s) => s.user);
               {info?.version ?? '—'}
             </p>
             <p className="break-all">
-              <span className="text-muted-foreground">Base locale :</span>{' '}
+              <span className="text-muted-foreground">Chemin de la base locale :</span>{' '}
               {info?.databaseFile ?? '—'}
             </p>
             {canManageSync(user?.role) && (
@@ -127,66 +159,286 @@ export function SettingsPage() {  const user = useAuthStore((s) => s.user);
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Préférences</CardTitle>
-          <CardDescription>
-            {isAdmin
-              ? 'TVA port par défaut et sécurité des connexions.'
-              : 'Seul un administrateur peut modifier ces valeurs.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={(e) => void handleSave(e)} className="grid max-w-md gap-4">
+      <form onSubmit={(e) => void handleSave(e)} className="mt-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Informations entreprise</CardTitle>
+            <CardDescription>Identité affichée sur les documents et rapports internes.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Taux TVA port (%)</Label>
+              <Label htmlFor="companyName">Nom court</Label>
               <Input
+                id="companyName"
+                value={form.companyName}
+                onChange={(e) => setField('companyName', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyLegalName">Raison sociale</Label>
+              <Input
+                id="companyLegalName"
+                value={form.companyLegalName}
+                onChange={(e) => setField('companyLegalName', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="companyAddress">Adresse</Label>
+              <Input
+                id="companyAddress"
+                value={form.companyAddress}
+                onChange={(e) => setField('companyAddress', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyPhone">Téléphone</Label>
+              <Input
+                id="companyPhone"
+                value={form.companyPhone}
+                onChange={(e) => setField('companyPhone', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyEmail">E-mail officiel</Label>
+              <Input
+                id="companyEmail"
+                type="email"
+                value={form.companyEmail}
+                onChange={(e) => setField('companyEmail', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Exploitation &amp; finances</CardTitle>
+            <CardDescription>Préférences par défaut pour la navigation et les montants.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="defaultHomePage">Page d&apos;accueil par défaut</Label>
+              <Input
+                id="defaultHomePage"
+                value={form.defaultHomePage}
+                onChange={(e) => setField('defaultHomePage', e.target.value)}
+                placeholder="/modules"
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultCurrency">Devise par défaut</Label>
+              <Input
+                id="defaultCurrency"
+                value={form.defaultCurrency}
+                onChange={(e) => setField('defaultCurrency', e.target.value)}
+                placeholder="DZD"
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amountDecimals">Nombre de décimales</Label>
+              <Input
+                id="amountDecimals"
+                type="number"
+                min={0}
+                max={4}
+                value={form.amountDecimals}
+                onChange={(e) => setField('amountDecimals', parseInt(e.target.value, 10) || 0)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dailyRevenueDeadline">Heure limite saisie CA quotidien</Label>
+              <Input
+                id="dailyRevenueDeadline"
+                type="time"
+                value={form.dailyRevenueDeadline}
+                onChange={(e) => setField('dailyRevenueDeadline', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tauxTvaPort">Taux TVA port (%)</Label>
+              <Input
+                id="tauxTvaPort"
                 type="number"
                 min={0}
                 max={100}
                 step={0.01}
-                value={tauxTva}
-                onChange={(e) => setTauxTva(e.target.value)}
-                disabled={!isAdmin}
+                value={form.tauxTvaPort}
+                onChange={(e) => setField('tauxTvaPort', parseFloat(e.target.value) || 0)}
+                disabled={disabled}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Validation</CardTitle>
+            <CardDescription>Règles de validation des recettes et corrections.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.validationRequired}
+                onChange={(e) => setField('validationRequired', e.target.checked)}
+                disabled={disabled}
+              />
+              Validation obligatoire
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.correctionRequiresReason}
+                onChange={(e) => setField('correctionRequiresReason', e.target.checked)}
+                disabled={disabled}
+              />
+              Motif obligatoire en cas de correction
+            </label>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sécurité</CardTitle>
+            <CardDescription>Politique de verrouillage après échecs de connexion.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Tentatives de connexion max</Label>
+              <Label htmlFor="maxLoginAttempts">Tentatives de connexion max</Label>
               <Input
+                id="maxLoginAttempts"
                 type="number"
                 min={3}
                 max={20}
-                value={maxAttempts}
-                onChange={(e) => setMaxAttempts(e.target.value)}
-                disabled={!isAdmin}
+                value={form.maxLoginAttempts}
+                onChange={(e) => setField('maxLoginAttempts', parseInt(e.target.value, 10) || 3)}
+                disabled={disabled}
               />
             </div>
             <div className="space-y-2">
-              <Label>Verrouillage (minutes)</Label>
+              <Label htmlFor="lockoutMinutes">Verrouillage (minutes)</Label>
               <Input
+                id="lockoutMinutes"
                 type="number"
                 min={5}
                 max={120}
-                value={lockoutMin}
-                onChange={(e) => setLockoutMin(e.target.value)}
-                disabled={!isAdmin}
+                value={form.lockoutMinutes}
+                onChange={(e) => setField('lockoutMinutes', parseInt(e.target.value, 10) || 5)}
+                disabled={disabled}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            {message && <p className="text-sm text-brand-success">{message}</p>}
-            {isAdmin && (
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Enregistrer
-              </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sauvegarde</CardTitle>
+            <CardDescription>Sauvegarde automatique de la base locale.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.autoBackupEnabled}
+                onChange={(e) => setField('autoBackupEnabled', e.target.checked)}
+                disabled={disabled}
+              />
+              Sauvegarde automatique activée
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="autoBackupTime">Heure de sauvegarde</Label>
+                <Input
+                  id="autoBackupTime"
+                  type="time"
+                  value={form.autoBackupTime}
+                  onChange={(e) => setField('autoBackupTime', e.target.value)}
+                  disabled={disabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="backupRetentionCount">Nombre de sauvegardes à conserver</Label>
+                <Input
+                  id="backupRetentionCount"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={form.backupRetentionCount}
+                  onChange={(e) =>
+                    setField('backupRetentionCount', parseInt(e.target.value, 10) || 1)
+                  }
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rapports &amp; audit</CardTitle>
+            <CardDescription>En-têtes des rapports et journalisation des actions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.auditEnabled}
+                onChange={(e) => setField('auditEnabled', e.target.checked)}
+                disabled={disabled}
+              />
+              Audit activé
+            </label>
+            <div className="space-y-2">
+              <Label htmlFor="reportHeader">En-tête rapport</Label>
+              <Input
+                id="reportHeader"
+                value={form.reportHeader}
+                onChange={(e) => setField('reportHeader', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reportFooter">Pied de page rapport</Label>
+              <Input
+                id="reportFooter"
+                value={form.reportFooter}
+                onChange={(e) => setField('reportFooter', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {message && <p className="text-sm text-brand-success">{message}</p>}
+
+        {isAdmin && (
+          <Button type="submit" disabled={saving}>
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
             )}
-          </form>
-        </CardContent>
-      </Card>
+            Enregistrer les paramètres
+          </Button>
+        )}
+
+        {!isAdmin && (
+          <p className="text-sm text-muted-foreground">
+            Seul un administrateur peut modifier les paramètres généraux.
+          </p>
+        )}
+      </form>
     </div>
   );
 }
