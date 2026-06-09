@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 chcp 65001 >nul
 title Hotel Metrics Pro — Synchronisation GitHub
 
