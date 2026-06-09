@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Boxes, GitBranch, Hammer } from 'lucide-react';
+import { ArrowLeft, Boxes, CheckCircle2, GitBranch, Hammer } from 'lucide-react';
 import { getModuleById, MODULE_STATUS_LABELS, MODULES } from '@/modules/moduleCatalog';
 
 const statusClass = {
@@ -7,6 +7,36 @@ const statusClass = {
   socle: 'border-amber-200 bg-amber-50 text-amber-700',
   'a-developper': 'border-slate-200 bg-slate-50 text-slate-600',
 };
+
+function getModuleMessage(status: string) {
+  if (status === 'operationnel') {
+    return {
+      title: 'Module opérationnel',
+      label: 'État du module',
+      text: 'Ce module dispose déjà d’écrans métier utilisables. Utilisez le bouton d’accès pour ouvrir directement la partie opérationnelle.',
+      icon: CheckCircle2,
+      iconClass: 'bg-emerald-100 text-emerald-700',
+    };
+  }
+
+  if (status === 'socle') {
+    return {
+      title: 'Socle prêt',
+      label: 'Prochaine étape',
+      text: 'Le module dispose d’une base fonctionnelle ou d’un rattachement existant. Les écrans métier détaillés peuvent être complétés progressivement.',
+      icon: Hammer,
+      iconClass: 'bg-amber-100 text-amber-700',
+    };
+  }
+
+  return {
+    title: 'Développement métier',
+    label: 'Prochaine étape',
+    text: 'Définir le cahier des charges, puis créer les tables, services IPC, validations, écrans, rapports et règles d’audit.',
+    icon: Hammer,
+    iconClass: 'bg-slate-100 text-slate-700',
+  };
+}
 
 export function ModulePlaceholderPage() {
   const { moduleId } = useParams();
@@ -26,6 +56,8 @@ export function ModulePlaceholderPage() {
   }
 
   const relatedModules = MODULES.filter((item) => module.connectedTo.includes(item.name));
+  const moduleMessage = getModuleMessage(module.status);
+  const MessageIcon = moduleMessage.icon;
 
   return (
     <section className="space-y-6">
@@ -41,7 +73,7 @@ export function ModulePlaceholderPage() {
             <h1 className="mt-2 text-3xl font-bold tracking-tight lg:text-4xl">{module.name}</h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground lg:text-base">
               Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro.
-              Les traitements métier seront développés progressivement avec base SQLite, IPC, écrans React, rapports et traçabilité.
+              Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.
             </p>
           </div>
 
@@ -53,7 +85,7 @@ export function ModulePlaceholderPage() {
         <div className="mt-6 flex flex-wrap gap-3">
           {module.existingRoute ? (
             <Link className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:shadow-elevated" to={module.existingRoute}>
-              Ouvrir le module existant
+              Ouvrir le module opérationnel
             </Link>
           ) : null}
           <Link className="rounded-xl border bg-white/80 px-4 py-2.5 text-sm font-semibold transition hover:bg-muted" to="/modules">
@@ -82,16 +114,16 @@ export function ModulePlaceholderPage() {
 
         <div className="metric-card">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-              <Hammer className="h-5 w-5" />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${moduleMessage.iconClass}`}>
+              <MessageIcon className="h-5 w-5" />
             </div>
             <div>
-              <p className="section-label">Prochaine étape</p>
-              <h2 className="text-lg font-semibold">Développement métier</h2>
+              <p className="section-label">{moduleMessage.label}</p>
+              <h2 className="text-lg font-semibold">{moduleMessage.title}</h2>
             </div>
           </div>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Définir le cahier des charges, puis créer les tables, services IPC, validations, écrans, rapports et règles d’audit.
+            {moduleMessage.text}
           </p>
         </div>
       </div>
