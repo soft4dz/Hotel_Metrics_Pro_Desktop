@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Metrics Pro — Design ERP Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────── */
+    :root {
+      --night:      #0F172A;
+      --navy:       #1E3A8A;
+      --navy-mid:   #172554;
+      --blue:       #3B82F6;
+      --blue-light: #EFF6FF;
+      --gold:       #CA8A04;
+      --gold-light: #FEF9C3;
+      --turquoise:  #0891B2;
+      --turquoise-light: #ECFEFF;
+      --success:    #16A34A;
+      --success-light: #F0FDF4;
+      --danger:     #DC2626;
+      --danger-light: #FEF2F2;
+      --warning:    #F97316;
+      --warning-light: #FFF7ED;
+
+      --bg:         #F8FAFC;
+      --card:       #FFFFFF;
+      --border:     #E2E8F0;
+      --border-subtle: #F1F5F9;
+      --text:       #0F172A;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+
+      --sidebar-w:  260px;
+      --header-h:   4.25rem;
+      --radius:     0.75rem;
+      --radius-sm:  0.5rem;
+      --radius-lg:  1rem;
+
+      --shadow-card:     0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 14px -2px rgb(30 58 138 / 0.06);
+      --shadow-elevated: 0 12px 40px -8px rgb(30 58 138 / 0.15), 0 4px 12px -4px rgb(15 23 42 / 0.08);
+      --shadow-sidebar:  4px 0 24px -4px rgb(15 23 42 / 0.12);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Fira Sans', system-ui, sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ─── Layout Shell ──────────────────────────────────── */
+    .shell {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ───────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, #0F172A 0%, #1E3A8A 55%, #172554 100%);
+      color: white;
+      box-shadow: var(--shadow-sidebar);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-logo {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #CA8A04, #B45309);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 4px 12px rgba(202,138,4,0.35);
+      flex-shrink: 0;
+    }
+
+    .logo-text p:first-child {
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .logo-text p:last-child {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.02em;
+      margin-top: 1px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+
+    .nav-group { margin-bottom: 20px; }
+
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      padding: 0 12px;
+      margin-bottom: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.68);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      border-left: 2px solid transparent;
+      text-decoration: none;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: white;
+      border-left-color: rgba(255,255,255,0.2);
+    }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      font-weight: 500;
+      border-left-color: #CA8A04;
+    }
+
+    .nav-item.active .nav-icon { opacity: 1; }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: rgba(220,38,38,0.85);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 20px;
+      line-height: 16px;
+    }
+
+    .nav-badge-new {
+      background: rgba(22,163,74,0.2);
+      color: #4ade80;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Sidebar footer */
+    .sidebar-footer {
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 12px 8px;
+      flex-shrink: 0;
+    }
+
+    .user-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .user-block:hover { background: rgba(255,255,255,0.06); }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+    }
+
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 12px; font-weight: 500; line-height: 1.3; }
+    .user-role {
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── Main area ─────────────────────────────────────── */
+    .main-area {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── Header ─────────────────────────────────────────── */
+    .header {
+      height: var(--header-h);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .header-title {
+      border-left: 3px solid var(--navy);
+      padding-left: 14px;
+    }
+
+    .header-title h1 {
+      font-family: 'Fira Code', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .header-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-btn:hover { background: var(--border-subtle); color: var(--text); }
+
+    .notif-dot {
+      position: relative;
+    }
+    .notif-dot::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 7px;
+      height: 7px;
+      background: var(--danger);
+      border-radius: 50%;
+      border: 1.5px solid white;
+    }
+
+    .header-divider { width: 1px; height: 28px; background: var(--border); margin: 0 8px; }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 4px 8px 4px 4px;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+    }
+    .user-chip:hover { background: var(--border-subtle); }
+
+    .avatar-sm {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 0 0 2px white, 0 0 0 3px var(--navy);
+    }
+
+    .user-chip-text { text-align: right; }
+    .user-chip-text .name { font-size: 13px; font-weight: 500; line-height: 1.3; }
+    .user-chip-text .role { font-size: 11px; color: var(--text-muted); }
+
+    /* ─── Page content ──────────────────────────────────── */
+    .page-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 40px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 100% -20%, rgba(30,58,138,0.06), transparent),
+        radial-gradient(ellipse 60% 40% at 0% 100%, rgba(8,145,178,0.04), transparent);
+    }
+
+    .page-shell { display: flex; flex-direction: column; gap: 24px; }
+
+    /* ─── Filter bar ─────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .filter-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .select-field {
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-family: 'Fira Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .select-field:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30,58,138,0.1); }
+
+    .btn {
+      height: 34px;
+      padding: 0 14px;
+      border-radius: var(--radius-sm);
+      font-family: 'Fira Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+      border: 1px solid var(--navy);
+    }
+    .btn-primary:hover { background: #1e40af; border-color: #1e40af; box-shadow: 0 2px 8px rgba(30,58,138,0.3); }
+
+    .btn-outline {
+      background: white;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--navy); color: var(--navy); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #CA8A04, #B45309);
+      color: white;
+      border: none;
+    }
+    .btn-gold:hover { box-shadow: 0 4px 12px rgba(202,138,4,0.3); transform: translateY(-1px); }
+
+    .filter-spacer { flex: 1; }
+
+    /* ─── Hero banner ────────────────────────────────────── */
+    .hero-banner {
+      background: linear-gradient(135deg, var(--navy) 0%, #1e40af 60%, var(--navy-mid) 100%);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-elevated);
+    }
+
+    .hero-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -5%;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: 20%;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(202,138,4,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-period {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      font-family: 'Fira Code', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 6px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(22,163,74,0.2);
+      border: 1px solid rgba(74,222,128,0.3);
+      color: #4ade80;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-top: 10px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-stat {
+      text-align: center;
+      padding: 0 24px;
+      border-left: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .hero-stat:first-child { border-left: none; }
+
+    .hero-stat-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .hero-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ─── KPI Grid ───────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 18px 18px 22px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      transition: box-shadow 0.2s, border-color 0.2s;
+      cursor: default;
+    }
+    .kpi-card:hover {
+      box-shadow: var(--shadow-elevated);
+      border-color: rgba(30,58,138,0.15);
+    }
+
+    .kpi-accent-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      border-radius: 4px 0 0 4px;
+    }
+
+    .kpi-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .kpi-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .kpi-value {
+      font-family: 'Fira Code', monospace;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-top: 8px;
+      line-height: 1.1;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .trend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
+    .trend-up   { background: #f0fdf4; color: #16a34a; }
+    .trend-down { background: #fef2f2; color: #dc2626; }
+    .trend-flat { background: #f8fafc; color: #64748b; }
+
+    /* KPI accent variants */
+    .accent-navy   .kpi-accent-bar { background: var(--navy); }
+    .accent-navy   .kpi-icon { background: rgba(30,58,138,0.1); color: var(--navy); }
+    .accent-turq   .kpi-accent-bar { background: var(--turquoise); }
+    .accent-turq   .kpi-icon { background: rgba(8,145,178,0.1); color: var(--turquoise); }
+    .accent-success .kpi-accent-bar { background: var(--success); }
+    .accent-success .kpi-icon { background: rgba(22,163,74,0.1); color: var(--success); }
+    .accent-gold   .kpi-accent-bar { background: var(--gold); }
+    .accent-gold   .kpi-icon { background: rgba(202,138,4,0.1); color: var(--gold); }
+    .accent-danger .kpi-accent-bar { background: var(--danger); }
+    .accent-danger .kpi-icon { background: rgba(220,38,38,0.1); color: var(--danger); }
+
+    /* ─── Section block ──────────────────────────────────── */
+    .section-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .section-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .section-body { padding: 16px 20px; }
+
+    /* ─── Hotel analysis grid ────────────────────────────── */
+    .hotel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .hotel-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .hotel-card:hover { box-shadow: var(--shadow-card); border-color: rgba(30,58,138,0.2); }
+
+    .hotel-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .hotel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 7px;
+    }
+
+    .hotel-name { font-size: 12px; font-weight: 600; display: flex; align-items: center; }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .status-ok      { background: var(--success-light); color: var(--success); }
+    .status-alert   { background: var(--warning-light); color: var(--warning); }
+    .status-danger  { background: var(--danger-light);  color: var(--danger); }
+    .status-neutral { background: var(--border-subtle); color: var(--text-muted); }
+
+    .hotel-ca { font-family: 'Fira Code', monospace; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+
+    .progress-bar {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hotel-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* ─── 2-col grid ─────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ─── Alerts panel ───────────────────────────────────── */
+    .alert-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+    .alert-item.crit  { background: var(--danger-light); border-color: rgba(220,38,38,0.2); }
+    .alert-item.warn  { background: var(--warning-light); border-color: rgba(249,115,22,0.2); }
+    .alert-item.info  { background: var(--blue-light); border-color: rgba(59,130,246,0.2); }
+    .alert-item.ok    { background: var(--success-light); border-color: rgba(22,163,74,0.2); }
+
+    .alert-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+    .alert-msg { flex: 1; line-height: 1.4; }
+    .alert-msg strong { font-weight: 600; }
+
+    .alert-time { font-size: 10px; color: var(--text-muted); flex-shrink: 0; margin-top: 2px; }
+
+    /* ─── Rubrique breakdown ─────────────────────────────── */
+    .rubrique-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .rubrique-row:last-child { border-bottom: none; }
+
+    .rubrique-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .rubrique-name { flex: 1; font-size: 12px; color: var(--text); }
+
+    .rubrique-bar-wrap { width: 80px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .rubrique-bar { height: 100%; border-radius: 3px; }
+
+    .rubrique-pct { font-family: 'Fira Code', monospace; font-size: 12px; font-weight: 500; width: 38px; text-align: right; }
+    .rubrique-val { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--text-muted); width: 70px; text-align: right; }
+
+    /* ─── Charts area ────────────────────────────────────── */
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ─── Data table ─────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .data-table thead tr {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .data-table th:hover { color: var(--text); }
+    .data-table th.sorted { color: var(--navy); }
+    .data-table th.num { text-align: right; }
+
+    .data-table tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.1s;
+    }
+    .data-table tbody tr:hover { background: #f8fafc; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+
+    .data-table td {
+      padding: 11px 14px;
+      color: var(--text);
+    }
+    .data-table td.num {
+      text-align: right;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      tabular-nums: 1;
+    }
+    .data-table td.muted { color: var(--text-muted); font-size: 11px; }
+
+    .table-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .pagination {
+      display: flex;
+      gap: 4px;
+    }
+
+    .page-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+      color: var(--text-muted);
+    }
+    .page-btn:hover { border-color: var(--navy); color: var(--navy); }
+    .page-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
+
+    /* ─── Sync status bar ────────────────────────────────── */
+    .sync-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      background: rgba(22,163,74,0.06);
+      border: 1px solid rgba(22,163,74,0.2);
+      font-size: 11px;
+      color: var(--success);
+      font-weight: 500;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.6; transform: scale(1.25); }
+    }
+
+    /* ─── Sort icon ──────────────────────────────────────── */
+    .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.5; font-size: 9px; }
+    th.sorted .sort-icon { opacity: 1; color: var(--navy); }
+
+    /* ─── Scrollbar ──────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+    /* ─── Tooltip ────────────────────────────────────────── */
+    [title] { cursor: help; }
+
+    /* ─── Mini sparkline ─────────────────────────────────── */
+    .sparkline-wrap { height: 32px; width: 80px; display: inline-block; vertical-align: middle; }
+
+    /* ─── Tab bar ────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      font-family: 'Fira Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { background: white; color: var(--navy); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══════════════════════════ SIDEBAR ════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+      <div class="logo-badge">HM</div>
+      <div class="logo-text">
+        <p>Hotel Metrics</p>
+        <p>Pro Desktop v2.0</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <div class="nav-group">
+        <div class="nav-group-label">Exploitation</div>
+
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard global
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          Saisie journalière
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Historique recettes
+          <span class="nav-badge">3</span>
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Validation recettes
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Objectifs
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">PortMaster</div>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          Dashboard port
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Clients port
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4"/><path d="M6 14v-3a6 6 0 0 1 12 0v3"/></svg>
+          Bateaux
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Contrats
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Factures
+          <span class="nav-badge-new">New</span>
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="7 7 7 17 17 17"/></svg>
+          Recouvrement
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Administration</div>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Hôtels / unités
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Utilisateurs
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Rôles & permissions
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Rapports</div>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Rapports & exports
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Système</div>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Synchronisation
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Journal d'audit
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Paramètres</div>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93L17.66 6.34M6.34 17.66L4.93 19.07M19.07 19.07L17.66 17.66M6.34 6.34L4.93 4.93M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>
+          Général
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          Interface & Thème
+          <span class="nav-badge-new">Bêta</span>
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Notifications
+        </a>
+
+        <a class="nav-item nav-item--settings-active" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Sécurité & Accès
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Base de données
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          Sauvegarde & Export
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          API & Intégrations
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Licences
+          <span class="nav-badge" style="background:rgba(202,138,4,0.85)">Pro</span>
+        </a>
+      </div>
+
+    </nav>
+
+  </aside>
+
+  <!-- ═══════════════════════════ MAIN ════════════════════════════════════ -->
+  <div class="main-area">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-title">
+        <h1>Dashboard Global</h1>
+        <p>Performance consolidée — toutes unités</p>
+      </div>
+
+      <div class="header-actions">
+        <div style="margin-right:8px">
+          <div class="sync-bar">
+            <div class="sync-dot"></div>
+            Synchronisé · il y a 3 min
+          </div>
+        </div>
+
+        <button class="icon-btn notif-dot" title="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+
+        <button class="icon-btn" title="Paramètres">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93L17.66 6.34M6.34 17.66L4.93 19.07M19.07 19.07L17.66 17.66M6.34 6.34L4.93 4.93M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <div class="user-chip">
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:500;line-height:1.3">Ahmed M.</div>
+            <div style="font-size:11px;color:var(--text-muted)">Super Admin</div>
+          </div>
+          <div class="avatar-sm">AM</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page scroll area -->
+    <div class="page-content">
+      <div class="page-shell">
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+          <span class="filter-label">Période</span>
+          <select class="select-field">
+            <option>Janvier 2026</option>
+            <option>Février 2026</option>
+            <option selected>Mai 2026</option>
+          </select>
+          <select class="select-field">
+            <option selected>Toutes les unités</option>
+            <option>Hôtel Atlas</option>
+            <option>Hôtel Tamgout</option>
+            <option>Hôtel Djaïd</option>
+            <option>Hôtel Saouane</option>
+          </select>
+          <select class="select-field">
+            <option selected>Toutes rubriques</option>
+            <option>Hébergement</option>
+            <option>Restauration</option>
+            <option>Séminaires</option>
+          </select>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Appliquer
+          </button>
+          <button class="btn btn-outline">Réinitialiser</button>
+          <div class="filter-spacer"></div>
+          <button class="btn btn-gold">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Excel
+          </button>
+          <button class="btn btn-outline">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PDF
+          </button>
+        </div>
+
+        <!-- Hero banner -->
+        <div class="hero-banner">
+          <div>
+            <div class="hero-period">Mai 2026 — Consolidé toutes unités</div>
+            <div class="hero-title">128 475 000 DA</div>
+            <div class="hero-subtitle">Chiffre d'affaires total · 4 hôtels actifs · 3 rubriques</div>
+            <div class="hero-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +12,4 % vs mai 2025
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-val">4</div>
+              <div class="hero-stat-label">Hôtels</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-val">87%</div>
+              <div class="hero-stat-label">Objectif</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-val">31</div>
+              <div class="hero-stat-label">Jours saisis</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-val">2</div>
+              <div class="hero-stat-label">Alertes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI grid -->
+        <div class="kpi-grid">
+
+          <div class="kpi-card accent-navy">
+            <div class="kpi-accent-bar"></div>
+            <div class="kpi-top">
+              <div class="kpi-label">CA Total</div>
+              <div class="kpi-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">128,4 M</div>
+            <div class="kpi-sub">Total consolidé mai 2026</div>
+            <div class="trend-pill trend-up">▲ +12,4 %</div>
+          </div>
+
+          <div class="kpi-card accent-turq">
+            <div class="kpi-accent-bar"></div>
+            <div class="kpi-top">
+              <div class="kpi-label">Encaissements</div>
+              <div class="kpi-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">114,1 M</div>
+            <div class="kpi-sub">Taux recouvrement : 88,8 %</div>
+            <div class="trend-pill trend-up">▲ +7,2 %</div>
+          </div>
+
+          <div class="kpi-card accent-success">
+            <div class="kpi-accent-bar"></div>
+            <div class="kpi-top">
+              <div class="kpi-label">Objectif atteint</div>
+              <div class="kpi-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">87,3 %</div>
+            <div class="kpi-sub">Objectif mai : 147 M DA</div>
+            <div class="trend-pill trend-up">▲ +4,1 pts</div>
+          </div>
+
+          <div class="kpi-card accent-gold">
+            <div class="kpi-accent-bar"></div>
+            <div class="kpi-top">
+              <div class="kpi-label">Hébergement</div>
+              <div class="kpi-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">84,2 M</div>
+            <div class="kpi-sub">65,6 % du CA total</div>
+            <div class="trend-pill trend-up">▲ +9,8 %</div>
+          </div>
+
+          <div class="kpi-card accent-danger">
+            <div class="kpi-accent-bar"></div>
+            <div class="kpi-top">
+              <div class="kpi-label">Impayés</div>
+              <div class="kpi-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">14,3 M</div>
+            <div class="kpi-sub">+3 créances > 90j · ↑ risque</div>
+            <div class="trend-pill trend-down">▼ −2,1 M</div>
+          </div>
+
+        </div>
+
+        <!-- Hotel analysis -->
+        <div class="section-block">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Analyse par hôtel</div>
+              <div class="section-desc">Performance par unité · mai 2026</div>
+            </div>
+            <div class="tab-bar">
+              <button class="tab-btn active">CA</button>
+              <button class="tab-btn">Objectifs</button>
+              <button class="tab-btn">Encaiss.</button>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="hotel-grid">
+
+              <div class="hotel-card">
+                <div class="hotel-card-top">
+                  <div class="hotel-name"><div class="hotel-dot" style="background:#3B82F6"></div>Hôtel Atlas</div>
+                  <span class="status-badge status-ok">Objectif ✓</span>
+                </div>
+                <div class="hotel-ca">42 100 000 <span style="font-size:11px;color:var(--text-muted)">DA</span></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Objectif : 40 M · 105 %</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
+                <div class="hotel-footer">
+                  <span>Restauration : 12,4 M</span>
+                  <span>▲ +14,2 %</span>
+                </div>
+              </div>
+
+              <div class="hotel-card">
+                <div class="hotel-card-top">
+                  <div class="hotel-name"><div class="hotel-dot" style="background:#0891B2"></div>Hôtel Tamgout</div>
+                  <span class="status-badge status-ok">Objectif ✓</span>
+                </div>
+                <div class="hotel-ca">38 700 000 <span style="font-size:11px;color:var(--text-muted)">DA</span></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Objectif : 38 M · 101,8 %</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
+                <div class="hotel-footer">
+                  <span>Séminaires : 8,1 M</span>
+                  <span>▲ +8,9 %</span>
+                </div>
+              </div>
+
+              <div class="hotel-card">
+                <div class="hotel-card-top">
+                  <div class="hotel-name"><div class="hotel-dot" style="background:#CA8A04"></div>Hôtel Djaïd</div>
+                  <span class="status-badge status-alert">En cours</span>
+                </div>
+                <div class="hotel-ca">27 400 000 <span style="font-size:11px;color:var(--text-muted)">DA</span></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Objectif : 35 M · 78,3 %</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:78%;background:var(--warning)"></div></div>
+                <div class="hotel-footer">
+                  <span>Hébergement : 19,2 M</span>
+                  <span style="color:var(--warning)">▼ −5,4 %</span>
+                </div>
+              </div>
+
+              <div class="hotel-card">
+                <div class="hotel-card-top">
+                  <div class="hotel-name"><div class="hotel-dot" style="background:#16A34A"></div>Hôtel Saouane</div>
+                  <span class="status-badge status-ok">Objectif ✓</span>
+                </div>
+                <div class="hotel-ca">20 275 000 <span style="font-size:11px;color:var(--text-muted)">DA</span></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Objectif : 34 M · 91,2 %</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:91%;background:var(--blue)"></div></div>
+                <div class="hotel-footer">
+                  <span>Restauration : 6,7 M</span>
+                  <span>▲ +18,3 %</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="grid-2">
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Évolution du CA — 2026</div>
+                <div class="section-desc">Mensuel cumulé vs N−1</div>
+              </div>
+              <button class="btn btn-outline" style="height:30px;font-size:11px;padding:0 10px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export
+              </button>
+            </div>
+            <div class="section-body">
+              <div class="chart-wrap">
+                <canvas id="caEvolutionChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-title">CA par hôtel — mai 2026</div>
+                <div class="section-desc">Répartition et comparaison N−1</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="chart-wrap">
+                <canvas id="caHotelChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Alerts + Rubrique -->
+        <div class="grid-2">
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Alertes intelligentes</div>
+                <div class="section-desc">Détection automatique · mai 2026</div>
+              </div>
+              <span class="status-badge status-danger" style="font-size:10px">2 critiques</span>
+            </div>
+            <div class="section-body">
+              <div class="alert-list">
+
+                <div class="alert-item crit">
+                  <div class="alert-icon">⚠</div>
+                  <div class="alert-msg">
+                    <strong>Hôtel Djaïd</strong> — Objectif mensuel en danger :
+                    CA à 78,3 % avec seulement 5 jours restants.
+                  </div>
+                  <div class="alert-time">Maintenant</div>
+                </div>
+
+                <div class="alert-item crit">
+                  <div class="alert-icon">🔴</div>
+                  <div class="alert-msg">
+                    <strong>Créances > 90j</strong> — 3 créances client non récupérées
+                    représentant 8,2 M DA (Port).
+                  </div>
+                  <div class="alert-time">Hier</div>
+                </div>
+
+                <div class="alert-item warn">
+                  <div class="alert-icon">⚡</div>
+                  <div class="alert-msg">
+                    <strong>Hôtel Saouane</strong> — Saisie journalière manquante pour
+                    le 22 mai. Validation requise.
+                  </div>
+                  <div class="alert-time">3h ago</div>
+                </div>
+
+                <div class="alert-item info">
+                  <div class="alert-icon">ℹ</div>
+                  <div class="alert-msg">
+                    <strong>Synchronisation</strong> — Prochaine sync planifiée à 18h00.
+                    Dernière : il y a 3 minutes.
+                  </div>
+                  <div class="alert-time">Planifié</div>
+                </div>
+
+                <div class="alert-item ok">
+                  <div class="alert-icon">✓</div>
+                  <div class="alert-msg">
+                    <strong>Hôtel Atlas & Tamgout</strong> — Objectifs mensuels dépassés.
+                    Excellent mois de mai.
+                  </div>
+                  <div class="alert-time">Maj auto</div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Répartition par rubrique</div>
+                <div class="section-desc">Part du CA par activité — toutes unités</div>
+              </div>
+            </div>
+            <div class="section-body" style="display:flex;gap:20px;align-items:center">
+
+              <div style="flex:1">
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#1E3A8A"></div>
+                  <div class="rubrique-name">Hébergement</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:66%;background:#1E3A8A"></div></div>
+                  <div class="rubrique-pct">65,6 %</div>
+                  <div class="rubrique-val">84,2 M</div>
+                </div>
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#0891B2"></div>
+                  <div class="rubrique-name">Restauration</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:25%;background:#0891B2"></div></div>
+                  <div class="rubrique-pct">23,1 %</div>
+                  <div class="rubrique-val">29,7 M</div>
+                </div>
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#CA8A04"></div>
+                  <div class="rubrique-name">Séminaires</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:11%;background:#CA8A04"></div></div>
+                  <div class="rubrique-pct">11,3 %</div>
+                  <div class="rubrique-val">14,5 M</div>
+                </div>
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#16A34A"></div>
+                  <div class="rubrique-name">Port / Autres</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:5%;background:#16A34A"></div></div>
+                  <div class="rubrique-pct">4,2 %</div>
+                  <div class="rubrique-val">5,4 M</div>
+                </div>
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#F97316"></div>
+                  <div class="rubrique-name">Animation</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:3%;background:#F97316"></div></div>
+                  <div class="rubrique-pct">2,8 %</div>
+                  <div class="rubrique-val">3,6 M</div>
+                </div>
+                <div class="rubrique-row">
+                  <div class="rubrique-dot" style="background:#94A3B8"></div>
+                  <div class="rubrique-name">Divers</div>
+                  <div class="rubrique-bar-wrap"><div class="rubrique-bar" style="width:2%;background:#94A3B8"></div></div>
+                  <div class="rubrique-pct">1,9 %</div>
+                  <div class="rubrique-val">2,4 M</div>
+                </div>
+              </div>
+
+              <div style="width:130px;height:130px;flex-shrink:0">
+                <canvas id="donutChart"></canvas>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Recettes table -->
+        <div class="section-block">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Tableau des recettes — mai 2026</div>
+              <div class="section-desc">31 jours saisis · validation complète</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="select-field" type="search" placeholder="Rechercher..." style="width:180px">
+              <button class="btn btn-outline" style="height:34px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Colonnes
+              </button>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date <span class="sort-icon">↑↓</span></th>
+                  <th>Unité</th>
+                  <th>Rubrique</th>
+                  <th class="num sorted">Montant DA <span class="sort-icon" style="color:var(--navy)">↓</span></th>
+                  <th class="num">Objectif DA</th>
+                  <th class="num">Réalisation %</th>
+                  <th>Statut</th>
+                  <th>Saisie par</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>26 mai 2026</td>
+                  <td>Hôtel Atlas</td>
+                  <td>Hébergement</td>
+                  <td class="num">1 358 000</td>
+                  <td class="num">1 290 000</td>
+                  <td class="num"><span class="status-badge status-ok">105,3 %</span></td>
+                  <td><span class="status-badge status-ok">Validé</span></td>
+                  <td class="muted">M. Benali</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>26 mai 2026</td>
+                  <td>Hôtel Tamgout</td>
+                  <td>Restauration</td>
+                  <td class="num">892 500</td>
+                  <td class="num">950 000</td>
+                  <td class="num"><span class="status-badge status-alert">93,9 %</span></td>
+                  <td><span class="status-badge status-ok">Validé</span></td>
+                  <td class="muted">K. Amrani</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>26 mai 2026</td>
+                  <td>Hôtel Djaïd</td>
+                  <td>Hébergement</td>
+                  <td class="num">756 000</td>
+                  <td class="num">1 129 000</td>
+                  <td class="num"><span class="status-badge status-danger">67,0 %</span></td>
+                  <td><span class="status-badge status-alert">En attente</span></td>
+                  <td class="muted">Z. Cherif</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>25 mai 2026</td>
+                  <td>Hôtel Saouane</td>
+                  <td>Séminaires</td>
+                  <td class="num">648 000</td>
+                  <td class="num">620 000</td>
+                  <td class="num"><span class="status-badge status-ok">104,5 %</span></td>
+                  <td><span class="status-badge status-ok">Validé</span></td>
+                  <td class="muted">F. Ouali</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>25 mai 2026</td>
+                  <td>Hôtel Atlas</td>
+                  <td>Restauration</td>
+                  <td class="num">1 120 500</td>
+                  <td class="num">1 050 000</td>
+                  <td class="num"><span class="status-badge status-ok">106,7 %</span></td>
+                  <td><span class="status-badge status-ok">Validé</span></td>
+                  <td class="muted">M. Benali</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>24 mai 2026</td>
+                  <td>Hôtel Tamgout</td>
+                  <td>Hébergement</td>
+                  <td class="num">1 248 000</td>
+                  <td class="num">1 226 000</td>
+                  <td class="num"><span class="status-badge status-ok">101,8 %</span></td>
+                  <td><span class="status-badge status-ok">Validé</span></td>
+                  <td class="muted">K. Amrani</td>
+                  <td>
+                    <button class="icon-btn" style="width:28px;height:28px;color:var(--text-muted)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>22 mai 2026</td>
+                  <td>Hôtel Saouane</td>
+                  <td>Hébergement</td>
+                  <td class="num" style="color:var(--text-muted);font-style:italic">—</td>
+                  <td class="num">1 100 000</td>
+                  <td class="num"><span class="status-badge status-neutral">Non saisi</span></td>
+                  <td><span class="status-badge status-danger">Manquant</span></td>
+                  <td class="muted">—</td>
+                  <td>
+                    <button class="btn btn-primary" style="height:26px;font-size:11px;padding:0 10px">Saisir</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-actions">
+            <span>Affichage 1–7 sur 248 entrées · Filtre actif : mai 2026</span>
+            <div class="pagination">
+              <button class="page-btn">‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <button class="page-btn" style="width:auto;padding:0 8px">…</button>
+              <button class="page-btn">36</button>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Objectifs + CA mensuel -->
+        <div class="grid-3">
+
+          <div class="section-block" style="grid-column:span 2">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Évolution mensuelle 2026 vs 2025</div>
+                <div class="section-desc">CA total consolidé — comparaison annuelle</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="chart-wrap">
+                <canvas id="yearCompareChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Fréquentation</div>
+                <div class="section-desc">Taux d'occupation · mai 2026</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="chart-wrap" style="height:160px">
+                <canvas id="freqChart"></canvas>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+                <div style="display:flex;justify-content:space-between;font-size:12px">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#1E3A8A;display:inline-block"></span>Hôtel Atlas</span>
+                  <span style="font-family:'Fira Code';font-weight:600;color:var(--success)">91 %</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#0891B2;display:inline-block"></span>Hôtel Tamgout</span>
+                  <span style="font-family:'Fira Code';font-weight:600;color:var(--success)">87 %</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#CA8A04;display:inline-block"></span>Hôtel Djaïd</span>
+                  <span style="font-family:'Fira Code';font-weight:600;color:var(--warning)">64 %</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#16A34A;display:inline-block"></span>Hôtel Saouane</span>
+                  <span style="font-family:'Fira Code';font-weight:600;color:var(--success)">78 %</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── Chart.js global defaults ──────────── */
+Chart.defaults.font.family = "'Fira Sans', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#64748B';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 14;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth = 10;
+
+const gridColor = 'rgba(226,232,240,0.6)';
+const tickColor = '#94A3B8';
+
+/* ─── CA Évolution chart (area) ─────────── */
+const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'];
+
+new Chart(document.getElementById('caEvolutionChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: '2026',
+        data: [102, 110, 118, 121, 128],
+        borderColor: '#1E3A8A',
+        backgroundColor: 'rgba(30,58,138,0.08)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#1E3A8A',
+        pointBorderColor: 'white',
+        pointBorderWidth: 2,
+      },
+      {
+        label: '2025',
+        data: [94, 98, 103, 108, 114],
+        borderColor: '#94A3B8',
+        backgroundColor: 'rgba(148,163,184,0.04)',
+        borderWidth: 1.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#94A3B8',
+        pointBorderColor: 'white',
+        pointBorderWidth: 1.5,
+        borderDash: [4, 3],
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', align: 'end' },
+      tooltip: {
+        backgroundColor: 'white',
+        borderColor: 'rgba(226,232,240,0.8)',
+        borderWidth: 1,
+        titleColor: '#0F172A',
+        bodyColor: '#64748B',
+        padding: 10,
+        callbacks: {
+          label: (ctx) => ` ${ctx.dataset.label} : ${ctx.raw} M DA`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, callback: (v) => v + ' M' },
+        beginAtZero: false,
+        min: 80,
+      },
+    },
+  },
+});
+
+/* ─── CA par hôtel (grouped bar) ─────────── */
+new Chart(document.getElementById('caHotelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Atlas', 'Tamgout', 'Djaïd', 'Saouane'],
+    datasets: [
+      {
+        label: 'CA mai 2026',
+        data: [42.1, 38.7, 27.4, 20.3],
+        backgroundColor: ['#1E3A8A', '#0891B2', '#CA8A04', '#16A34A'],
+        borderRadius: 6,
+        barPercentage: 0.55,
+        categoryPercentage: 0.6,
+      },
+      {
+        label: 'Objectif',
+        data: [40, 38, 35, 34],
+        backgroundColor: 'rgba(148,163,184,0.2)',
+        borderColor: '#94A3B8',
+        borderWidth: 1,
+        borderRadius: 6,
+        barPercentage: 0.55,
+        categoryPercentage: 0.6,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', align: 'end' },
+      tooltip: {
+        backgroundColor: 'white',
+        borderColor: 'rgba(226,232,240,0.8)',
+        borderWidth: 1,
+        titleColor: '#0F172A',
+        bodyColor: '#64748B',
+        padding: 10,
+        callbacks: {
+          label: (ctx) => ` ${ctx.dataset.label} : ${ctx.raw} M DA`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: tickColor } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, callback: (v) => v + ' M' },
+      },
+    },
+  },
+});
+
+/* ─── Donut chart ─────────────────────────── */
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Hébergement', 'Restauration', 'Séminaires', 'Port', 'Autres'],
+    datasets: [{
+      data: [65.6, 23.1, 11.3, 4.2, 2.8],
+      backgroundColor: ['#1E3A8A', '#0891B2', '#CA8A04', '#16A34A', '#F97316'],
+      borderColor: 'white',
+      borderWidth: 2,
+      hoverOffset: 4,
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '70%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}%` },
+      },
+    },
+  },
+});
+
+/* ─── Year compare (area) ─────────────────── */
+const months12 = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'];
+
+new Chart(document.getElementById('yearCompareChart'), {
+  type: 'line',
+  data: {
+    labels: months12,
+    datasets: [
+      {
+        label: '2026',
+        data: [102, 110, 118, 121, 128],
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59,130,246,0.07)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#3B82F6',
+        pointBorderColor: 'white',
+        pointBorderWidth: 2,
+      },
+      {
+        label: '2025',
+        data: [94, 98, 103, 108, 114],
+        borderColor: '#CA8A04',
+        backgroundColor: 'rgba(202,138,4,0.04)',
+        borderWidth: 1.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#CA8A04',
+        pointBorderColor: 'white',
+        pointBorderWidth: 1.5,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', align: 'end' },
+      tooltip: {
+        backgroundColor: 'white',
+        borderColor: 'rgba(226,232,240,0.8)',
+        borderWidth: 1,
+        titleColor: '#0F172A',
+        bodyColor: '#64748B',
+        padding: 10,
+        callbacks: {
+          label: (ctx) => ` ${ctx.dataset.label} : ${ctx.raw} M DA`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, callback: (v) => v + ' M' },
+        beginAtZero: false,
+        min: 80,
+      },
+    },
+  },
+});
+
+/* ─── Frequentation (horizontal bar) ─────── */
+new Chart(document.getElementById('freqChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Atlas', 'Tamgout', 'Djaïd', 'Saouane'],
+    datasets: [{
+      data: [91, 87, 64, 78],
+      backgroundColor: ['#1E3A8A', '#0891B2', '#CA8A04', '#16A34A'],
+      borderRadius: 4,
+      barThickness: 14,
+    }],
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (ctx) => ` ${ctx.raw} %` } },
+    },
+    scales: {
+      x: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, callback: (v) => v + '%' },
+        max: 100,
+      },
+      y: { grid: { display: false }, ticks: { color: tickColor } },
+    },
+  },
+});
+
+/* ─── Tab button interaction ──────────────── */
+document.querySelectorAll('.tab-bar').forEach(bar => {
+  bar.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

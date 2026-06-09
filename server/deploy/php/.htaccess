@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Adapter RewriteBase si le dossier n'est pas à la racine du domaine.
+# Exemple : dossier public_html/hmp-api → RewriteBase /hmp-api/
+RewriteBase /hmp-api/
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^api/(.*)$ index.php?route=$1 [QSA,L]

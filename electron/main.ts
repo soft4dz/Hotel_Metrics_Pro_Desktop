@@ -1,0 +1,216 @@
+import Electron from './lib/electronApi';
+import { existsSync, readFileSync } from 'node:fs';
+import path from './lib/nodePath';
+import { fileURLToPath } from 'node:url';
+import { closeDatabase, initDatabase } from './database/sqlite';
+import { runSeedIfNeeded } from './database/seed';
+import { ensureBootstrapAuthAccounts } from './database/authBootstrap';
+import { importLegacyDatabase } from './database/importLegacyData';
+import { registerAuthIpc } from './ipc/auth.ipc';
+import { registerUsersIpc } from './ipc/users.ipc';
+import { registerHotelsIpc } from './ipc/hotels.ipc';
+import { registerRolesIpc } from './ipc/roles.ipc';
+import { registerRubriquesIpc } from './ipc/rubriques.ipc';
+import { registerAuditIpc } from './ipc/audit.ipc';
+import { registerImportIpc } from './ipc/import.ipc';
+import { registerRecettesIpc } from './ipc/recettes.ipc';
+import { registerObjectifsIpc } from './ipc/objectifs.ipc';
+import { registerDashboardIpc } from './ipc/dashboard.ipc';
+import { registerPortmasterIpc } from './ipc/portmaster.ipc';
+import { registerExportIpc } from './ipc/export.ipc';
+import { registerSyncIpc } from './ipc/sync.ipc';
+import { registerSettingsIpc } from './ipc/settings.ipc';
+import { registerDatabaseIpc } from './ipc/database.ipc';
+import { registerBackupIpc } from './ipc/backup.ipc';
+import { runPortSeedIfNeeded } from './database/portSeed';
+import { runPortMigrateV2 } from './database/portMigrateV2';
+import { logger } from './utils/logger';
+import { clearWebContentsSession } from './services/session.service';
+import { ensureLogoDirectories, resolveLogoAbsolutePath } from './services/logo.service';
+
+Electron.protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'hmp-logo',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const isDev = !Electron.app.isPackaged;
+
+let mainWindow: Electron.BrowserWindow | null = null;
+
+function resolvePreloadPath(): string {
+  for (const file of ['preload.mjs', 'preload.js', 'preload.cjs']) {
+    const full = path.join(__dirname, file);
+    if (existsSync(full)) return full;
+  }
+  return path.join(__dirname, 'preload.mjs');
+}
+
+function createWindow(): void {
+  mainWindow = new Electron.BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 700,
+    show: false,
+    autoHideMenuBar: true,
+    title: 'Hotel Metrics Pro Desktop',
+    webPreferences: {
+      preload: resolvePreloadPath(),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
+
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    if (process.env.HMP_DEVTOOLS === '1') {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https:')) {
+      void Electron.shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  const webContentsId = mainWindow.webContents.id;
+
+  mainWindow.on('close', () => {
+    clearWebContentsSession(webContentsId);
+    mainWindow = null;
+  });
+}
+
+Electron.ipcMain.handle('app:getVersion', () => Electron.app.getVersion());
+Electron.ipcMain.handle('app:ping', () => ({ ok: true, timestamp: Date.now() }));
+
+function getLegacyImportPath(): string | null {
+  const eqArg = process.argv.find((a) => a.startsWith('--import-legacy='));
+  if (eqArg) {
+    return eqArg.slice('--import-legacy='.length).replace(/^["']|["']$/g, '');
+  }
+  const idx = process.argv.indexOf('--import-legacy');
+  if (idx >= 0 && process.argv[idx + 1]) {
+    return process.argv[idx + 1];
+  }
+  return null;
+}
+
+function logoMimeType(filePath: string): string {
+  switch (path.extname(filePath).toLowerCase()) {
+    case '.png':
+      return 'image/png';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.webp':
+      return 'image/webp';
+    case '.svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function registerLogoProtocol(): void {
+  Electron.protocol.handle('hmp-logo', async (request) => {
+    const url = new URL(request.url);
+    const relativePath = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+    const filePath = resolveLogoAbsolutePath(relativePath);
+    if (!filePath) {
+      return new Response(null, { status: 404 });
+    }
+    try {
+      const body = readFileSync(filePath);
+      return new Response(body, {
+        headers: {
+          'Content-Type': logoMimeType(filePath),
+          'Cache-Control': 'private, max-age=3600',
+        },
+      });
+    } catch {
+      return new Response(null, { status: 500 });
+    }
+  });
+}
+
+function bootstrap(): void {
+  try {
+    initDatabase();
+
+    const importPath = getLegacyImportPath();
+    if (importPath) {
+      logger.info(`Mode import legacy : ${importPath}`);
+      const result = importLegacyDatabase(importPath);
+      console.log('\n=== Résultat import ===\n', JSON.stringify(result, null, 2));
+      closeDatabase();
+      Electron.app.quit();
+      return;
+    }
+
+    runSeedIfNeeded();
+    ensureBootstrapAuthAccounts();
+    runPortSeedIfNeeded();
+    runPortMigrateV2();
+    ensureLogoDirectories();
+    registerAuthIpc();
+    registerUsersIpc();
+    registerHotelsIpc();
+    registerRolesIpc();
+    registerRubriquesIpc();
+    registerAuditIpc();
+    registerImportIpc();
+    registerRecettesIpc();
+    registerObjectifsIpc();
+    registerDashboardIpc();
+    registerPortmasterIpc();
+    registerExportIpc();
+    registerSyncIpc();
+    registerSettingsIpc();
+    registerDatabaseIpc();
+    registerBackupIpc();
+    createWindow();
+  } catch (err) {
+    logger.error('Échec initialisation application', err);
+    Electron.app.quit();
+  }
+}
+
+Electron.app.whenReady().then(() => {
+  registerLogoProtocol();
+  bootstrap();
+});
+
+Electron.app.on('activate', () => {
+  if (Electron.BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+Electron.app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    Electron.app.quit();
+  }
+});
+
+Electron.app.on('will-quit', () => {
+  closeDatabase();
+});

@@ -1,0 +1,19 @@
+﻿electron.exe : node:internal/modules/esm/translators:297
+Au caractère C:\Users\HP\AppData\Local\Temp\ps-script-1c35a610-247f-4577-8b19-af12bf46b427.ps1:83 : 44
++ ... o_Desktop"; & ".\node_modules\electron\dist\electron.exe" "dist-elect ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (node:internal/m...translators:297:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    return { module, exportNames: new SafeSet(['default', ...Object.keys(module.exports)]) };
+                                                                                ^
+
+TypeError: Cannot read properties of undefined (reading 'exports')
+    at cjsPreparseModuleExports (node:internal/modules/esm/translators:297:81)
+    at createCJSModuleWrap (node:internal/modules/esm/translators:189:35)
+    at ModuleLoader.<anonymous> (node:internal/modules/esm/translators:249:10)
+    at #translate (node:internal/modules/esm/loader:540:12)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:587:27)
+    at async ModuleJob._link (node:internal/modules/esm/module_job:162:19)
+
+Node.js v22.19.0
