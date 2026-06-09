@@ -153,8 +153,11 @@ export const ipcClient: IpcApi = {
       api().portmaster.marquerRelanceEnvoyee(id),
   },
   settings: {
+    getBranding: () => api().settings.getBranding(),
     getAppInfo: () => api().settings.getAppInfo(),
     update: (input) => api().settings.update(input),
+    pickBrandAsset: (asset) => api().settings.pickBrandAsset(asset),
+    removeBrandAsset: (asset) => api().settings.removeBrandAsset(asset),
   },
   database: {
     getInfo: () => api().database.getInfo(),

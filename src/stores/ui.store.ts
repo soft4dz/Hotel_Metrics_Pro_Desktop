@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { applyUiTheme } from '@/lib/applyUiTheme';
 
 export type AccentColor = 'navy' | 'blue' | 'violet' | 'emerald' | 'rose' | 'amber' | 'cyan' | 'slate';
 export type Density     = 'compact' | 'comfortable' | 'spacious';
@@ -52,7 +53,7 @@ interface UiState {
 
 export const useUiStore = create<UiState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sidebarCollapsed: false,
       accentColor:      'navy',
       density:          'comfortable',
@@ -61,8 +62,14 @@ export const useUiStore = create<UiState>()(
       toggleSidebar: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
-      setAccentColor: (accentColor) => set({ accentColor }),
-      setDensity:     (density)      => set({ density }),
+      setAccentColor: (accentColor) => {
+        set({ accentColor });
+        applyUiTheme(accentColor, get().density);
+      },
+      setDensity: (density) => {
+        set({ density });
+        applyUiTheme(get().accentColor, density);
+      },
       setNotifPref:   (key, value)   =>
         set((state) => ({ notifPrefs: { ...state.notifPrefs, [key]: value } })),
       resetNotifPrefs: () => set({ notifPrefs: DEFAULT_NOTIF }),
@@ -75,6 +82,11 @@ export const useUiStore = create<UiState>()(
         density:          state.density,
         notifPrefs:       state.notifPrefs,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          applyUiTheme(state.accentColor, state.density);
+        }
+      },
     },
   ),
 );

@@ -20,31 +20,31 @@ export function PremiumHeader({ title, subtitle }: PremiumHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-[#F8FAFC]/88 px-6 py-3 backdrop-blur-xl lg:px-8">
+    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 px-6 py-3 backdrop-blur-xl lg:px-8">
       <div className="flex items-center justify-between gap-5">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Hotel Metrics Pro</p>
-          <h1 className="mt-1 truncate font-heading text-xl font-semibold tracking-tight text-slate-950">{title}</h1>
-          {subtitle ? <p className="truncate text-xs text-slate-500">{subtitle}</p> : null}
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Hotel Metrics Pro</p>
+          <h1 className="mt-1 truncate font-heading text-xl font-semibold tracking-tight text-foreground">{title}</h1>
+          {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
         </div>
 
-        <div className="hidden items-center gap-2 rounded-2xl border bg-white px-3 py-2 text-sm text-slate-500 shadow-sm xl:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm xl:flex">
           <CalendarDays className="h-4 w-4 text-primary" />
           {today}
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border bg-white p-1.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-1.5 shadow-sm">
           <div className="hidden px-2 text-right sm:block">
-            <p className="max-w-[180px] truncate text-sm font-semibold text-slate-900">{user?.fullName ?? 'Utilisateur'}</p>
-            <p className="text-[11px] text-slate-500">{user?.roleLabel ?? user?.role ?? '—'}</p>
+            <p className="max-w-[180px] truncate text-sm font-semibold text-foreground">{user?.fullName ?? 'Utilisateur'}</p>
+            <p className="text-[11px] text-muted-foreground">{user?.roleLabel ?? user?.role ?? '—'}</p>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-xs font-bold text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
             {initials}
           </div>
-          <Button variant="ghost" size="icon" className="rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-950" onClick={() => navigate('/settings')} aria-label="Paramètres">
+          <Button variant="ghost" size="icon" className="rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground" onClick={() => navigate('/settings')} aria-label="Paramètres">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600" onClick={() => void handleLogout()} aria-label="Déconnexion">
+          <Button variant="ghost" size="icon" className="rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => void handleLogout()} aria-label="Déconnexion">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

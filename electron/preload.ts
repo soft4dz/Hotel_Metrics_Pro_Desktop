@@ -179,8 +179,11 @@ const api: IpcApi = {
       ipcRenderer.invoke('portmaster:recouvrement:relanceEnvoyee', id),
   },
   settings: {
+    getBranding: () => ipcRenderer.invoke('settings:getBranding'),
     getAppInfo: () => ipcRenderer.invoke('settings:getAppInfo'),
     update: (input) => ipcRenderer.invoke('settings:update', input),
+    pickBrandAsset: (asset) => ipcRenderer.invoke('settings:pickBrandAsset', asset),
+    removeBrandAsset: (asset) => ipcRenderer.invoke('settings:removeBrandAsset', asset),
   },
   database: {
     getInfo: () => ipcRenderer.invoke('database:getInfo'),

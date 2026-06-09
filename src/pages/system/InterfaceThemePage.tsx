@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Check, Layers, Maximize2, Minimize2, Minus } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionBlock } from '@/components/common/SectionBlock';
@@ -26,6 +27,15 @@ const DENSITY_OPTIONS: { key: Density; label: string; desc: string; icon: typeof
 export function InterfaceThemePage() {
   const { accentColor, density, sidebarCollapsed, setAccentColor, setDensity, setSidebarCollapsed } =
     useUiStore();
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const notify = (message: string) => setNotice(message);
 
   const current = ACCENT_OPTIONS.find((a) => a.key === accentColor) ?? ACCENT_OPTIONS[0];
 
@@ -36,6 +46,12 @@ export function InterfaceThemePage() {
         description="Personnalisez l'apparence de l'application"
         backTo="/settings"
       />
+
+      {notice && (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+          {notice}
+        </p>
+      )}
 
       {/* ── Couleur d'accentuation ──────────────────────── */}
       <SectionBlock
@@ -49,7 +65,10 @@ export function InterfaceThemePage() {
               <button
                 key={opt.key}
                 type="button"
-                onClick={() => setAccentColor(opt.key)}
+                onClick={() => {
+                  setAccentColor(opt.key);
+                  notify(`Couleur « ${opt.label} » appliquée.`);
+                }}
                 className={cn(
                   'group flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-150 hover:shadow-card',
                   isActive
@@ -94,7 +113,10 @@ export function InterfaceThemePage() {
               <button
                 key={opt.key}
                 type="button"
-                onClick={() => setDensity(opt.key)}
+                onClick={() => {
+                  setDensity(opt.key);
+                  notify(`Densité « ${opt.label} » appliquée.`);
+                }}
                 className={cn(
                   'relative flex flex-col gap-3 rounded-xl border-2 p-5 text-left transition-all duration-150 hover:shadow-card',
                   isActive
@@ -147,7 +169,10 @@ export function InterfaceThemePage() {
               <button
                 key={String(val)}
                 type="button"
-                onClick={() => setSidebarCollapsed(val)}
+                onClick={() => {
+                  setSidebarCollapsed(val);
+                  notify(val ? 'Sidebar réduite par défaut.' : 'Sidebar étendue par défaut.');
+                }}
                 className={cn(
                   'relative flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all duration-150 hover:shadow-card',
                   isActive

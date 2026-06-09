@@ -1,7 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '@/App';
+import { hydrateUiThemeFromStorage } from '@/lib/applyUiTheme';
 import '@/styles/globals.css';
+
+hydrateUiThemeFromStorage();
 
 const root = document.getElementById('root');
 

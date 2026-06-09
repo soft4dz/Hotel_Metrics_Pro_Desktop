@@ -25,20 +25,33 @@
     --ring: 224 64% 33%;
     --radius: 0.95rem;
     --sidebar: 224 64% 18%;
+    --sidebar-from: 222 47% 11%;
+    --sidebar-via: 224 64% 33%;
+    --sidebar-to: 224 64% 18%;
     --gold: 43 74% 42%;
     --gold-foreground: 0 0% 100%;
   }
 
-  .accent-blue { --primary: 217 91% 60%; --primary-foreground: 0 0% 100%; --ring: 217 91% 60%; --sidebar: 217 91% 22%; }
-  .accent-violet { --primary: 262 83% 58%; --primary-foreground: 0 0% 100%; --ring: 262 83% 58%; --sidebar: 262 83% 18%; }
-  .accent-emerald { --primary: 160 84% 32%; --primary-foreground: 0 0% 100%; --ring: 160 84% 32%; --sidebar: 160 84% 14%; }
-  .accent-rose { --primary: 347 77% 50%; --primary-foreground: 0 0% 100%; --ring: 347 77% 50%; --sidebar: 347 77% 18%; }
-  .accent-amber { --primary: 38 92% 50%; --primary-foreground: 222 47% 11%; --ring: 38 92% 50%; --sidebar: 30 80% 18%; }
-  .accent-cyan { --primary: 192 82% 35%; --primary-foreground: 0 0% 100%; --ring: 192 82% 35%; --sidebar: 192 82% 15%; }
-  .accent-slate { --primary: 217 19% 35%; --primary-foreground: 0 0% 100%; --ring: 217 19% 35%; --sidebar: 217 19% 14%; }
+  .accent-navy {
+    --primary: 224 64% 31%;
+    --primary-foreground: 210 40% 98%;
+    --ring: 224 64% 33%;
+    --sidebar: 224 64% 18%;
+    --sidebar-from: 222 47% 11%;
+    --sidebar-via: 224 64% 33%;
+    --sidebar-to: 224 64% 18%;
+  }
+  .accent-blue { --primary: 217 91% 60%; --primary-foreground: 0 0% 100%; --ring: 217 91% 60%; --sidebar: 217 91% 22%; --sidebar-from: 217 91% 12%; --sidebar-via: 217 91% 45%; --sidebar-to: 217 91% 22%; }
+  .accent-violet { --primary: 262 83% 58%; --primary-foreground: 0 0% 100%; --ring: 262 83% 58%; --sidebar: 262 83% 18%; --sidebar-from: 262 83% 10%; --sidebar-via: 262 83% 42%; --sidebar-to: 262 83% 18%; }
+  .accent-emerald { --primary: 160 84% 32%; --primary-foreground: 0 0% 100%; --ring: 160 84% 32%; --sidebar: 160 84% 14%; --sidebar-from: 160 84% 8%; --sidebar-via: 160 84% 28%; --sidebar-to: 160 84% 14%; }
+  .accent-rose { --primary: 347 77% 50%; --primary-foreground: 0 0% 100%; --ring: 347 77% 50%; --sidebar: 347 77% 18%; --sidebar-from: 347 77% 10%; --sidebar-via: 347 77% 38%; --sidebar-to: 347 77% 18%; }
+  .accent-amber { --primary: 38 92% 50%; --primary-foreground: 222 47% 11%; --ring: 38 92% 50%; --sidebar: 30 80% 18%; --sidebar-from: 30 80% 10%; --sidebar-via: 38 92% 42%; --sidebar-to: 30 80% 18%; }
+  .accent-cyan { --primary: 192 82% 35%; --primary-foreground: 0 0% 100%; --ring: 192 82% 35%; --sidebar: 192 82% 15%; --sidebar-from: 192 82% 8%; --sidebar-via: 192 82% 30%; --sidebar-to: 192 82% 15%; }
+  .accent-slate { --primary: 217 19% 35%; --primary-foreground: 0 0% 100%; --ring: 217 19% 35%; --sidebar: 217 19% 14%; --sidebar-from: 217 19% 8%; --sidebar-via: 217 19% 28%; --sidebar-to: 217 19% 14%; }
 
-  .density-compact { --radius: 0.45rem; }
-  .density-spacious { --radius: 1.15rem; }
+  .density-compact { --radius: 0.45rem; --density-gap: 0.75rem; --density-pad: 0.875rem; }
+  .density-comfortable { --radius: 0.95rem; --density-gap: 1rem; --density-pad: 1.25rem; }
+  .density-spacious { --radius: 1.15rem; --density-gap: 1.25rem; --density-pad: 1.5rem; }
 
   * { @apply border-border; }
 
@@ -57,8 +70,17 @@
 }
 
 @layer components {
+  .sidebar-shell {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-from)) 0%,
+      hsl(var(--sidebar-via)) 52%,
+      hsl(var(--sidebar-to)) 100%
+    );
+  }
+
   .app-surface {
-    @apply rounded-2xl border border-border/70 bg-card/95 shadow-card backdrop-blur-sm transition-all duration-200;
+    @apply rounded-lg border border-border/70 bg-card/95 shadow-card backdrop-blur-sm transition-all duration-200;
   }
 
   .app-surface-hover {
@@ -83,7 +105,7 @@
   }
 
   .hero-panel {
-    @apply relative overflow-hidden rounded-[1.35rem] border border-white/70 bg-gradient-to-br from-white via-white to-muted/50 p-6 shadow-elevated;
+    @apply relative overflow-hidden rounded-lg border border-white/70 bg-gradient-to-br from-white via-white to-muted/50 p-6 shadow-elevated;
   }
 
   .hero-panel::before {
@@ -99,11 +121,11 @@
   .hero-panel > * { @apply relative; }
 
   .metric-card {
-    @apply rounded-2xl border border-border/70 bg-card/95 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0;
+    @apply rounded-lg border border-border/70 bg-card/95 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0;
   }
 
   .module-card {
-    @apply rounded-2xl border border-border/70 bg-card/95 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-white hover:shadow-elevated motion-reduce:translate-y-0;
+    @apply rounded-lg border border-border/70 bg-card/95 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-white hover:shadow-elevated motion-reduce:translate-y-0;
   }
 
   .pill-soft {

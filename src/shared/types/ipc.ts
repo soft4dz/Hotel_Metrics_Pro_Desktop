@@ -317,9 +317,16 @@ export interface IpcApi {
     marquerRelanceEnvoyee: (id: number) => Promise<IpcResult<boolean>>;
   };
   settings: {
+    getBranding: () => Promise<IpcResult<{ companyName: string; companyLogoUrl: string | null }>>;
     getAppInfo: () => Promise<IpcResult<AppInfoDto>>;
     update: (
       input: Partial<AppSettingsDto>,
+    ) => Promise<IpcResult<AppSettingsDto>>;
+    pickBrandAsset: (
+      asset: 'logo' | 'report-header' | 'report-footer',
+    ) => Promise<IpcResult<AppSettingsDto>>;
+    removeBrandAsset: (
+      asset: 'logo' | 'report-header' | 'report-footer',
     ) => Promise<IpcResult<AppSettingsDto>>;
   };
   database: {

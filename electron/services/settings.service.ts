@@ -2,6 +2,13 @@ import Electron from '../lib/electronApi';
 import path from '../lib/nodePath';
 import { getDatabase } from '../database/sqlite';
 import { getActorContext, isGlobalAdminRole } from './actorContext';
+import {
+  deleteCompanyBrandAsset,
+  pickBrandImageFile,
+  resolveCompanyBrandUrl,
+  saveCompanyBrandAssetFromFile,
+  type CompanyBrandAsset,
+} from './logo.service';
 import { assertPermission, userHasPermission } from './permissions.service';
 
 export interface AppSettingsDto {
@@ -22,6 +29,12 @@ export interface AppSettingsDto {
   auditEnabled: boolean;
   reportHeader: string;
   reportFooter: string;
+  companyLogoFile: string | null;
+  companyLogoUrl: string | null;
+  reportHeaderImageFile: string | null;
+  reportHeaderImageUrl: string | null;
+  reportFooterImageFile: string | null;
+  reportFooterImageUrl: string | null;
   tauxTvaPort: number;
   maxLoginAttempts: number;
   lockoutMinutes: number;
@@ -65,7 +78,16 @@ function normalizeNonEmpty(value: string, fallback: string): string {
   return trimmed || fallback;
 }
 
+function readOptionalSetting(key: string): string | null {
+  const value = readSetting(key, '').trim();
+  return value || null;
+}
+
 function readAppSettings(): AppSettingsDto {
+  const companyLogoFile = readOptionalSetting('company_logo_file');
+  const reportHeaderImageFile = readOptionalSetting('report_header_image_file');
+  const reportFooterImageFile = readOptionalSetting('report_footer_image_file');
+
   return {
     companyName: readSetting('company_name', 'EGT Sidi Fredj'),
     companyLegalName: readSetting('company_legal_name', 'Entreprise de Gestion Touristique de Sidi Fredj'),
@@ -84,17 +106,50 @@ function readAppSettings(): AppSettingsDto {
     auditEnabled: readBoolSetting('audit_enabled', true),
     reportHeader: readSetting('report_header', 'Hotel Metrics Pro - Rapport interne'),
     reportFooter: readSetting('report_footer', 'Document généré automatiquement'),
+    companyLogoFile,
+    companyLogoUrl: resolveCompanyBrandUrl(companyLogoFile),
+    reportHeaderImageFile,
+    reportHeaderImageUrl: resolveCompanyBrandUrl(reportHeaderImageFile),
+    reportFooterImageFile,
+    reportFooterImageUrl: resolveCompanyBrandUrl(reportFooterImageFile),
     tauxTvaPort: parseFloat(readSetting('port_taux_tva_default', '19')),
     maxLoginAttempts: parseInt(readSetting('max_login_attempts', '5'), 10),
     lockoutMinutes: parseInt(readSetting('lockout_minutes', '15'), 10),
   };
 }
 
-export function getAppInfo(actorUserId: number): AppInfoDto {
+function assertSettingsAdmin(actorUserId: number): void {
   const actor = getActorContext(actorUserId);
   if (!userHasPermission(actorUserId, 'users.manage') && !isGlobalAdminRole(actor.roleCode)) {
     assertPermission(actorUserId, 'users.manage');
   }
+}
+
+const BRAND_SETTING_KEYS: Record<CompanyBrandAsset, string> = {
+  logo: 'company_logo_file',
+  'report-header': 'report_header_image_file',
+  'report-footer': 'report_footer_image_file',
+};
+
+const BRAND_DIALOG_TITLES: Record<CompanyBrandAsset, string> = {
+  logo: "Choisir le logo de l'entreprise",
+  'report-header': "Choisir l'image d'en-tête de rapport",
+  'report-footer': "Choisir l'image de pied de page de rapport",
+};
+
+export function getCompanyBranding(): {
+  companyName: string;
+  companyLogoUrl: string | null;
+} {
+  const companyLogoFile = readOptionalSetting('company_logo_file');
+  return {
+    companyName: readSetting('company_name', 'EGT Sidi Fredj'),
+    companyLogoUrl: resolveCompanyBrandUrl(companyLogoFile),
+  };
+}
+
+export function getAppInfo(actorUserId: number): AppInfoDto {
+  assertSettingsAdmin(actorUserId);
   const dataDir = getDataDirectory();
   return {
     version: Electron.app.getVersion(),
@@ -108,10 +163,7 @@ export function updateAppSettings(
   actorUserId: number,
   input: Partial<AppSettingsDto>,
 ): AppSettingsDto {
-  const actor = getActorContext(actorUserId);
-  if (!userHasPermission(actorUserId, 'users.manage') && !isGlobalAdminRole(actor.roleCode)) {
-    assertPermission(actorUserId, 'users.manage');
-  }
+  assertSettingsAdmin(actorUserId);
 
   if (input.companyName !== undefined) writeSetting('company_name', input.companyName.trim());
   if (input.companyLegalName !== undefined) {
@@ -184,5 +236,34 @@ export function updateAppSettings(
     writeSetting('lockout_minutes', String(v));
   }
 
+  return readAppSettings();
+}
+
+export async function pickCompanyBrandAsset(
+  actorUserId: number,
+  asset: CompanyBrandAsset,
+): Promise<AppSettingsDto> {
+  assertSettingsAdmin(actorUserId);
+  const picked = await pickBrandImageFile(BRAND_DIALOG_TITLES[asset]);
+  if (!picked) return readAppSettings();
+
+  const settingKey = BRAND_SETTING_KEYS[asset];
+  const previous = readOptionalSetting(settingKey);
+  deleteCompanyBrandAsset(previous);
+
+  const relativePath = saveCompanyBrandAssetFromFile(asset, picked);
+  writeSetting(settingKey, relativePath);
+  return readAppSettings();
+}
+
+export function removeCompanyBrandAsset(
+  actorUserId: number,
+  asset: CompanyBrandAsset,
+): AppSettingsDto {
+  assertSettingsAdmin(actorUserId);
+  const settingKey = BRAND_SETTING_KEYS[asset];
+  const previous = readOptionalSetting(settingKey);
+  deleteCompanyBrandAsset(previous);
+  writeSetting(settingKey, '');
   return readAppSettings();
 }

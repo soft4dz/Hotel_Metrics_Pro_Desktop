@@ -25,6 +25,12 @@ export function getHotelLogosDirectory(): string {
   return path.join(getAppLogosDirectory(), 'hotels');
 }
 
+export function getCompanyBrandingDirectory(): string {
+  return path.join(getAppLogosDirectory(), 'company');
+}
+
+export type CompanyBrandAsset = 'logo' | 'report-header' | 'report-footer';
+
 /** Logos embarqués / projet — assets/logos */
 export function getProjectLogosDirectory(): string {
   return resolveBundledLogosDirectory();
@@ -32,6 +38,7 @@ export function getProjectLogosDirectory(): string {
 
 export function ensureLogoDirectories(): void {
   mkdirSync(getHotelLogosDirectory(), { recursive: true });
+  mkdirSync(getCompanyBrandingDirectory(), { recursive: true });
   mkdirSync(path.join(getAppLogosDirectory(), 'assets'), { recursive: true });
   seedBundledLogosIfNeeded();
 }
@@ -71,6 +78,12 @@ export function resolveLogoAbsolutePath(relativePath: string): string | null {
   if (normalized.startsWith('hotels/')) {
     const hotelFile = path.join(getAppLogosDirectory(), normalized);
     if (existsSync(hotelFile)) return hotelFile;
+    return null;
+  }
+
+  if (normalized.startsWith('company/')) {
+    const companyFile = path.join(getAppLogosDirectory(), normalized);
+    if (existsSync(companyFile)) return companyFile;
     return null;
   }
 
@@ -130,6 +143,44 @@ export function deleteHotelLogoFile(logoFile: string | null | undefined): void {
   if (abs && existsSync(abs)) {
     unlinkSync(abs);
   }
+}
+
+function deleteCompanyAssetFiles(asset: CompanyBrandAsset): void {
+  for (const ext of ALLOWED_EXT) {
+    const candidate = path.join(getCompanyBrandingDirectory(), `${asset}${ext}`);
+    if (existsSync(candidate)) unlinkSync(candidate);
+  }
+}
+
+export function saveCompanyBrandAssetFromFile(asset: CompanyBrandAsset, sourcePath: string): string {
+  ensureLogoDirectories();
+  assertFileSize(sourcePath);
+  const ext = sanitizeExt(sourcePath);
+  deleteCompanyAssetFiles(asset);
+  const relativePath = `company/${asset}${ext}`;
+  copyFileSync(sourcePath, path.join(getAppLogosDirectory(), relativePath));
+  return relativePath;
+}
+
+export function deleteCompanyBrandAsset(relativePath: string | null | undefined): void {
+  deleteHotelLogoFile(relativePath);
+}
+
+export function resolveCompanyBrandUrl(relativePath: string | null | undefined): string | null {
+  if (relativePath?.trim() && resolveLogoAbsolutePath(relativePath)) {
+    return toLogoUrl(relativePath);
+  }
+  return null;
+}
+
+export async function pickBrandImageFile(title: string): Promise<string | null> {
+  const { canceled, filePaths } = await Electron.dialog.showOpenDialog({
+    title,
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg'] }],
+    properties: ['openFile'],
+  });
+  if (canceled || filePaths.length === 0) return null;
+  return filePaths[0] ?? null;
 }
 
 export async function pickHotelLogoFile(): Promise<string | null> {

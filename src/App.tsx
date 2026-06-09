@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { HashRouter, useNavigate } from 'react-router-dom';
 import { AppRoutes } from '@/routes/AppRoutes';
+import { applyUiTheme } from '@/lib/applyUiTheme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiStore } from '@/stores/ui.store';
 
@@ -28,14 +29,7 @@ export default function App() {
   const density = useUiStore((s) => s.density);
 
   useEffect(() => {
-    const el = document.documentElement;
-    el.classList.forEach((c) => {
-      if (c.startsWith('accent-') || c.startsWith('density-')) {
-        el.classList.remove(c);
-      }
-    });
-    if (accentColor !== 'navy') el.classList.add(`accent-${accentColor}`);
-    if (density !== 'comfortable') el.classList.add(`density-${density}`);
+    applyUiTheme(accentColor, density);
   }, [accentColor, density]);
 
   return (

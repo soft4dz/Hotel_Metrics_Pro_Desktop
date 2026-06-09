@@ -16,6 +16,12 @@ export interface AppSettingsDto {
   auditEnabled: boolean;
   reportHeader: string;
   reportFooter: string;
+  companyLogoFile: string | null;
+  companyLogoUrl: string | null;
+  reportHeaderImageFile: string | null;
+  reportHeaderImageUrl: string | null;
+  reportFooterImageFile: string | null;
+  reportFooterImageUrl: string | null;
   tauxTvaPort: number;
   maxLoginAttempts: number;
   lockoutMinutes: number;

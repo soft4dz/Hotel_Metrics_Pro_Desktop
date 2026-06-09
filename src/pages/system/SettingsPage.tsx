@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cloud, Database, Loader2, Save, User } from 'lucide-react';
+import { Cloud, Database, ImagePlus, Loader2, Save, Trash2, User } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
@@ -30,6 +31,12 @@ const DEFAULT_SETTINGS: AppSettingsDto = {
   auditEnabled: true,
   reportHeader: 'Hotel Metrics Pro - Rapport interne',
   reportFooter: 'Document généré automatiquement',
+  companyLogoFile: null,
+  companyLogoUrl: null,
+  reportHeaderImageFile: null,
+  reportHeaderImageUrl: null,
+  reportFooterImageFile: null,
+  reportFooterImageUrl: null,
   tauxTvaPort: 19,
   maxLoginAttempts: 5,
   lockoutMinutes: 15,
@@ -37,6 +44,65 @@ const DEFAULT_SETTINGS: AppSettingsDto = {
 
 function mergeSettings(partial?: Partial<AppSettingsDto>): AppSettingsDto {
   return { ...DEFAULT_SETTINGS, ...partial };
+}
+
+type BrandAssetKind = 'logo' | 'report-header' | 'report-footer';
+
+function BrandAssetUpload({
+  label,
+  description,
+  imageUrl,
+  hasFile,
+  loading,
+  disabled,
+  onPick,
+  onRemove,
+}: {
+  label: string;
+  description: string;
+  imageUrl: string | null;
+  hasFile: boolean;
+  loading: boolean;
+  disabled: boolean;
+  onPick: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <div
+        className={cn(
+          'flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4',
+          imageUrl && 'border-solid border-primary/20 bg-card',
+        )}
+      >
+        {loading ? (
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        ) : imageUrl ? (
+          <img src={imageUrl} alt={label} className="max-h-24 max-w-full object-contain" />
+        ) : (
+          <div className="flex flex-col items-center gap-1 text-muted-foreground">
+            <ImagePlus className="h-8 w-8 opacity-40" />
+            <span className="text-[11px]">PNG, JPG, WEBP ou SVG — max 512 Ko</span>
+          </div>
+        )}
+        {!disabled && (
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={loading} onClick={onPick}>
+              {hasFile ? 'Changer' : 'Téléverser'}
+            </Button>
+            {hasFile && (
+              <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={onRemove}>
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Supprimer
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function SettingsPage() {
@@ -49,6 +115,7 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [brandLoading, setBrandLoading] = useState<BrandAssetKind | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +135,37 @@ export function SettingsPage() {
 
   const setField = <K extends keyof AppSettingsDto>(key: K, value: AppSettingsDto[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const applySettings = (settings: AppSettingsDto) => {
+    const merged = mergeSettings(settings);
+    setForm(merged);
+    if (info) {
+      setInfo({ ...info, settings: merged });
+    }
+  };
+
+  const handleBrandAsset = async (asset: BrandAssetKind, action: 'pick' | 'remove') => {
+    if (!isAdmin) return;
+    setBrandLoading(asset);
+    setError('');
+    setMessage('');
+    try {
+      const updated =
+        action === 'pick'
+          ? unwrapIpc(await ipcClient.settings.pickBrandAsset(asset))
+          : unwrapIpc(await ipcClient.settings.removeBrandAsset(asset));
+      applySettings(updated);
+      setMessage(
+        action === 'pick'
+          ? 'Image enregistrée.'
+          : 'Image supprimée.',
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du téléversement.');
+    } finally {
+      setBrandLoading(null);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -210,6 +308,18 @@ export function SettingsPage() {
                 value={form.companyEmail}
                 onChange={(e) => setField('companyEmail', e.target.value)}
                 disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <BrandAssetUpload
+                label="Logo de l'entreprise"
+                description="Affiché dans la barre latérale et sur les documents (data/logos/company/)."
+                imageUrl={form.companyLogoUrl}
+                hasFile={Boolean(form.companyLogoFile)}
+                loading={brandLoading === 'logo'}
+                disabled={disabled}
+                onPick={() => void handleBrandAsset('logo', 'pick')}
+                onRemove={() => void handleBrandAsset('logo', 'remove')}
               />
             </div>
           </CardContent>
@@ -399,7 +509,7 @@ export function SettingsPage() {
               Audit activé
             </label>
             <div className="space-y-2">
-              <Label htmlFor="reportHeader">En-tête rapport</Label>
+              <Label htmlFor="reportHeader">Texte d&apos;en-tête rapport</Label>
               <Input
                 id="reportHeader"
                 value={form.reportHeader}
@@ -407,8 +517,18 @@ export function SettingsPage() {
                 disabled={disabled}
               />
             </div>
+            <BrandAssetUpload
+              label="Image d'en-tête rapport"
+              description="Bandeau ou logo en haut des rapports PDF exportés."
+              imageUrl={form.reportHeaderImageUrl}
+              hasFile={Boolean(form.reportHeaderImageFile)}
+              loading={brandLoading === 'report-header'}
+              disabled={disabled}
+              onPick={() => void handleBrandAsset('report-header', 'pick')}
+              onRemove={() => void handleBrandAsset('report-header', 'remove')}
+            />
             <div className="space-y-2">
-              <Label htmlFor="reportFooter">Pied de page rapport</Label>
+              <Label htmlFor="reportFooter">Texte de pied de page rapport</Label>
               <Input
                 id="reportFooter"
                 value={form.reportFooter}
@@ -416,6 +536,16 @@ export function SettingsPage() {
                 disabled={disabled}
               />
             </div>
+            <BrandAssetUpload
+              label="Image de pied de page rapport"
+              description="Mention légale ou signature en bas des rapports."
+              imageUrl={form.reportFooterImageUrl}
+              hasFile={Boolean(form.reportFooterImageFile)}
+              loading={brandLoading === 'report-footer'}
+              disabled={disabled}
+              onPick={() => void handleBrandAsset('report-footer', 'pick')}
+              onRemove={() => void handleBrandAsset('report-footer', 'remove')}
+            />
           </CardContent>
         </Card>
 
