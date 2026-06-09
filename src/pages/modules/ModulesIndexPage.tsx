@@ -16,27 +16,26 @@ export function ModulesIndexPage() {
 
   return (
     <section className="space-y-6">
-      <div className="hero-panel">
+      <div className="overflow-hidden rounded-3xl bg-slate-950 p-7 text-white shadow-elevated">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Architecture de pilotage
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+              <Sparkles className="h-3.5 w-3.5 text-brand-gold" />
+              Cartographie SI
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">Modules de pilotage interconnectés</h1>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground lg:text-base">
-              Vue d’ensemble des modules de Hotel Metrics Pro. Les modules opérationnels ouvrent les écrans existants,
-              les autres servent de socle structuré pour le développement progressif.
+            <h1 className="mt-5 text-4xl font-bold tracking-tight lg:text-5xl">Centre de pilotage des modules métier</h1>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/65 lg:text-base">
+              Accédez rapidement aux modules opérationnels et gardez une vision claire des socles prêts et des chantiers à venir.
             </p>
           </div>
-          <div className="rounded-2xl border bg-white/80 p-4 shadow-card">
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-brand-gold">
                 <Network className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{total}</p>
-                <p className="text-xs text-muted-foreground">modules reliés</p>
+                <p className="text-xs text-white/50">modules reliés</p>
               </div>
             </div>
           </div>
