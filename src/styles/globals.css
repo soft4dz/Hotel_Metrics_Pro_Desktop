@@ -4,88 +4,47 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 214 45% 97%;
+    --foreground: 222 47% 10%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 224 64% 33%;
+    --primary: 224 64% 31%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 214 32% 96%;
+    --secondary: 214 36% 94%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 214 32% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 16% 43%;
     --accent: 192 82% 35%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
     --ring: 224 64% 33%;
-    --radius: 0.75rem;
+    --radius: 0.95rem;
     --sidebar: 224 64% 18%;
-    --gold: 43 74% 40%;
+    --gold: 43 74% 42%;
     --gold-foreground: 0 0% 100%;
   }
 
-  /* ── Accent color themes ───────────────────────────── */
-  .accent-blue {
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 217 91% 60%;
-    --sidebar: 217 91% 22%;
-  }
-  .accent-violet {
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 262 83% 58%;
-    --sidebar: 262 83% 18%;
-  }
-  .accent-emerald {
-    --primary: 160 84% 32%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 160 84% 32%;
-    --sidebar: 160 84% 14%;
-  }
-  .accent-rose {
-    --primary: 347 77% 50%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 347 77% 50%;
-    --sidebar: 347 77% 18%;
-  }
-  .accent-amber {
-    --primary: 38 92% 50%;
-    --primary-foreground: 222 47% 11%;
-    --ring: 38 92% 50%;
-    --sidebar: 30 80% 18%;
-  }
-  .accent-cyan {
-    --primary: 192 82% 35%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 192 82% 35%;
-    --sidebar: 192 82% 15%;
-  }
-  .accent-slate {
-    --primary: 217 19% 35%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 217 19% 35%;
-    --sidebar: 217 19% 14%;
-  }
+  .accent-blue { --primary: 217 91% 60%; --primary-foreground: 0 0% 100%; --ring: 217 91% 60%; --sidebar: 217 91% 22%; }
+  .accent-violet { --primary: 262 83% 58%; --primary-foreground: 0 0% 100%; --ring: 262 83% 58%; --sidebar: 262 83% 18%; }
+  .accent-emerald { --primary: 160 84% 32%; --primary-foreground: 0 0% 100%; --ring: 160 84% 32%; --sidebar: 160 84% 14%; }
+  .accent-rose { --primary: 347 77% 50%; --primary-foreground: 0 0% 100%; --ring: 347 77% 50%; --sidebar: 347 77% 18%; }
+  .accent-amber { --primary: 38 92% 50%; --primary-foreground: 222 47% 11%; --ring: 38 92% 50%; --sidebar: 30 80% 18%; }
+  .accent-cyan { --primary: 192 82% 35%; --primary-foreground: 0 0% 100%; --ring: 192 82% 35%; --sidebar: 192 82% 15%; }
+  .accent-slate { --primary: 217 19% 35%; --primary-foreground: 0 0% 100%; --ring: 217 19% 35%; --sidebar: 217 19% 14%; }
 
-  /* ── Density ───────────────────────────────────────── */
-  .density-compact  { --radius: 0.4rem; }
-  .density-spacious { --radius: 1rem; }
+  .density-compact { --radius: 0.45rem; }
+  .density-spacious { --radius: 1.15rem; }
 
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
   html,
   body,
-  #root {
-    @apply h-full;
-  }
+  #root { @apply h-full; }
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
@@ -94,86 +53,76 @@
 
   h1,
   h2,
-  h3 {
-    @apply font-semibold tracking-tight text-foreground;
-  }
+  h3 { @apply font-semibold tracking-tight text-foreground; }
 }
 
 @layer components {
   .app-surface {
-    @apply rounded-xl border border-border/80 bg-card shadow-card transition-shadow duration-200;
+    @apply rounded-2xl border border-border/70 bg-card/95 shadow-card backdrop-blur-sm transition-all duration-200;
   }
 
   .app-surface-hover {
-    @apply app-surface hover:border-primary/15 hover:shadow-elevated motion-reduce:transition-none;
+    @apply app-surface hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-elevated motion-reduce:translate-y-0 motion-reduce:transition-none;
   }
 
   .app-input {
-    @apply h-10 rounded-lg border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors duration-200;
-    @apply focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15;
+    @apply h-10 rounded-xl border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors duration-200;
+    @apply focus:border-primary/50 focus:outline-none focus:ring-4 focus:ring-primary/10;
   }
 
-  .section-label {
-    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
-  }
-
-  .page-content {
-    @apply min-h-0;
-  }
-
-  .page-shell {
-    @apply space-y-6;
-  }
+  .section-label { @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground; }
+  .page-content { @apply min-h-0; }
+  .page-shell { @apply space-y-6; }
 
   .page-mesh {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(ellipse 80% 50% at 100% -20%, hsl(224 64% 33% / 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 0% 100%, hsl(192 82% 35% / 0.04), transparent);
+      radial-gradient(900px 420px at 96% -12%, hsl(var(--primary) / 0.10), transparent 62%),
+      radial-gradient(760px 380px at -8% 104%, hsl(var(--accent) / 0.08), transparent 62%),
+      linear-gradient(180deg, hsl(0 0% 100% / 0.62), hsl(var(--background)) 46%);
   }
 
-  .form-card {
-    @apply app-surface p-6;
+  .hero-panel {
+    @apply relative overflow-hidden rounded-[1.35rem] border border-white/70 bg-gradient-to-br from-white via-white to-muted/50 p-6 shadow-elevated;
   }
 
-  .status-banner {
-    @apply rounded-lg border px-4 py-3 text-sm;
+  .hero-panel::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    background:
+      radial-gradient(420px 180px at 100% 0%, hsl(var(--primary) / 0.12), transparent 70%),
+      radial-gradient(360px 160px at 0% 100%, hsl(var(--accent) / 0.10), transparent 70%);
   }
 
-  .status-banner-error {
-    @apply status-banner border-destructive/25 bg-destructive/5 text-destructive;
+  .hero-panel > * { @apply relative; }
+
+  .metric-card {
+    @apply rounded-2xl border border-border/70 bg-card/95 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0;
   }
 
-  .status-banner-success {
-    @apply status-banner border-emerald-200 bg-emerald-50 text-emerald-800;
+  .module-card {
+    @apply rounded-2xl border border-border/70 bg-card/95 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-white hover:shadow-elevated motion-reduce:translate-y-0;
   }
 
-  .status-banner-info {
-    @apply status-banner border-primary/20 bg-primary/5 text-primary;
+  .pill-soft {
+    @apply rounded-full border border-border/70 bg-muted/70 px-3 py-1 text-xs font-medium text-muted-foreground;
   }
 
-  .dashboard-page {
-    @apply space-y-6;
-  }
-
-  .kpi-grid-primary {
-    @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5;
-  }
-
-  .kpi-grid-secondary {
-    @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-5;
-  }
+  .form-card { @apply app-surface p-6; }
+  .status-banner { @apply rounded-xl border px-4 py-3 text-sm; }
+  .status-banner-error { @apply status-banner border-destructive/25 bg-destructive/5 text-destructive; }
+  .status-banner-success { @apply status-banner border-emerald-200 bg-emerald-50 text-emerald-800; }
+  .status-banner-info { @apply status-banner border-primary/20 bg-primary/5 text-primary; }
+  .dashboard-page { @apply space-y-6; }
+  .kpi-grid-primary { @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5; }
+  .kpi-grid-secondary { @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-5; }
 }
 
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(215 16% 70%) transparent;
-  }
-
-  .text-balance {
-    text-wrap: balance;
-  }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(215 16% 70%) transparent; }
+  .text-balance { text-wrap: balance; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -188,14 +137,7 @@
 
 @media print {
   aside,
-  .print\:hidden {
-    display: none !important;
-  }
-  main {
-    overflow: visible !important;
-    background: white !important;
-  }
-  .dashboard-print {
-    break-inside: avoid;
-  }
+  .print\:hidden { display: none !important; }
+  main { overflow: visible !important; background: white !important; }
+  .dashboard-print { break-inside: avoid; }
 }
