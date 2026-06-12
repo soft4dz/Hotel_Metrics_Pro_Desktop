@@ -1,4 +1,57 @@
 /** Contrat IPC typé — main ↔ renderer */
+import type {
+  CreateAbsenceInput,
+  CreateContratInput,
+  CreateDepartementInput,
+  CreateEmployeInput,
+  CreatePosteInput,
+  CreateRecrutementInput,
+  RhAbsence,
+  RhContrat,
+  RhDashboard,
+  RhDepartement,
+  RhEmploye,
+  RhMonEspace,
+  RhPointage,
+  RhPoste,
+  RhRecrutement,
+  StatutAbsence,
+  StatutRecrutement,
+  UpsertPointageInput,
+} from './rh';
+import type {
+  ComposantTarif, CreateComposantInput,
+  FormuleTarif, CreateFormuleInput,
+  PlanTarifaire, CreatePlanInput,
+  TarifJournalier, UpsertTarifInput, UpsertTarifsBulkInput,
+  PromotionTarif, CreatePromotionInput,
+  Convention, CreateConventionInput,
+  SimulateurInput, SimulateurResult,
+} from './tarifs';
+import type {
+  Chambre, CreateChambreInput, CreateReservationInput, CreateTypeChambreInput,
+  OccupationPeriode, Reservation, StatutChambre, StatutReservation, TypeChambre,
+} from './hebergement';
+import type {
+  AddCaisseInput,
+  CompteBancaire,
+  CreateCompteInput,
+  CreateEncaissementInput,
+  EncaissementFilters,
+  EncaissementItem,
+  JournalCaisseEntry,
+  TresorerieDashboard,
+} from './tresorerie';
+import type {
+  AddPaiementInput as AddPaiementFactInput,
+  ClientFacturation,
+  CreateClientInput as CreateClientFactInput,
+  CreateFactureInput as CreateFactureFactInput,
+  FacturationDashboard,
+  FactureDetail as FactureDetailFact,
+  FactureFilters as FactureFiltersFact,
+  FactureListItem as FactureListItemFact,
+} from './facturation';
 
 import type { AuthUserDto, ChangePasswordPayload, ChangePasswordResult, LoginPayload, LoginResult, UserProfileDto } from './auth';
 import type {
@@ -39,6 +92,15 @@ import type { DashboardDto, DashboardFilters } from './dashboard';
 import type { ExportKind, ExportResult } from './export';
 import type { SyncConfigDto, SyncQueueItem, SyncRunResult, SyncStatusDto } from './sync';
 import type { AppInfoDto, AppSettingsDto } from './settings';
+import type {
+  ClientContact,
+  ClientFilters,
+  ClientItem,
+  ClientItemDetail,
+  ClientsDashboard,
+  CreateClientInput as CreateClientCompletInput,
+  CreateContactInput,
+} from './clients';
 import type {
   BackupCreateResult,
   BackupListItem,
@@ -111,6 +173,8 @@ export interface IpcApi {
       input: UpdateUserInput,
     ) => Promise<IpcResult<UserListItem>>;
     deactivate: (id: number, reason: string) => Promise<IpcResult<boolean>>;
+    pendingCount: () => Promise<IpcResult<number>>;
+    activatePending: (id: number) => Promise<IpcResult<UserListItem>>;
   };
   hotels: {
     list: () => Promise<IpcResult<HotelListItem[]>>;
@@ -360,6 +424,116 @@ export interface IpcApi {
     dashboardPdf: (
       filters: DashboardFilters,
     ) => Promise<IpcResult<ExportResult>>;
+  };
+  facturation: {
+    getDashboard: (hotelId?: number) => Promise<IpcResult<FacturationDashboard>>;
+    listFactures: (filters: FactureFiltersFact) => Promise<IpcResult<FactureListItemFact[]>>;
+    getFacture: (id: number) => Promise<IpcResult<FactureDetailFact>>;
+    createFacture: (input: CreateFactureFactInput) => Promise<IpcResult<FactureDetailFact>>;
+    updateFacture: (id: number, input: Partial<CreateFactureFactInput>) => Promise<IpcResult<FactureDetailFact>>;
+    soumettre: (id: number) => Promise<IpcResult<FactureListItemFact>>;
+    valider: (id: number) => Promise<IpcResult<FactureListItemFact>>;
+    annuler: (id: number) => Promise<IpcResult<FactureListItemFact>>;
+    deleteFacture: (id: number) => Promise<IpcResult<boolean>>;
+    addPaiement: (input: AddPaiementFactInput) => Promise<IpcResult<FactureDetailFact>>;
+    deletePaiement: (id: number) => Promise<IpcResult<FactureDetailFact>>;
+    listClients: (search?: string) => Promise<IpcResult<ClientFacturation[]>>;
+    createClient: (input: CreateClientFactInput) => Promise<IpcResult<ClientFacturation>>;
+    updateClient: (id: number, input: Partial<CreateClientFactInput>) => Promise<IpcResult<ClientFacturation>>;
+    deleteClient: (id: number) => Promise<IpcResult<boolean>>;
+  };
+  clients: {
+    getDashboard: () => Promise<IpcResult<ClientsDashboard>>;
+    list: (filters?: ClientFilters) => Promise<IpcResult<ClientItem[]>>;
+    get: (id: number) => Promise<IpcResult<ClientItemDetail>>;
+    create: (input: CreateClientCompletInput) => Promise<IpcResult<ClientItemDetail>>;
+    update: (id: number, input: Partial<CreateClientCompletInput>) => Promise<IpcResult<ClientItemDetail>>;
+    toggleActif: (id: number) => Promise<IpcResult<ClientItemDetail>>;
+    delete: (id: number) => Promise<IpcResult<boolean>>;
+    listContacts: (clientId: number) => Promise<IpcResult<ClientContact[]>>;
+    createContact: (clientId: number, input: CreateContactInput) => Promise<IpcResult<ClientContact>>;
+    updateContact: (contactId: number, input: Partial<CreateContactInput>) => Promise<IpcResult<ClientContact>>;
+    deleteContact: (contactId: number) => Promise<IpcResult<boolean>>;
+  };
+  tresorerie: {
+    getDashboard: (hotelId?: number) => Promise<IpcResult<TresorerieDashboard>>;
+    listEncaissements: (filters: EncaissementFilters) => Promise<IpcResult<EncaissementItem[]>>;
+    createEncaissement: (input: CreateEncaissementInput) => Promise<IpcResult<EncaissementItem>>;
+    updateEncaissement: (id: number, input: Partial<CreateEncaissementInput>) => Promise<IpcResult<EncaissementItem>>;
+    confirmerEncaissement: (id: number) => Promise<IpcResult<EncaissementItem>>;
+    rejeterEncaissement: (id: number, motif: string) => Promise<IpcResult<EncaissementItem>>;
+    deleteEncaissement: (id: number) => Promise<IpcResult<boolean>>;
+    listComptes: (hotelId?: number) => Promise<IpcResult<CompteBancaire[]>>;
+    createCompte: (input: CreateCompteInput) => Promise<IpcResult<CompteBancaire>>;
+    updateCompte: (id: number, input: Partial<CreateCompteInput>) => Promise<IpcResult<CompteBancaire>>;
+    deleteCompte: (id: number) => Promise<IpcResult<boolean>>;
+    getJournalCaisse: (hotelId: number, dateDebut: string, dateFin: string) => Promise<IpcResult<JournalCaisseEntry[]>>;
+    addOperationCaisse: (input: AddCaisseInput) => Promise<IpcResult<JournalCaisseEntry>>;
+    deleteOperationCaisse: (id: number) => Promise<IpcResult<boolean>>;
+  };
+  hebergement: {
+    listTypesChambre: (hotelId?: number) => Promise<IpcResult<TypeChambre[]>>;
+    createTypeChambre: (input: CreateTypeChambreInput) => Promise<IpcResult<TypeChambre>>;
+    deleteTypeChambre: (id: number) => Promise<IpcResult<boolean>>;
+    listChambres: (hotelId?: number, statut?: StatutChambre) => Promise<IpcResult<Chambre[]>>;
+    createChambre: (input: CreateChambreInput) => Promise<IpcResult<Chambre>>;
+    updateChambre: (id: number, input: Partial<CreateChambreInput>) => Promise<IpcResult<Chambre>>;
+    updateStatutChambre: (id: number, statut: StatutChambre) => Promise<IpcResult<Chambre>>;
+    deleteChambre: (id: number) => Promise<IpcResult<boolean>>;
+    listReservations: (hotelId?: number, dateDebut?: string, dateFin?: string, statut?: StatutReservation) => Promise<IpcResult<Reservation[]>>;
+    getReservation: (id: number) => Promise<IpcResult<Reservation>>;
+    createReservation: (input: CreateReservationInput) => Promise<IpcResult<Reservation>>;
+    updateReservationStatut: (id: number, statut: StatutReservation) => Promise<IpcResult<Reservation>>;
+    deleteReservation: (id: number) => Promise<IpcResult<boolean>>;
+    getOccupationKpis: (dateDebut: string, dateFin: string, hotelId?: number) => Promise<IpcResult<OccupationPeriode>>;
+  };
+  tarifs: {
+    listComposants:   (hotelId?: number) => Promise<IpcResult<ComposantTarif[]>>;
+    createComposant:  (input: CreateComposantInput) => Promise<IpcResult<ComposantTarif>>;
+    deleteComposant:  (id: number) => Promise<IpcResult<boolean>>;
+    listFormules:     (hotelId?: number) => Promise<IpcResult<FormuleTarif[]>>;
+    createFormule:    (input: CreateFormuleInput) => Promise<IpcResult<FormuleTarif>>;
+    deleteFormule:    (id: number) => Promise<IpcResult<boolean>>;
+    listPlans:        (hotelId?: number) => Promise<IpcResult<PlanTarifaire[]>>;
+    createPlan:       (input: CreatePlanInput) => Promise<IpcResult<PlanTarifaire>>;
+    deletePlan:       (id: number) => Promise<IpcResult<boolean>>;
+    getGrille:        (hotelId: number, planId: number, dateDebut: string, dateFin: string, formuleId?: number) => Promise<IpcResult<TarifJournalier[]>>;
+    upsertTarif:      (input: UpsertTarifInput) => Promise<IpcResult<TarifJournalier>>;
+    upsertBulk:       (input: UpsertTarifsBulkInput) => Promise<IpcResult<number>>;
+    listPromotions:   (hotelId?: number) => Promise<IpcResult<PromotionTarif[]>>;
+    createPromotion:  (input: CreatePromotionInput) => Promise<IpcResult<PromotionTarif>>;
+    togglePromotion:  (id: number, actif: boolean) => Promise<IpcResult<boolean>>;
+    deletePromotion:  (id: number) => Promise<IpcResult<boolean>>;
+    listConventions:  (hotelId?: number, clientId?: number) => Promise<IpcResult<Convention[]>>;
+    createConvention: (input: CreateConventionInput) => Promise<IpcResult<Convention>>;
+    toggleConvention: (id: number, actif: boolean) => Promise<IpcResult<boolean>>;
+    deleteConvention: (id: number) => Promise<IpcResult<boolean>>;
+    simuler:          (input: SimulateurInput) => Promise<IpcResult<SimulateurResult>>;
+  };
+  rh: {
+    getDashboard: (dateDebut?: string, dateFin?: string) => Promise<IpcResult<RhDashboard>>;
+    pendingAccountsCount: () => Promise<IpcResult<number>>;
+    getMonEspace: () => Promise<IpcResult<RhMonEspace>>;
+    listDepartements: () => Promise<IpcResult<RhDepartement[]>>;
+    createDepartement: (input: CreateDepartementInput) => Promise<IpcResult<RhDepartement>>;
+    listPostes: () => Promise<IpcResult<RhPoste[]>>;
+    createPoste: (input: CreatePosteInput) => Promise<IpcResult<RhPoste>>;
+    listEmployes: (search?: string) => Promise<IpcResult<RhEmploye[]>>;
+    getEmploye: (id: number) => Promise<IpcResult<RhEmploye | null>>;
+    createEmploye: (input: CreateEmployeInput) => Promise<IpcResult<RhEmploye>>;
+    listRecrutements: (statut?: StatutRecrutement) => Promise<IpcResult<RhRecrutement[]>>;
+    createRecrutement: (input: CreateRecrutementInput) => Promise<IpcResult<RhRecrutement>>;
+    validerRecrutement: (id: number) => Promise<IpcResult<RhRecrutement>>;
+    refuserRecrutement: (id: number, motif?: string) => Promise<IpcResult<RhRecrutement>>;
+    listContrats: (employeId: number) => Promise<IpcResult<RhContrat[]>>;
+    createContrat: (input: CreateContratInput) => Promise<IpcResult<RhContrat>>;
+    listPointages: (dateDebut?: string, dateFin?: string, employeId?: number) => Promise<IpcResult<RhPointage[]>>;
+    upsertPointage: (input: UpsertPointageInput) => Promise<IpcResult<RhPointage>>;
+    soumettrePointage: (id: number) => Promise<IpcResult<RhPointage>>;
+    validerPointage: (id: number, approuve: boolean) => Promise<IpcResult<RhPointage>>;
+    listAbsences: (statut?: StatutAbsence) => Promise<IpcResult<RhAbsence[]>>;
+    createAbsence: (input: CreateAbsenceInput) => Promise<IpcResult<RhAbsence>>;
+    deciderAbsence: (id: number, approuve: boolean) => Promise<IpcResult<RhAbsence>>;
   };
 }
 

@@ -23,7 +23,7 @@ export function loadUserHotelIds(userId: number): number[] {
   ).map((r) => r.hotelId);
 }
 
-export function userHasAllHotelsAccess(userId: number, roleCode: string, hotelScope: string): boolean {
+export function userHasAllHotelsAccess(_userId: number, roleCode: string, hotelScope: string): boolean {
   if (isGlobalAdminRole(roleCode)) return true;
   if (['PDG', 'AUDIT_INTERNE', 'COMPTABILITE'].includes(roleCode)) return true;
   return hotelScope === 'all';

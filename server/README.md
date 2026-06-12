@@ -1,32 +1,73 @@
-# Serveur API central (sync)
+# Hotel Metrics Pro — API Centrale (NestJS + PostgreSQL)
 
-## Développement local (stub Node)
+## Prérequis
+
+- Node.js 20+
+- PostgreSQL 15+ installé et démarré
+
+## Démarrage rapide
+
+### 1. Installer les dépendances
 
 ```bash
-npm run server:dev
+cd server
+npm install
 ```
 
-Par défaut : **http://127.0.0.1:3847**
+### 2. Configurer l'environnement
 
-| Route | Méthode | Description |
-|-------|---------|-------------|
-| `/api/health` | GET | Santé API |
-| `/api/sync/push` | POST | Réception file offline |
-| `/api/sync/pull` | GET | Modifications distantes |
+```bash
+cp .env.example .env
+# Éditer .env avec vos paramètres PostgreSQL
+```
 
-Variable d'environnement : `HMP_API_PORT` (port alternatif).
+`.env` minimal :
+```
+DATABASE_URL="postgresql://postgres:votre_mdp@localhost:5432/hotel_metrics_pro"
+JWT_SECRET="votre-secret-jwt-tres-long"
+```
 
-## Production cloud (cPanel / MySQL)
+### 3. Créer la base PostgreSQL
 
-Voir **`server/deploy/README-CLOUD.md`** — schéma MySQL + API PHP pour `https://votre-domaine/hmp-api`.
+```sql
+CREATE DATABASE hotel_metrics_pro;
+```
 
-### Instance déployée (soft4dz.com)
+### 4. Migrations + seed
 
-| Élément | Valeur |
-|---------|--------|
-| URL API | `https://soft4dz.com/hmp-api` |
-| Base MySQL | `softdzco_hmp_sync` |
-| Utilisateur MySQL | `softdzco_hmp_user` |
-| Test santé | `GET https://soft4dz.com/hmp-api/api/health` |
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+npm run db:seed
+# → admin@hotelmetrics.local / Admin@2025! (à changer à la 1ère connexion)
+```
 
-Les identifiants MySQL et la clé API ont été transmis séparément — ne pas les committer.
+### 5. Démarrer
+
+```bash
+npm run start:dev        # développement (hot-reload)
+npm run build && npm run start:prod   # production
+```
+
+API : http://localhost:3001/api/v1
+Swagger : http://localhost:3001/api/docs
+
+---
+
+## Migration depuis SQLite
+
+```bash
+npx ts-node scripts/migrate-from-sqlite.ts --sqlite ../hotel_metrics.db
+```
+
+---
+
+## Dual-write Electron
+
+Ajouter dans `.env` (racine du projet Electron) :
+
+```
+CENTRAL_API_URL=http://localhost:3001/api/v1
+```
+
+L'app Electron détecte si l'API répond. En cas d'absence, elle reste en mode hors-ligne (SQLite seul).

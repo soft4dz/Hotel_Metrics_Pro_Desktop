@@ -4,30 +4,30 @@
 
 @layer base {
   :root {
-    --background: 214 45% 97%;
+    --background: 220 20% 97%;
     --foreground: 222 47% 10%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 224 64% 31%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 214 36% 94%;
     --secondary-foreground: 222 47% 11%;
     --muted: 214 32% 95%;
-    --muted-foreground: 215 16% 43%;
+    --muted-foreground: 215 16% 47%;
     --accent: 192 82% 35%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 88%;
-    --input: 214 32% 88%;
-    --ring: 224 64% 33%;
-    --radius: 0.95rem;
-    --sidebar: 224 64% 18%;
-    --sidebar-from: 222 47% 11%;
-    --sidebar-via: 224 64% 33%;
-    --sidebar-to: 224 64% 18%;
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 221 83% 53%;
+    --radius: 0.75rem;
+    --sidebar: 221 83% 53%;
+    --sidebar-from: 221 83% 12%;
+    --sidebar-via: 221 83% 40%;
+    --sidebar-to: 221 83% 22%;
     --gold: 43 74% 42%;
     --gold-foreground: 0 0% 100%;
   }
@@ -137,9 +137,9 @@
   .status-banner-error { @apply status-banner border-destructive/25 bg-destructive/5 text-destructive; }
   .status-banner-success { @apply status-banner border-emerald-200 bg-emerald-50 text-emerald-800; }
   .status-banner-info { @apply status-banner border-primary/20 bg-primary/5 text-primary; }
-  .dashboard-page { @apply space-y-6; }
-  .kpi-grid-primary { @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5; }
-  .kpi-grid-secondary { @apply grid gap-[14px] sm:grid-cols-2 lg:grid-cols-5; }
+  .dashboard-page { @apply space-y-5; }
+  .kpi-grid-primary { @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5; }
+  .kpi-grid-secondary { @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-5; }
 }
 
 @layer utilities {

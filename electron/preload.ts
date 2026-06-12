@@ -23,6 +23,8 @@ const api: IpcApi = {
       ipcRenderer.invoke('users:update', id, input),
     deactivate: (id, reason) =>
       ipcRenderer.invoke('users:deactivate', id, reason),
+    pendingCount: () => ipcRenderer.invoke('users:pendingCount'),
+    activatePending: (id) => ipcRenderer.invoke('users:activatePending', id),
   },
   hotels: {
     list: () => ipcRenderer.invoke('hotels:list'),
@@ -217,6 +219,149 @@ const api: IpcApi = {
       ipcRenderer.invoke('export:dashboardExcel', filters),
     dashboardPdf: (filters) =>
       ipcRenderer.invoke('export:dashboardPdf', filters),
+  },
+  clients: {
+    getDashboard: () => ipcRenderer.invoke('clients:getDashboard'),
+    list: (filters) => ipcRenderer.invoke('clients:list', filters),
+    get: (id) => ipcRenderer.invoke('clients:get', id),
+    create: (input) => ipcRenderer.invoke('clients:create', input),
+    update: (id, input) => ipcRenderer.invoke('clients:update', id, input),
+    toggleActif: (id) => ipcRenderer.invoke('clients:toggleActif', id),
+    delete: (id) => ipcRenderer.invoke('clients:delete', id),
+    listContacts: (clientId) => ipcRenderer.invoke('clients:contacts:list', clientId),
+    createContact: (clientId, input) => ipcRenderer.invoke('clients:contacts:create', clientId, input),
+    updateContact: (contactId, input) => ipcRenderer.invoke('clients:contacts:update', contactId, input),
+    deleteContact: (contactId) => ipcRenderer.invoke('clients:contacts:delete', contactId),
+  },
+  tresorerie: {
+    getDashboard: (hotelId) =>
+      ipcRenderer.invoke('tresorerie:dashboard', hotelId),
+    listEncaissements: (filters) =>
+      ipcRenderer.invoke('tresorerie:encaissements:list', filters),
+    createEncaissement: (input) =>
+      ipcRenderer.invoke('tresorerie:encaissements:create', input),
+    updateEncaissement: (id, input) =>
+      ipcRenderer.invoke('tresorerie:encaissements:update', id, input),
+    confirmerEncaissement: (id) =>
+      ipcRenderer.invoke('tresorerie:encaissements:confirmer', id),
+    rejeterEncaissement: (id, motif) =>
+      ipcRenderer.invoke('tresorerie:encaissements:rejeter', id, motif),
+    deleteEncaissement: (id) =>
+      ipcRenderer.invoke('tresorerie:encaissements:delete', id),
+    listComptes: (hotelId) =>
+      ipcRenderer.invoke('tresorerie:comptes:list', hotelId),
+    createCompte: (input) =>
+      ipcRenderer.invoke('tresorerie:comptes:create', input),
+    updateCompte: (id, input) =>
+      ipcRenderer.invoke('tresorerie:comptes:update', id, input),
+    deleteCompte: (id) =>
+      ipcRenderer.invoke('tresorerie:comptes:delete', id),
+    getJournalCaisse: (hotelId, dateDebut, dateFin) =>
+      ipcRenderer.invoke('tresorerie:caisse:list', hotelId, dateDebut, dateFin),
+    addOperationCaisse: (input) =>
+      ipcRenderer.invoke('tresorerie:caisse:add', input),
+    deleteOperationCaisse: (id) =>
+      ipcRenderer.invoke('tresorerie:caisse:delete', id),
+  },
+  facturation: {
+    getDashboard: (hotelId) =>
+      ipcRenderer.invoke('facturation:getDashboard', hotelId),
+    listFactures: (filters) =>
+      ipcRenderer.invoke('facturation:listFactures', filters),
+    getFacture: (id) =>
+      ipcRenderer.invoke('facturation:getFacture', id),
+    createFacture: (input) =>
+      ipcRenderer.invoke('facturation:createFacture', input),
+    updateFacture: (id, input) =>
+      ipcRenderer.invoke('facturation:updateFacture', id, input),
+    soumettre: (id) =>
+      ipcRenderer.invoke('facturation:soumettre', id),
+    valider: (id) =>
+      ipcRenderer.invoke('facturation:valider', id),
+    annuler: (id) =>
+      ipcRenderer.invoke('facturation:annuler', id),
+    deleteFacture: (id) =>
+      ipcRenderer.invoke('facturation:deleteFacture', id),
+    addPaiement: (input) =>
+      ipcRenderer.invoke('facturation:addPaiement', input),
+    deletePaiement: (id) =>
+      ipcRenderer.invoke('facturation:deletePaiement', id),
+    listClients: (search) =>
+      ipcRenderer.invoke('facturation:listClients', search),
+    createClient: (input) =>
+      ipcRenderer.invoke('facturation:createClient', input),
+    updateClient: (id, input) =>
+      ipcRenderer.invoke('facturation:updateClient', id, input),
+    deleteClient: (id) =>
+      ipcRenderer.invoke('facturation:deleteClient', id),
+  },
+  hebergement: {
+    listTypesChambre: (hotelId?) => ipcRenderer.invoke('hebergement:listTypesChambre', hotelId),
+    createTypeChambre: (input) => ipcRenderer.invoke('hebergement:createTypeChambre', input),
+    deleteTypeChambre: (id) => ipcRenderer.invoke('hebergement:deleteTypeChambre', id),
+    listChambres: (hotelId?, statut?) => ipcRenderer.invoke('hebergement:listChambres', hotelId, statut),
+    createChambre: (input) => ipcRenderer.invoke('hebergement:createChambre', input),
+    updateChambre: (id, input) => ipcRenderer.invoke('hebergement:updateChambre', id, input),
+    updateStatutChambre: (id, statut) => ipcRenderer.invoke('hebergement:updateStatutChambre', id, statut),
+    deleteChambre: (id) => ipcRenderer.invoke('hebergement:deleteChambre', id),
+    listReservations: (hotelId?, dateDebut?, dateFin?, statut?) =>
+      ipcRenderer.invoke('hebergement:listReservations', hotelId, dateDebut, dateFin, statut),
+    getReservation: (id) => ipcRenderer.invoke('hebergement:getReservation', id),
+    createReservation: (input) => ipcRenderer.invoke('hebergement:createReservation', input),
+    updateReservationStatut: (id, statut) => ipcRenderer.invoke('hebergement:updateReservationStatut', id, statut),
+    deleteReservation: (id) => ipcRenderer.invoke('hebergement:deleteReservation', id),
+    getOccupationKpis: (dateDebut, dateFin, hotelId?) =>
+      ipcRenderer.invoke('hebergement:getOccupationKpis', dateDebut, dateFin, hotelId),
+  },
+  tarifs: {
+    listComposants:    (hotelId?)             => ipcRenderer.invoke('tarifs:listComposants', hotelId),
+    createComposant:   (input)                => ipcRenderer.invoke('tarifs:createComposant', input),
+    deleteComposant:   (id)                   => ipcRenderer.invoke('tarifs:deleteComposant', id),
+    listFormules:      (hotelId?)             => ipcRenderer.invoke('tarifs:listFormules', hotelId),
+    createFormule:     (input)                => ipcRenderer.invoke('tarifs:createFormule', input),
+    deleteFormule:     (id)                   => ipcRenderer.invoke('tarifs:deleteFormule', id),
+    listPlans:         (hotelId?)             => ipcRenderer.invoke('tarifs:listPlans', hotelId),
+    createPlan:        (input)                => ipcRenderer.invoke('tarifs:createPlan', input),
+    deletePlan:        (id)                   => ipcRenderer.invoke('tarifs:deletePlan', id),
+    getGrille:         (hotelId, planId, dateDebut, dateFin, formuleId?) =>
+                         ipcRenderer.invoke('tarifs:getGrille', hotelId, planId, dateDebut, dateFin, formuleId),
+    upsertTarif:       (input)                => ipcRenderer.invoke('tarifs:upsertTarif', input),
+    upsertBulk:        (input)                => ipcRenderer.invoke('tarifs:upsertBulk', input),
+    listPromotions:    (hotelId?)             => ipcRenderer.invoke('tarifs:listPromotions', hotelId),
+    createPromotion:   (input)                => ipcRenderer.invoke('tarifs:createPromotion', input),
+    togglePromotion:   (id, actif)            => ipcRenderer.invoke('tarifs:togglePromotion', id, actif),
+    deletePromotion:   (id)                   => ipcRenderer.invoke('tarifs:deletePromotion', id),
+    listConventions:   (hotelId?, clientId?)  => ipcRenderer.invoke('tarifs:listConventions', hotelId, clientId),
+    createConvention:  (input)                => ipcRenderer.invoke('tarifs:createConvention', input),
+    toggleConvention:  (id, actif)            => ipcRenderer.invoke('tarifs:toggleConvention', id, actif),
+    deleteConvention:  (id)                   => ipcRenderer.invoke('tarifs:deleteConvention', id),
+    simuler:           (input)                => ipcRenderer.invoke('tarifs:simuler', input),
+  },
+  rh: {
+    getDashboard: (dateDebut?, dateFin?) => ipcRenderer.invoke('rh:dashboard', dateDebut, dateFin),
+    pendingAccountsCount: () => ipcRenderer.invoke('rh:pendingAccountsCount'),
+    getMonEspace: () => ipcRenderer.invoke('rh:monEspace'),
+    listDepartements: () => ipcRenderer.invoke('rh:departements:list'),
+    createDepartement: (input) => ipcRenderer.invoke('rh:departements:create', input),
+    listPostes: () => ipcRenderer.invoke('rh:postes:list'),
+    createPoste: (input) => ipcRenderer.invoke('rh:postes:create', input),
+    listEmployes: (search?) => ipcRenderer.invoke('rh:employes:list', search),
+    getEmploye: (id) => ipcRenderer.invoke('rh:employes:get', id),
+    createEmploye: (input) => ipcRenderer.invoke('rh:employes:create', input),
+    listRecrutements: (statut?) => ipcRenderer.invoke('rh:recrutements:list', statut),
+    createRecrutement: (input) => ipcRenderer.invoke('rh:recrutements:create', input),
+    validerRecrutement: (id) => ipcRenderer.invoke('rh:recrutements:valider', id),
+    refuserRecrutement: (id, motif?) => ipcRenderer.invoke('rh:recrutements:refuser', id, motif),
+    listContrats: (employeId) => ipcRenderer.invoke('rh:contrats:list', employeId),
+    createContrat: (input) => ipcRenderer.invoke('rh:contrats:create', input),
+    listPointages: (dateDebut?, dateFin?, employeId?) =>
+      ipcRenderer.invoke('rh:pointages:list', dateDebut, dateFin, employeId),
+    upsertPointage: (input) => ipcRenderer.invoke('rh:pointages:upsert', input),
+    soumettrePointage: (id) => ipcRenderer.invoke('rh:pointages:soumettre', id),
+    validerPointage: (id, approuve) => ipcRenderer.invoke('rh:pointages:valider', id, approuve),
+    listAbsences: (statut?) => ipcRenderer.invoke('rh:absences:list', statut),
+    createAbsence: (input) => ipcRenderer.invoke('rh:absences:create', input),
+    deciderAbsence: (id, approuve) => ipcRenderer.invoke('rh:absences:decider', id, approuve),
   },
 };
 

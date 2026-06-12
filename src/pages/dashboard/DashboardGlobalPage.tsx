@@ -39,7 +39,8 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
   );
 
   return (
-    <>
+    <div className="space-y-5">
+      {/* Hero principal */}
       <DashboardHero
         periodeLabel={data.kpis.periodeLabel}
         kpis={data.kpis}
@@ -47,24 +48,37 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
         actions={exportActions}
       />
 
+      {/* KPIs primaires + secondaires */}
       <DashboardKpiSection kpis={data.kpis} />
 
-      <SectionBlock title="Analyse par hôtel" description="Performance par unité sur la période filtrée">
+      {/* Analyse par hôtel */}
+      <SectionBlock
+        title="Analyse par hôtel"
+        description="Performance par unité sur la période filtrée"
+      >
         <HotelAnalyseGrid hotels={data.parHotel} />
       </SectionBlock>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SectionBlock title="Alertes intelligentes" description="Détection automatique sur la période">
+      {/* Alertes + répartition rubrique */}
+      <div className="grid gap-5 xl:grid-cols-2">
+        <SectionBlock
+          title="Alertes intelligentes"
+          description="Détection automatique sur la période"
+        >
           <DashboardAlertsPanel alertes={data.alertes} />
         </SectionBlock>
-        <SectionBlock title="Répartition par rubrique" description="Part du CA par activité">
+        <SectionBlock
+          title="Répartition par rubrique"
+          description="Part du CA par activité"
+        >
           <RubriqueBreakdown rows={data.parRubrique} />
         </SectionBlock>
       </div>
 
+      {/* Graphiques (lazy) */}
       <Suspense
         fallback={
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-5 xl:grid-cols-2">
             <DashboardChartSkeleton />
             <DashboardChartSkeleton />
           </div>
@@ -73,12 +87,14 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
         <DashboardChartsSection data={data} annee={annee} />
       </Suspense>
 
+      {/* Tables de synthèse */}
       <DashboardTablesSection data={data} />
-    </>
+    </div>
   );
 }
 
-export function DashboardGlobalPage() {  const role = useAuthStore((s) => s.user?.role);
+export function DashboardGlobalPage() {
+  const role = useAuthStore((s) => s.user?.role);
   const canView = canViewDashboard(role);
 
   const {
@@ -95,23 +111,23 @@ export function DashboardGlobalPage() {  const role = useAuthStore((s) => s.use
     exportPdf,
   } = useDashboard(canView);
 
-  const handleExportExcel = useCallback(() => {
-    void exportExcel();
-  }, [exportExcel]);
-
-  const handleExportPdf = useCallback(() => {
-    void exportPdf();
-  }, [exportPdf]);
+  const handleExportExcel = useCallback(() => { void exportExcel(); }, [exportExcel]);
+  const handleExportPdf   = useCallback(() => { void exportPdf(); }, [exportPdf]);
 
   const showHotelFilter = data ? !data.scopeHotelOnly : true;
 
   if (!canView) {
-    return <p className="text-sm text-muted-foreground">Accès refusé au tableau de bord.</p>;
+    return (
+      <p className="rounded-xl border border-border/60 bg-white px-5 py-4 text-sm text-muted-foreground shadow-sm">
+        Accès refusé au tableau de bord.
+      </p>
+    );
   }
 
   return (
     <DashboardErrorBoundary>
-      <div className="dashboard-page dashboard-print">
+      <div className="dashboard-print space-y-5">
+        {/* Barre de filtres */}
         <div className="print:hidden">
           <DashboardFiltersBar
             filters={draftFilters}
@@ -122,16 +138,24 @@ export function DashboardGlobalPage() {  const role = useAuthStore((s) => s.use
           />
         </div>
 
-        {exportMsg && <p className="status-banner-info print:hidden">{exportMsg}</p>}
-        {error && <p className="status-banner-error">{error}</p>}
+        {exportMsg && (
+          <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary print:hidden">
+            {exportMsg}
+          </p>
+        )}
+        {error && (
+          <p className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         {loading ? (
           <div
-            className="flex min-h-[400px] items-center justify-center gap-2 text-muted-foreground"
+            className="flex min-h-[420px] items-center justify-center gap-2.5 text-sm text-muted-foreground"
             role="status"
             aria-live="polite"
           >
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
             Chargement du tableau de bord…
           </div>
         ) : data ? (

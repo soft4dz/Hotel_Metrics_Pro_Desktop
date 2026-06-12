@@ -1,0 +1,437 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// HOTELS & UTILISATEURS
+// ─────────────────────────────────────────────
+
+model Hotel {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  name        String
+  code        String?  @unique
+  address     String?
+  city        String?
+  phone       String?
+  email       String?
+  logoPath    String?  @map("logo_path")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  userHotels        UserHotel[]
+  recettes          RecetteJournaliere[]
+  objectifs         Objectif[]
+  encaissements     Encaissement[]
+  comptesBancaires  CompteBancaire[]
+  journalCaisse     JournalCaisse[]
+  factures          Facture[]
+
+  @@map("hotels")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  label       String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  label       String
+  module      String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id               Int      @id @default(autoincrement())
+  uuid             String   @unique @default(uuid())
+  email            String   @unique
+  passwordHash     String   @map("password_hash")
+  firstName        String?  @map("first_name")
+  lastName         String?  @map("last_name")
+  roleId           Int      @map("role_id")
+  isActive         Boolean  @default(true) @map("is_active")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  role       Role        @relation(fields: [roleId], references: [id])
+  userHotels UserHotel[]
+  auditLogs  AuditLog[]
+
+  @@map("users")
+}
+
+model UserHotel {
+  userId  Int @map("user_id")
+  hotelId Int @map("hotel_id")
+
+  user  User  @relation(fields: [userId], references: [id])
+  hotel Hotel @relation(fields: [hotelId], references: [id])
+
+  @@id([userId, hotelId])
+  @@map("user_hotels")
+}
+
+// ─────────────────────────────────────────────
+// RECETTES
+// ─────────────────────────────────────────────
+
+model Rubrique {
+  id       Int      @id @default(autoincrement())
+  uuid     String   @unique @default(uuid())
+  code     String   @unique
+  label    String
+  parentId Int?     @map("parent_id")
+  ordre    Int      @default(0)
+  active   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parent   Rubrique?  @relation("RubriqueHierarchy", fields: [parentId], references: [id])
+  children Rubrique[] @relation("RubriqueHierarchy")
+  lignes   RecetteLigne[]
+
+  @@map("rubriques")
+}
+
+model RecetteJournaliere {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  hotelId     Int      @map("hotel_id")
+  dateJournal String   @map("date_journal")
+  statut      String   @default("brouillon")
+  createdBy   Int?     @map("created_by")
+  validatedBy Int?     @map("validated_by")
+  validatedAt DateTime? @map("validated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hotel  Hotel          @relation(fields: [hotelId], references: [id])
+  lignes RecetteLigne[]
+
+  @@unique([hotelId, dateJournal])
+  @@map("recettes_journalieres")
+}
+
+model RecetteLigne {
+  id          Int     @id @default(autoincrement())
+  recetteId   Int     @map("recette_id")
+  rubriqueId  Int     @map("rubrique_id")
+  montant     Float   @default(0)
+  observation String?
+  couverts    Int?
+
+  recette  RecetteJournaliere @relation(fields: [recetteId], references: [id], onDelete: Cascade)
+  rubrique Rubrique           @relation(fields: [rubriqueId], references: [id])
+
+  @@map("recette_lignes")
+}
+
+model Objectif {
+  id        Int     @id @default(autoincrement())
+  hotelId   Int     @map("hotel_id")
+  annee     Int
+  mois      Int
+  rubriqueId Int?   @map("rubrique_id")
+  montant   Float   @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id])
+
+  @@unique([hotelId, annee, mois, rubriqueId])
+  @@map("objectifs")
+}
+
+// ─────────────────────────────────────────────
+// TRÉSORERIE
+// ─────────────────────────────────────────────
+
+model CompteBancaire {
+  id            Int      @id @default(autoincrement())
+  hotelId       Int      @map("hotel_id")
+  intitule      String
+  banque        String   @default("")
+  numeroCompte  String?  @map("numero_compte")
+  soldeInitial  Float    @default(0) @map("solde_initial")
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  hotel         Hotel          @relation(fields: [hotelId], references: [id])
+  encaissements Encaissement[]
+
+  @@map("comptes_bancaires")
+}
+
+model Encaissement {
+  id               Int      @id @default(autoincrement())
+  uuid             String   @unique @default(uuid())
+  hotelId          Int      @map("hotel_id")
+  dateEncaissement String   @map("date_encaissement")
+  montant          Float
+  mode             String   @default("especes")
+  reference        String?
+  description      String?
+  statut           String   @default("en_attente")
+  compteBancaireId Int?     @map("compte_bancaire_id")
+  createdBy        Int?     @map("created_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  hotel          Hotel           @relation(fields: [hotelId], references: [id])
+  compteBancaire CompteBancaire? @relation(fields: [compteBancaireId], references: [id])
+
+  @@index([hotelId, dateEncaissement])
+  @@index([statut])
+  @@map("encaissements")
+}
+
+model JournalCaisse {
+  id            Int      @id @default(autoincrement())
+  hotelId       Int      @map("hotel_id")
+  dateOperation String   @map("date_operation")
+  libelle       String
+  entree        Float    @default(0)
+  sortie        Float    @default(0)
+  createdBy     Int?     @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id])
+
+  @@index([hotelId, dateOperation])
+  @@map("journal_caisse")
+}
+
+// ─────────────────────────────────────────────
+// CLIENTS
+// ─────────────────────────────────────────────
+
+model Client {
+  id                     Int      @id @default(autoincrement())
+  uuid                   String   @unique @default(uuid())
+  type                   String   @default("particulier")
+  civilite               String?
+  nom                    String
+  prenom                 String?
+  raisonSociale          String?  @map("raison_sociale")
+  formeJuridique         String?  @map("forme_juridique")
+  email                  String?
+  telephone              String?
+  mobile                 String?
+  fax                    String?
+  siteWeb                String?  @map("site_web")
+  adresse                String?
+  adresseLigne1          String?  @map("adresse_ligne1")
+  adresseLigne2          String?  @map("adresse_ligne2")
+  ville                  String?
+  wilaya                 String?
+  codePostal             String?  @map("code_postal")
+  pays                   String   @default("Algérie")
+  nif                    String?
+  dateExpirationNif      String?  @map("date_expiration_nif")
+  rc                     String?
+  dateExpirationNrc      String?  @map("date_expiration_nrc")
+  nis                    String?
+  ai                     String?
+  dateCreationEntreprise String?  @map("date_creation_entreprise")
+  numeroAgrement         String?  @map("numero_agrement")
+  assujettITva           Boolean  @default(false) @map("assujetti_tva")
+  numeroTva              String?  @map("numero_tva")
+  regimeImposition       String?  @map("regime_imposition")
+  banqueClient           String?  @map("banque_client")
+  agenceBancaire         String?  @map("agence_bancaire")
+  rib                    String?
+  notesInternes          String?  @map("notes_internes")
+  actif                  Boolean  @default(true)
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  deletedAt              DateTime? @map("deleted_at")
+
+  contacts ClientContact[]
+  factures Facture[]
+
+  @@map("clients_facturation")
+}
+
+model ClientContact {
+  id        Int      @id @default(autoincrement())
+  clientId  Int      @map("client_id")
+  type      String   @default("autre")
+  nom       String
+  titre     String?
+  telephone String?
+  email     String?
+  principal Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+  @@map("clients_contacts")
+}
+
+// ─────────────────────────────────────────────
+// FACTURATION
+// ─────────────────────────────────────────────
+
+model Facture {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  hotelId     Int      @map("hotel_id")
+  clientId    Int?     @map("client_id")
+  clientNom   String   @default("") @map("client_nom")
+  numero      String   @unique
+  dateEmission String  @map("date_emission")
+  dateEcheance String? @map("date_echeance")
+  statut      String   @default("brouillon")
+  montantHt   Float    @default(0) @map("montant_ht")
+  montantTva  Float    @default(0) @map("montant_tva")
+  montantTtc  Float    @default(0) @map("montant_ttc")
+  montantPaye Float    @default(0) @map("montant_paye")
+  notes       String?
+  createdBy   Int?     @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  hotel     Hotel         @relation(fields: [hotelId], references: [id])
+  client    Client?       @relation(fields: [clientId], references: [id])
+  lignes    LigneFacture[]
+  paiements PaiementFacture[]
+
+  @@index([hotelId])
+  @@index([statut])
+  @@index([clientId])
+  @@map("factures")
+}
+
+model LigneFacture {
+  id           Int    @id @default(autoincrement())
+  factureId    Int    @map("facture_id")
+  designation  String
+  quantite     Float  @default(1)
+  prixUnitaire Float  @default(0) @map("prix_unitaire")
+  tauxTva      Float  @default(19) @map("taux_tva")
+  montantHt    Float  @default(0) @map("montant_ht")
+  montantTva   Float  @default(0) @map("montant_tva")
+  montantTtc   Float  @default(0) @map("montant_ttc")
+  ordre        Int    @default(0)
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@map("lignes_facture")
+}
+
+model PaiementFacture {
+  id            Int      @id @default(autoincrement())
+  factureId     Int      @map("facture_id")
+  datePaiement  String   @map("date_paiement")
+  montant       Float
+  mode          String   @default("especes")
+  reference     String?
+  notes         String?
+  createdBy     Int?     @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  facture Facture @relation(fields: [factureId], references: [id])
+
+  @@map("paiements_facture")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT IMMUABLE
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    Int?     @map("user_id")
+  userEmail String?  @map("user_email")
+  timestamp DateTime @default(now())
+  module    String
+  action    String
+  entityId  String?  @map("entity_id")
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  ipAddress String?  @map("ip_address")
+  hash      String
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([module, action])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// SYNC / APPAREILS
+// ─────────────────────────────────────────────
+
+model Device {
+  id          Int      @id @default(autoincrement())
+  deviceId    String   @unique @map("device_id")
+  label       String?
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime @updatedAt @map("last_seen_at")
+
+  syncEvents SyncEvent[]
+
+  @@map("devices")
+}
+
+model SyncEvent {
+  id         String   @id @default(uuid())
+  deviceId   String   @map("device_id")
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  action     String
+  payload    Json
+  processedAt DateTime? @map("processed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  device Device @relation(fields: [deviceId], references: [deviceId])
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@map("sync_events")
+}

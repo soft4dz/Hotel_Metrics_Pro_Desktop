@@ -4,10 +4,12 @@ import { writeAuditLog } from './audit.service';
 import {
   getActorContext,
   applyActorHotelFilter,
-  actorHasAllHotels,
-  actorCanAccessHotel,
   isGlobalAdminRole,
   resolveHotelId,
+  assertRecettesSaisie,
+  assertRecettesValidate,
+  assertRecettesValidation,
+  type ActorContext,
 } from './actorContext';
 
 export type RecetteStatut = 'brouillon' | 'soumis' | 'valide' | 'refuse';

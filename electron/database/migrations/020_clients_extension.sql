@@ -1,0 +1,20 @@
+-- Extension du profil client : identification complète, coordonnées, fiscal, bancaire
+ALTER TABLE clients_facturation ADD COLUMN civilite TEXT;
+ALTER TABLE clients_facturation ADD COLUMN prenom TEXT;
+ALTER TABLE clients_facturation ADD COLUMN forme_juridique TEXT;
+ALTER TABLE clients_facturation ADD COLUMN mobile TEXT;
+ALTER TABLE clients_facturation ADD COLUMN fax TEXT;
+ALTER TABLE clients_facturation ADD COLUMN site_web TEXT;
+ALTER TABLE clients_facturation ADD COLUMN adresse_ligne1 TEXT;
+ALTER TABLE clients_facturation ADD COLUMN adresse_ligne2 TEXT;
+ALTER TABLE clients_facturation ADD COLUMN ville TEXT;
+ALTER TABLE clients_facturation ADD COLUMN wilaya TEXT;
+ALTER TABLE clients_facturation ADD COLUMN code_postal TEXT;
+ALTER TABLE clients_facturation ADD COLUMN pays TEXT DEFAULT 'Algérie';
+ALTER TABLE clients_facturation ADD COLUMN nis TEXT;
+ALTER TABLE clients_facturation ADD COLUMN ai TEXT;
+ALTER TABLE clients_facturation ADD COLUMN banque_client TEXT;
+ALTER TABLE clients_facturation ADD COLUMN agence_bancaire TEXT;
+ALTER TABLE clients_facturation ADD COLUMN rib TEXT;
+ALTER TABLE clients_facturation ADD COLUMN notes_internes TEXT;
+ALTER TABLE clients_facturation ADD COLUMN actif INTEGER NOT NULL DEFAULT 1;

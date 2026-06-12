@@ -27,6 +27,7 @@ export interface UserListItem {
   allHotelsAccess: boolean;
   hotelsLabel: string;
   isActive: boolean;
+  accountStatus: 'actif' | 'en_attente' | 'inactif';
   lastLoginAt: string | null;
   createdAt: string;
 }
@@ -76,6 +77,7 @@ function mapRow(row: Record<string, unknown>): UserListItem {
     allHotelsAccess,
     hotelsLabel: formatUserHotelsLabel(hotelIds, allHotelsAccess),
     isActive: Boolean(row.is_active),
+    accountStatus: (row.account_status as UserListItem['accountStatus']) ?? (row.is_active ? 'actif' : 'inactif'),
     lastLoginAt: (row.last_login_at as string | null) ?? null,
     createdAt: row.created_at as string,
   };
@@ -84,6 +86,7 @@ function mapRow(row: Record<string, unknown>): UserListItem {
 const listSql = `
   SELECT
     u.id, u.uuid, u.email, u.full_name, u.role_id, u.hotel_id, u.hotel_scope, u.is_active,
+    COALESCE(u.account_status, CASE WHEN u.is_active = 1 THEN 'actif' ELSE 'inactif' END) AS account_status,
     u.last_login_at, u.created_at,
     r.code AS role_code, r.label AS role_label,
     h.name AS hotel_name
@@ -297,6 +300,42 @@ export function updateUser(
     newValue: JSON.stringify({ email: user.email, role: user.roleCode }),
   });
 
+  return user;
+}
+
+export function countPendingAccounts(actorUserId: number): number {
+  assertPermission(actorUserId, 'users.manage');
+  const row = getDatabase()
+    .prepare(`SELECT COUNT(*) AS c FROM users WHERE account_status = 'en_attente' AND deleted_at IS NULL`)
+    .get() as { c: number };
+  return row.c;
+}
+
+export function activatePendingUser(actorUserId: number, id: number): UserDetail {
+  assertPermission(actorUserId, 'users.manage');
+
+  const existing = getUser(actorUserId, id);
+  if (!existing) throw new Error('Utilisateur introuvable.');
+  if (existing.accountStatus !== 'en_attente') {
+    throw new Error('Ce compte n\'est pas en attente d\'activation.');
+  }
+
+  const db = getDatabase();
+  db.prepare(`
+    UPDATE users
+    SET is_active = 1, account_status = 'actif', updated_by = ?, updated_at = datetime('now'), sync_status = 'pending_update'
+    WHERE id = ?
+  `).run(actorUserId, id);
+
+  const user = getUser(actorUserId, id)!;
+  writeAuditLog({
+    userId: actorUserId,
+    action: 'UPDATE',
+    module: 'administration',
+    page: 'UsersPage',
+    description: `Activation compte en attente : ${user.email}`,
+    newValue: JSON.stringify({ accountStatus: 'actif' }),
+  });
   return user;
 }
 

@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Anchor,
@@ -29,6 +29,7 @@ import {
   Shield,
   Ship,
   Target,
+  UserCog,
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,8 +47,13 @@ import {
   canAccessPortmaster,
   canExportReports,
   canManageSync,
+  canManageRh,
+  canValidateRhTeam,
+  canAccessRhSelf,
 } from '@/shared/permissions';
 import { Button } from '@/components/ui/button';
+import { ipcClient } from '@/lib/ipcClient';
+import { unwrapIpc } from '@/lib/ipcHelpers';
 
 interface NavItem {
   label: string;
@@ -55,6 +61,7 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
   disabled?: boolean;
   visible?: boolean;
+  badge?: number;
 }
 
 interface NavGroup {
@@ -66,6 +73,14 @@ export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUiStore();
   const role = useAuthStore((s) => s.user?.role);
   const { pathname } = useLocation();
+  const [pendingUsers, setPendingUsers] = useState(0);
+
+  useEffect(() => {
+    if (!canManageUsers(role)) return;
+    void ipcClient.users.pendingCount()
+      .then((r) => setPendingUsers(unwrapIpc(r)))
+      .catch(() => setPendingUsers(0));
+  }, [role, pathname]);
 
   const navGroups: NavGroup[] = [
     {
@@ -176,6 +191,17 @@ export function Sidebar() {
       ],
     },
     {
+      title: 'RH',
+      items: [
+        {
+          label: 'RH & Productivité',
+          to: '/rh',
+          icon: UserCog,
+          visible: canManageRh(role) || canValidateRhTeam(role) || canAccessRhSelf(role),
+        },
+      ],
+    },
+    {
       title: 'Administration',
       items: [
         {
@@ -189,6 +215,7 @@ export function Sidebar() {
           to: '/admin/users',
           icon: Users,
           visible: canManageUsers(role),
+          badge: pendingUsers > 0 ? pendingUsers : undefined,
         },
         {
           label: 'Rôles',
@@ -392,6 +419,11 @@ export function Sidebar() {
                         >
                           <Icon className="h-4 w-4 shrink-0 opacity-90 group-hover:opacity-100" />
                           {!sidebarCollapsed && <span>{item.label}</span>}
+                          {!sidebarCollapsed && item.badge != null && item.badge > 0 && (
+                            <span className="ml-auto rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {item.badge}
+                            </span>
+                          )}
                         </NavLink>
                       </li>
                     );

@@ -17,7 +17,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
@@ -171,7 +170,7 @@ function LigneRow({
   ligne: RecetteLigne;
   canEdit: boolean;
   onUpdate: (id: number, field: 'montant' | 'observation', value: string) => void;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  inputRef?: React.RefObject<HTMLInputElement>;
   onEnter?: () => void;
 }) {
   const [focused, setFocused] = useState(false);
@@ -252,7 +251,7 @@ function LignesTable({
   canEdit: boolean;
   onUpdate: (id: number, field: 'montant' | 'observation', value: string) => void;
 }) {
-  const inputRefs = useRef<Array<React.RefObject<HTMLInputElement | null>>>([]);
+  const inputRefs = useRef<Array<React.RefObject<HTMLInputElement>>>([]);
 
   // Build flat ordered list for keyboard nav
   const ordered = lignes;

@@ -1,0 +1,16 @@
+1) Dans src/routes/AppRoutes.tsx, ajoute cet import avec les autres pages administration :
+
+import { AdminDashboardPage } from '@/pages/administration/AdminDashboardPage';
+
+2) Dans la zone protégée, avant /admin/users, ajoute cette route :
+
+<Route
+  path="/admin"
+  element={
+    <RequirePermission permission={PERMISSIONS.USERS_MANAGE}>
+      <AdminDashboardPage />
+    </RequirePermission>
+  }
+/>
+
+3) Optionnel mais recommandé : dans la sidebar, ajoute un lien vers /admin intitulé "Administration".

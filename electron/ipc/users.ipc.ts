@@ -31,4 +31,12 @@ export function registerUsersIpc(): void {
         return true;
       }),
   );
+
+  Electron.ipcMain.handle('users:pendingCount', (event) =>
+    wrapIpc(event, (actorUserId) => usersService.countPendingAccounts(actorUserId)),
+  );
+
+  Electron.ipcMain.handle('users:activatePending', (event, id: number) =>
+    wrapIpc(event, (actorUserId) => usersService.activatePendingUser(actorUserId, id)),
+  );
 }

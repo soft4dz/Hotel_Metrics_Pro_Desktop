@@ -19,6 +19,9 @@ export const PERMISSIONS = {
   PORTMASTER_FULL: 'portmaster.full',
   SYNC_FULL: 'sync.full',
   REPORTS_EXPORT: 'reports.export',
+  RH_MANAGE: 'rh.manage',
+  RH_TEAM: 'rh.team',
+  RH_SELF: 'rh.self',
 } as const;
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -29,6 +32,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   RESPONSABLE_PORT: [PERMISSIONS.PORTMASTER_FULL],
   COMPTABILITE: [PERMISSIONS.REPORTS_EXPORT],
   LECTURE_SEULE: [],
+  RH_MANAGER: [PERMISSIONS.RH_MANAGE, PERMISSIONS.RH_TEAM, PERMISSIONS.RH_SELF],
+  CHEF_DEPARTEMENT: [PERMISSIONS.RH_TEAM, PERMISSIONS.RH_SELF],
+  RECEPTIONNISTE: [PERMISSIONS.RH_SELF],
 };
 
 export function hasPermission(roleCode: string | undefined, permission: string): boolean {
@@ -95,6 +101,27 @@ export function canAccessPortmaster(roleCode?: string): boolean {
 
 export function canManageSync(roleCode?: string): boolean {
   return hasPermission(roleCode, PERMISSIONS.SYNC_FULL);
+}
+
+export function canManageRh(roleCode?: string): boolean {
+  return hasPermission(roleCode, PERMISSIONS.RH_MANAGE);
+}
+
+export function canValidateRhTeam(roleCode?: string): boolean {
+  return (
+    isAdminRole(roleCode) ||
+    hasPermission(roleCode, PERMISSIONS.RH_MANAGE) ||
+    hasPermission(roleCode, PERMISSIONS.RH_TEAM)
+  );
+}
+
+export function canAccessRhSelf(roleCode?: string): boolean {
+  return (
+    isAdminRole(roleCode) ||
+    hasPermission(roleCode, PERMISSIONS.RH_MANAGE) ||
+    hasPermission(roleCode, PERMISSIONS.RH_TEAM) ||
+    hasPermission(roleCode, PERMISSIONS.RH_SELF)
+  );
 }
 
 export function canExportReports(roleCode?: string): boolean {

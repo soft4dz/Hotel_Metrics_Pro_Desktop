@@ -19,14 +19,13 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
     <div
       className={cn(
         'relative overflow-hidden rounded-2xl p-6 text-white shadow-elevated lg:p-7',
-        'bg-gradient-to-135 from-[#0F172A] via-[#1E3A8A] to-[#172554]',
-        '[background:linear-gradient(135deg,#0F172A_0%,#1E3A8A_55%,#172554_100%)]',
+        '[background:linear-gradient(135deg,#1E40AF_0%,#2563EB_55%,#3B82F6_100%)]',
         className,
       )}
     >
       {/* Decorative glows */}
-      <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-[#3B82F6]/20 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -bottom-16 left-1/4 h-48 w-48 rounded-full bg-[#CA8A04]/15 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-16 left-1/4 h-48 w-48 rounded-full bg-blue-300/20 blur-3xl" aria-hidden />
 
       <div className="relative flex flex-wrap items-center justify-between gap-6">
         {/* Left — CA + badge */}

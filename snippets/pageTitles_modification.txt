@@ -1,0 +1,6 @@
+Dans src/shared/constants/pageTitles.ts, ajoute dans PAGE_TITLES :
+
+'/admin': {
+  title: 'Administration',
+  subtitle: 'Utilisateurs, rôles, unités et gouvernance des accès',
+},

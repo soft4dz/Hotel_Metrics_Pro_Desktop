@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Anchor,
   BarChart3,
+  BedDouble,
   Building2,
   ChevronLeft,
   ChevronRight,
@@ -23,6 +24,8 @@ import {
   Shield,
   Target,
   Users,
+  Tag,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { APP_LOGO_URL } from '@/lib/logos';
@@ -64,23 +67,26 @@ function NavItem({ item, collapsed }: { item: Item; collapsed: boolean }) {
       title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
-          'group flex items-center rounded-lg text-sm transition-all duration-200',
-          collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
+          'group flex items-center rounded-lg text-sm transition-colors duration-150',
+          collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
           isActive
-            ? 'bg-primary text-primary-foreground shadow-lg shadow-black/20'
-            : 'text-white/68 hover:bg-white/10 hover:text-white',
+            ? 'bg-primary/[0.08] font-semibold text-primary'
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800',
         )
       }
     >
-      <span
-        className={cn(
-          'flex shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/80 transition group-hover:bg-white/15 group-hover:text-white',
-          collapsed ? 'h-9 w-9' : 'h-8 w-8',
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      {!collapsed && <span className="truncate font-medium">{item.label}</span>}
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              'shrink-0 transition-colors',
+              collapsed ? 'h-5 w-5' : 'h-4 w-4',
+              isActive ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600',
+            )}
+          />
+          {!collapsed && <span className="truncate">{item.label}</span>}
+        </>
+      )}
     </NavLink>
   );
 }
@@ -122,6 +128,11 @@ export function PremiumSidebar() {
         { label: 'Validation recettes', to: '/recettes/validation', icon: ClipboardCheck, visible: canValidateRecettes(role) },
         { label: 'Saisie mensuelle', to: '/recettes/mensuelles', icon: Receipt, visible: canSaisieRecettes(role) },
         { label: 'Objectifs', to: '/objectifs', icon: Target, visible: canViewObjectifs(role) },
+        { label: 'Hébergement & Occupation', to: '/hebergement', icon: BedDouble },
+        { label: 'Tarifs & Conventions', to: '/tarifs', icon: Tag },
+        { label: 'Encaissements & Trésorerie', to: '/encaissements', icon: Wallet },
+        { label: 'Facturation', to: '/facturation', icon: Receipt },
+        { label: 'Clients', to: '/clients', icon: Users },
       ],
     },
     {
@@ -161,55 +172,59 @@ export function PremiumSidebar() {
   return (
     <aside
       className={cn(
-        'sidebar-shell hidden h-full shrink-0 overflow-hidden text-white shadow-2xl transition-all duration-300 motion-reduce:transition-none lg:flex lg:flex-col',
-        sidebarCollapsed ? 'w-[76px]' : 'w-[292px]',
+        'hidden h-full shrink-0 flex-col overflow-hidden border-r border-slate-200/80 bg-white transition-all duration-300 motion-reduce:transition-none lg:flex',
+        sidebarCollapsed ? 'w-[68px]' : 'w-[248px]',
       )}
     >
-      <div className="relative border-b border-white/10 p-3">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5" />
-        <div
-          className={cn(
-            'relative flex items-center',
-            sidebarCollapsed ? 'justify-center' : 'justify-between gap-2 px-1',
-          )}
-        >
-          {sidebarCollapsed ? (
+      {/* Logo */}
+      <div
+        className={cn(
+          'flex h-16 items-center border-b border-slate-200/70 px-3',
+          sidebarCollapsed ? 'justify-center' : 'justify-between gap-2',
+        )}
+      >
+        {sidebarCollapsed ? (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label="Déplier le menu"
+            className="flex flex-col items-center gap-1.5"
+          >
             <img
               src={sidebarLogo}
               alt="Hotel Metrics Pro"
-              className="h-9 w-9 rounded-lg object-contain"
+              className="h-8 w-8 rounded-lg object-contain"
             />
-          ) : (
+            <ChevronRight className="h-3 w-3 text-slate-400" />
+          </button>
+        ) : (
+          <>
             <div className="flex min-w-0 items-center gap-3">
-              <div className="rounded-lg bg-white/10 p-2 ring-1 ring-white/15">
-                <img src={sidebarLogo} alt="Hotel Metrics Pro" className="h-10 w-10 rounded-lg object-contain" />
-              </div>
+              <img
+                src={sidebarLogo}
+                alt="Hotel Metrics Pro"
+                className="h-8 w-8 shrink-0 rounded-lg object-contain"
+              />
               <div className="min-w-0">
-                <p className="truncate font-heading text-base font-semibold">Hotel Metrics</p>
-                <p className="text-xs text-white/45">Executive Suite</p>
+                <p className="truncate text-sm font-bold text-slate-900">Hotel Metrics</p>
+                <p className="text-[11px] text-slate-400">Pro Desktop</p>
               </div>
             </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className={cn(
-              'shrink-0 text-white/80 hover:bg-white/10 hover:text-white',
-              sidebarCollapsed && 'absolute -right-1 top-1/2 h-7 w-7 -translate-y-1/2',
-            )}
-            aria-label={sidebarCollapsed ? 'Déplier le menu' : 'Replier le menu'}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="shrink-0 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Replier le menu"
+            >
               <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+            </Button>
+          </>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4 scrollbar-thin">
+      {/* Nav */}
+      <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-4 scrollbar-thin">
         {groups.map((group) => {
           const items = group.items.filter((item) => item.visible !== false);
           if (!items.length) return null;
@@ -217,11 +232,14 @@ export function PremiumSidebar() {
           return (
             <div key={group.title}>
               {!sidebarCollapsed && (
-                <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.24em] text-white/32">
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   {group.title}
                 </p>
               )}
-              <div className="space-y-1">
+              {sidebarCollapsed && (
+                <div className="mb-1.5 h-px bg-slate-200/60" />
+              )}
+              <div className="space-y-0.5">
                 {items.map((item) => (
                   <NavItem key={item.to} item={item} collapsed={sidebarCollapsed} />
                 ))}

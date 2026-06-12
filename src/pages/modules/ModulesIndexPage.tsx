@@ -1,133 +1,265 @@
+import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Layers, Network, Sparkles } from 'lucide-react';
-import { MODULE_GROUPS, MODULE_STATUS_LABELS, MODULES, getModulesByGroup } from '@/modules/moduleCatalog';
+import {
+  AlertCircle,
+  Anchor,
+  ArrowRight,
+  BarChart3,
+  Bell,
+  Building2,
+  ClipboardCheck,
+  ClipboardList,
+  Cloud,
+  Database,
+  HardDrive,
+  History,
+  Layers,
+  LayoutDashboard,
+  ListTree,
+  Receipt,
+  Settings,
+  Shield,
+  Target,
+  TrendingUp,
+  Users,
+  Wallet,
+  Wrench,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
+import {
+  canAccessPortmaster,
+  canExportReports,
+  canManageHotels,
+  canManageSync,
+  canManageUsers,
+  canReadAudit,
+  canSaisieRecettes,
+  canViewDashboard,
+  canViewObjectifs,
+  isAdminRole,
+} from '@/shared/permissions';
+import { MODULE_GROUPS, getModulesByGroup } from '@/modules/moduleCatalog';
+import type { ModuleDefinition } from '@/modules/moduleCatalog';
 
-const statusClass = {
-  operationnel: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  socle: 'border-amber-200 bg-amber-50 text-amber-700',
-  'a-developper': 'border-slate-200 bg-slate-50 text-slate-600',
+type IconType = LucideIcon;
+
+// ── Icône par module ──────────────────────────────────────────────────────────
+const MODULE_ICONS: Record<string, IconType> = {
+  'administration-utilisateurs':  Users,
+  'parametrage-global':           Settings,
+  'unites-hotelieres':            Building2,
+  'recettes-journalieres':        Receipt,
+  'encaissements-tresorerie':     Wallet,
+  'budget-previsions':            Target,
+  'hebergement-occupation':       LayoutDashboard,
+  'facturation':                  Receipt,
+  'creances-recouvrement':        AlertCircle,
+  'contrats-conventions':         ClipboardList,
+  'stocks-consommations':         Database,
+  'achats-approvisionnements':    ListTree,
+  'maintenance-interventions':    Wrench,
+  'rh-productivite':              Users,
+  'audit-controle-interne':       Shield,
+  'journal-anomalies':            AlertCircle,
+  'decisions-instructions':       ClipboardCheck,
+  'qualite-reclamations':         ClipboardCheck,
+  'plage-piscine':                Anchor,
+  'parking':                      Database,
+  'portmaster':                   Anchor,
+  'commercial-partenariats':      TrendingUp,
+  'tableaux-bord-directionnels':  BarChart3,
+  'rapports-automatiques':        BarChart3,
+  'alertes-notifications':        Bell,
+  'comparatif-inter-unites':      Layers,
+  'gestion-documentaire':         ClipboardList,
+  'sauvegarde-restauration':      HardDrive,
+  'synchronisation-multi-postes': Cloud,
+  'journalisation-tracabilite':   History,
 };
 
-export function ModulesIndexPage() {
-  const total = MODULES.length;
-  const operationnels = MODULES.filter((module) => module.status === 'operationnel').length;
-  const socles = MODULES.filter((module) => module.status === 'socle').length;
-  const aDevelopper = MODULES.filter((module) => module.status === 'a-developper').length;
-  const quickAccess = MODULES.filter((module) => module.status === 'operationnel').slice(0, 6);
+// ── Descriptions courtes ──────────────────────────────────────────────────────
+const MODULE_DESC: Record<string, string> = {
+  'administration-utilisateurs':  'Comptes, rôles et droits d\'accès',
+  'parametrage-global':           'Configuration générale de l\'application',
+  'unites-hotelieres':            'Hôtels et unités d\'exploitation',
+  'recettes-journalieres':        'Saisie quotidienne des recettes par rubrique',
+  'encaissements-tresorerie':     'Flux d\'encaissement et trésorerie',
+  'budget-previsions':            'Objectifs financiers et suivi de réalisation',
+  'hebergement-occupation':       'Chambres, nuitées et taux d\'occupation',
+  'facturation':                  'Émission et suivi des factures clients',
+  'creances-recouvrement':        'Suivi des créances et recouvrement',
+  'contrats-conventions':         'Gestion des contrats et conventions',
+  'stocks-consommations':         'Suivi des stocks et consommations internes',
+  'achats-approvisionnements':    'Achats, fournisseurs et approvisionnements',
+  'maintenance-interventions':    'Suivi des interventions de maintenance',
+  'rh-productivite':              'Personnel, planning et indicateurs RH',
+  'audit-controle-interne':       'Journal d\'audit et contrôle interne',
+  'journal-anomalies':            'Enregistrement et suivi des anomalies',
+  'decisions-instructions':       'Décisions de direction et instructions',
+  'qualite-reclamations':         'Qualité de service et réclamations clients',
+  'plage-piscine':                'Activités plage et piscine',
+  'parking':                      'Gestion du parking et stationnement',
+  'portmaster':                   'Gestion complète du port de plaisance',
+  'commercial-partenariats':      'Gestion commerciale et partenariats',
+  'tableaux-bord-directionnels':  'KPIs et tableaux de bord temps réel',
+  'rapports-automatiques':        'Génération et export de rapports PDF / Excel',
+  'alertes-notifications':        'Alertes automatiques et notifications',
+  'comparatif-inter-unites':      'Analyse comparative entre unités',
+  'gestion-documentaire':         'Archivage et gestion documentaire',
+  'sauvegarde-restauration':      'Sauvegarde et restauration des données',
+  'synchronisation-multi-postes': 'Synchronisation entre postes de travail',
+  'journalisation-tracabilite':   'Logs système et traçabilité des actions',
+};
+
+// ── Permissions par module ────────────────────────────────────────────────────
+const MODULE_ACCESS: Record<string, (role?: string) => boolean> = {
+  'administration-utilisateurs':  canManageUsers,
+  'parametrage-global':           () => true,
+  'unites-hotelieres':            canManageHotels,
+  'recettes-journalieres':        canSaisieRecettes,
+  'encaissements-tresorerie':     isAdminRole,
+  'budget-previsions':            canViewObjectifs,
+  'hebergement-occupation':       isAdminRole,
+  'facturation':                  canAccessPortmaster,
+  'creances-recouvrement':        canAccessPortmaster,
+  'contrats-conventions':         canAccessPortmaster,
+  'stocks-consommations':         isAdminRole,
+  'achats-approvisionnements':    isAdminRole,
+  'maintenance-interventions':    isAdminRole,
+  'rh-productivite':              isAdminRole,
+  'audit-controle-interne':       canReadAudit,
+  'journal-anomalies':            isAdminRole,
+  'decisions-instructions':       isAdminRole,
+  'qualite-reclamations':         isAdminRole,
+  'plage-piscine':                canSaisieRecettes,
+  'parking':                      canSaisieRecettes,
+  'portmaster':                   canAccessPortmaster,
+  'commercial-partenariats':      isAdminRole,
+  'tableaux-bord-directionnels':  canViewDashboard,
+  'rapports-automatiques':        canExportReports,
+  'alertes-notifications':        () => true,
+  'comparatif-inter-unites':      canViewDashboard,
+  'gestion-documentaire':         isAdminRole,
+  'sauvegarde-restauration':      canManageUsers,
+  'synchronisation-multi-postes': canManageSync,
+  'journalisation-tracabilite':   canReadAudit,
+};
+
+// ── Couleur accent par groupe ────────────────────────────────────────────────
+const GROUP_ICON_CLS: Record<string, string> = {
+  'Socle':                  'bg-blue-500/10 text-blue-600',
+  'Finance':                'bg-emerald-500/10 text-emerald-600',
+  'Exploitation':           'bg-orange-500/10 text-orange-600',
+  'Juridique & commercial': 'bg-purple-500/10 text-purple-600',
+  'Ressources humaines':    'bg-indigo-500/10 text-indigo-600',
+  'Contrôle':               'bg-red-500/10 text-red-600',
+  'Pilotage':               'bg-cyan-500/10 text-cyan-600',
+  'Spécifique':             'bg-teal-500/10 text-teal-600',
+  'Système documentaire':   'bg-amber-500/10 text-amber-600',
+  'Système':                'bg-slate-100 text-slate-500',
+};
+
+// ── Badge statut ──────────────────────────────────────────────────────────────
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  operationnel:   { label: 'Disponible', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  socle:          { label: 'Socle',      cls: 'bg-amber-50   text-amber-700   border-amber-200'  },
+  'a-developper': { label: 'À venir',    cls: 'bg-slate-50   text-slate-500   border-slate-200'  },
+};
+
+// ── Carte module ──────────────────────────────────────────────────────────────
+function ModuleCard({
+  module,
+  group,
+}: {
+  module: ModuleDefinition;
+  group: string;
+}) {
+  const Icon    = MODULE_ICONS[module.id] ?? Layers;
+  const desc    = MODULE_DESC[module.id] ?? '';
+  const iconCls = GROUP_ICON_CLS[group] ?? 'bg-primary/10 text-primary';
+  const badge   = STATUS_BADGE[module.status];
+  const ready   = !!module.existingRoute;
+  const target  = module.existingRoute ?? module.route;
 
   return (
-    <section className="space-y-6">
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="overflow-hidden rounded-3xl bg-slate-950 p-7 text-white shadow-elevated">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-                <Sparkles className="h-3.5 w-3.5 text-brand-gold" />
-                Cartographie SI
-              </div>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight lg:text-5xl">Centre de pilotage des modules métier</h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-white/65 lg:text-base">
-                Accédez rapidement aux modules opérationnels et gardez une vision claire des socles prêts et des chantiers à venir.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-brand-gold">
-                  <Network className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{total}</p>
-                  <p className="text-xs text-white/50">modules reliés</p>
-                </div>
-              </div>
-            </div>
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-xl border border-border/60 bg-white shadow-sm transition-all duration-200',
+        ready && 'hover:border-primary/20 hover:shadow-md',
+        !ready && 'opacity-70',
+      )}
+    >
+      {/* Corps */}
+      <div className="flex-1 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconCls)}>
+            <Icon className="h-5 w-5" strokeWidth={1.75} />
           </div>
+          <span className={cn('mt-0.5 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', badge.cls)}>
+            {badge.label}
+          </span>
         </div>
-
-        <div className="app-surface p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="section-label">Accès rapide</p>
-              <h2 className="text-lg font-semibold">Modules opérationnels</h2>
-            </div>
-          </div>
-          <div className="mt-4 space-y-2">
-            {quickAccess.map((module) => (
-              <Link key={module.id} to={module.existingRoute ?? module.route} className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2.5 text-sm transition hover:border-primary/30 hover:bg-muted/40">
-                <span className="font-medium">{module.name}</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </div>
-        </div>
+        <h3 className="mt-4 text-[13px] font-semibold leading-snug text-foreground">
+          {module.name}
+        </h3>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{desc}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total" value={total} helper="Architecture complète" color="border-l-primary" />
-        <StatCard label="Opérationnels" value={operationnels} helper="Écrans utilisables" color="border-l-emerald-500" valueClass="text-emerald-600" />
-        <StatCard label="Socles prêts" value={socles} helper="Base structurée" color="border-l-amber-500" valueClass="text-amber-600" />
-        <StatCard label="À développer" value={aDevelopper} helper="Chantiers métier" color="border-l-slate-400" valueClass="text-slate-500" />
+      {/* Pied — action */}
+      <div className="border-t border-border/50 px-5 py-3">
+        {ready ? (
+          <Link
+            to={target}
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary transition-colors hover:text-primary/75"
+          >
+            Ouvrir
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        ) : (
+          <span className="text-[12px] text-muted-foreground/60">En cours de développement</span>
+        )}
       </div>
-
-      {MODULE_GROUPS.map((group) => {
-        const modules = getModulesByGroup(group);
-        const activeCount = modules.filter((module) => module.status === 'operationnel').length;
-        return (
-          <div key={group} className="app-surface p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-              <div>
-                <p className="section-label">Famille fonctionnelle</p>
-                <h2 className="mt-1 text-xl font-semibold">{group}</h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="pill-soft">{modules.length} module(s)</span>
-                <span className="pill-soft">{activeCount} opérationnel(s)</span>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {modules.map((module) => (
-                <Link key={module.id} to={module.existingRoute ?? module.route} className="module-card group block">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-white transition group-hover:bg-primary">
-                        <Layers className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Module n°{module.order}</p>
-                        <p className="mt-1 font-semibold leading-snug">{module.name}</p>
-                      </div>
-                    </div>
-                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusClass[module.status]}`}>
-                      {MODULE_STATUS_LABELS[module.status]}
-                    </span>
-                  </div>
-                  <p className="mt-4 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                    Connecté à : {module.connectedTo.join(', ')}
-                  </p>
-                  <p className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                    {module.existingRoute ? 'Ouvrir le module' : 'Voir la fiche'}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </section>
+    </div>
   );
 }
 
-function StatCard({ label, value, helper, color, valueClass = '' }: { label: string; value: number; helper: string; color: string; valueClass?: string }) {
+// ── Page ──────────────────────────────────────────────────────────────────────
+export function ModulesIndexPage() {
+  const role = useAuthStore((s) => s.user?.role);
+
   return (
-    <div className={`metric-card border-l-4 ${color}`}>
-      <p className="section-label">{label}</p>
-      <p className={`mt-2 text-3xl font-bold ${valueClass}`}>{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+    <div className="space-y-8">
+      {MODULE_GROUPS.map((group) => {
+        const modules = getModulesByGroup(group).filter((m) => {
+          const check = MODULE_ACCESS[m.id];
+          return check ? check(role) : true;
+        });
+
+        if (modules.length === 0) return null;
+
+        return (
+          <section key={group}>
+            {/* En-tête catégorie */}
+            <div className="mb-4 flex items-center gap-3">
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                {group}
+              </span>
+              <div className="h-px flex-1 bg-border/60" />
+              <span className="shrink-0 text-[11px] text-muted-foreground">
+                {modules.length} module{modules.length > 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Grille */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {modules.map((module) => (
+                <ModuleCard key={module.id} module={module} group={group} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

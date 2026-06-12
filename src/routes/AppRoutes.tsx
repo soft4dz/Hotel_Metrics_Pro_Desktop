@@ -54,6 +54,25 @@ import { RequireSystemAdmin } from '@/routes/RequireSystemAdmin';
 import { RequireSync } from '@/routes/RequireSync';
 import { ModulesIndexPage } from '@/pages/modules/ModulesIndexPage';
 import { ModulePlaceholderPage } from '@/pages/modules/ModulePlaceholderPage';
+import { TresorerieIndexPage } from '@/pages/tresorerie/TresorerieIndexPage';
+import { TresorerieBoard } from '@/pages/tresorerie/TresorerieBoard';
+import { EncaissementsListPage } from '@/pages/tresorerie/EncaissementsListPage';
+import { SaisieEncaissementPage } from '@/pages/tresorerie/SaisieEncaissementPage';
+import { JournalCaissePage } from '@/pages/tresorerie/JournalCaissePage';
+import { ComptesBancairesPage } from '@/pages/tresorerie/ComptesBancairesPage';
+import { FacturationIndexPage } from '@/pages/facturation/FacturationIndexPage';
+import { FacturationBoard } from '@/pages/facturation/FacturationBoard';
+import { FacturesListPage } from '@/pages/facturation/FacturesListPage';
+import { NouvelleFacturePage } from '@/pages/facturation/NouvelleFacturePage';
+import { FactureDetailPage as FactureDetailFacturationPage } from '@/pages/facturation/FactureDetailPage';
+import { ClientsFacturationPage } from '@/pages/facturation/ClientsFacturationPage';
+import { ClientsListPage } from '@/pages/clients/ClientsListPage';
+import { ClientDetailPage } from '@/pages/clients/ClientDetailPage';
+import { NouveauClientPage } from '@/pages/clients/NouveauClientPage';
+import { HebergementPage } from '@/pages/hebergement/HebergementPage';
+import { TarifsPage as HotelTarifsPage } from '@/pages/tarifs/TarifsPage';
+import { RhPage } from '@/pages/rh/RhPage';
+import { RequireRh } from '@/routes/RequireRh';
 import { PERMISSIONS } from '@/shared/permissions';
 
 const DashboardGlobalPage = lazy(() =>
@@ -127,6 +146,40 @@ export function AppRoutes() {
             <Route path="/portmaster/validations" element={<RequirePortmaster><ValidationsPortPage /></RequirePortmaster>} />
             <Route path="/portmaster/mouvements" element={<RequirePortmaster><MouvementsPage /></RequirePortmaster>} />
             <Route path="/portmaster/recouvrement" element={<RequirePortmaster><RecouvrementPage /></RequirePortmaster>} />
+
+            {/* Encaissements & Trésorerie */}
+            <Route path="/encaissements" element={<TresorerieIndexPage />}>
+              <Route index element={<TresorerieBoard />} />
+              <Route path="liste" element={<EncaissementsListPage />} />
+              <Route path="caisse" element={<JournalCaissePage />} />
+              <Route path="comptes" element={<ComptesBancairesPage />} />
+            </Route>
+            <Route path="/encaissements/nouveau" element={<SaisieEncaissementPage />} />
+
+            {/* Facturation */}
+            <Route path="/facturation" element={<FacturationIndexPage />}>
+              <Route index element={<FacturationBoard />} />
+              <Route path="factures" element={<FacturesListPage />} />
+              <Route path="clients" element={<ClientsFacturationPage />} />
+            </Route>
+            <Route path="/facturation/nouvelle" element={<NouvelleFacturePage />} />
+            <Route path="/facturation/factures/:id" element={<FactureDetailFacturationPage />} />
+
+            {/* Clients */}
+            <Route path="/clients" element={<ClientsListPage />} />
+            <Route path="/clients/nouveau" element={<NouveauClientPage />} />
+            <Route path="/clients/:id" element={<ClientDetailPage />} />
+
+            {/* Hébergement */}
+            <Route path="/hebergement" element={<HebergementPage />} />
+
+            {/* Tarifs */}
+            <Route path="/tarifs" element={<HotelTarifsPage />} />
+
+            {/* RH & Productivité */}
+            <Route element={<RequireRh />}>
+              <Route path="/rh" element={<RhPage />} />
+            </Route>
 
             <Route path="/rapports" element={<RequireReportsExport><RapportsPage /></RequireReportsExport>} />
             <Route path="/system/sync" element={<RequireSync><SyncPage /></RequireSync>} />

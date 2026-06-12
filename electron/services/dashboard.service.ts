@@ -3,6 +3,7 @@ import {
   assertDashboardView,
   getActorContext,
   actorHasAllHotels,
+  isGlobalAdminRole,
   resolveHotelId,
 } from './actorContext';
 import { userHasPermission } from './permissions.service';

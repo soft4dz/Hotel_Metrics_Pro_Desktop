@@ -8,7 +8,7 @@ import { APP_LOGO_URL } from '@/lib/logos';
 export function AuthLayout() {
   return (
     <div className="flex min-h-full">
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E3A8A] to-[#172554] p-12 text-white lg:flex">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#1E40AF] via-[#2563EB] to-[#3B82F6] p-12 text-white lg:flex">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <img

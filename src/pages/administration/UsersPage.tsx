@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Crown, Pencil, Plus, Search, UserX } from 'lucide-react';
+import { Crown, Pencil, Plus, Search, UserCheck, UserX } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/tables/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -19,13 +19,19 @@ export function UsersPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filterPending, setFilterPending] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await ipcClient.users.list(search || undefined);
+      const [result, pending] = await Promise.all([
+        ipcClient.users.list(search || undefined),
+        ipcClient.users.pendingCount(),
+      ]);
       setUsers(unwrapIpc(result));
+      setPendingCount(unwrapIpc(pending));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
     } finally {
@@ -36,6 +42,16 @@ export function UsersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleActivate = async (user: UserListItem) => {
+    if (!window.confirm(`Activer le compte de ${user.fullName} ?`)) return;
+    try {
+      unwrapIpc(await ipcClient.users.activatePending(user.id));
+      void load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
 
   const handleDeactivate = async (user: UserListItem) => {
     const reason = window.prompt('Motif de désactivation (obligatoire) :');
@@ -81,21 +97,37 @@ export function UsersPage() {
     {
       key: 'status',
       header: 'Statut',
-      render: (u) => (
-        <Badge variant={u.isActive ? 'success' : 'muted'}>
-          {u.isActive ? 'Actif' : 'Inactif'}
-        </Badge>
-      ),
+      render: (u) => {
+        if (u.accountStatus === 'en_attente') {
+          return <Badge variant="warning">En attente d&apos;activation</Badge>;
+        }
+        return (
+          <Badge variant={u.isActive ? 'success' : 'muted'}>
+            {u.isActive ? 'Actif' : 'Inactif'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
       header: '',
-      className: 'w-28 text-right',
+      className: 'w-36 text-right',
       render: (u) => {
         const targetIsSuperAdmin = u.roleCode === 'SUPERADMIN';
         const canAct = actorIsSuperAdmin || !targetIsSuperAdmin;
         return (
           <div className="flex justify-end gap-1">
+            {u.accountStatus === 'en_attente' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void handleActivate(u)}
+                aria-label="Activer le compte"
+                title="Activer le compte"
+              >
+                <UserCheck className="h-4 w-4 text-emerald-600" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -107,16 +139,18 @@ export function UsersPage() {
                 <Pencil className="h-4 w-4" />
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => void handleDeactivate(u)}
-              disabled={!canAct}
-              aria-label="Désactiver"
-              title={!canAct ? 'Réservé aux super-administrateurs' : undefined}
-            >
-              <UserX className="h-4 w-4 text-destructive" />
-            </Button>
+            {u.accountStatus !== 'en_attente' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void handleDeactivate(u)}
+                disabled={!canAct}
+                aria-label="Désactiver"
+                title={!canAct ? 'Réservé aux super-administrateurs' : undefined}
+              >
+                <UserX className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -148,6 +182,17 @@ export function UsersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Button
+          variant={filterPending ? 'default' : 'outline'}
+          onClick={() => setFilterPending((v) => !v)}
+        >
+          En attente
+          {pendingCount > 0 && (
+            <span className="ml-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {pendingCount}
+            </span>
+          )}
+        </Button>
         <Button variant="secondary" onClick={() => void load()}>
           Actualiser
         </Button>
@@ -161,10 +206,10 @@ export function UsersPage() {
 
       <DataTable
         columns={columns}
-        data={users}
+        data={filterPending ? users.filter((u) => u.accountStatus === 'en_attente') : users}
         keyExtractor={(u) => u.id}
         loading={loading}
-        emptyMessage="Aucun utilisateur trouvé"
+        emptyMessage={filterPending ? 'Aucun compte en attente' : 'Aucun utilisateur trouvé'}
       />
     </div>
   );

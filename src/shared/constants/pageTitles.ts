@@ -1,4 +1,8 @@
 export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
+  '/modules': {
+    title: 'Modules de pilotage',
+    subtitle: 'Accédez aux modules disponibles selon votre profil',
+  },
   '/dashboard': {
     title: 'Tableau de bord',
     subtitle: 'Synthèse recettes, objectifs, unités, rubriques, alertes et accès rapides',
@@ -147,6 +151,50 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Journal d\'audit',
     subtitle: 'Traçabilité des actions',
   },
+  '/encaissements': {
+    title: 'Encaissements & Trésorerie',
+    subtitle: 'Tableau de bord trésorerie',
+  },
+  '/encaissements/liste': {
+    title: 'Liste des encaissements',
+    subtitle: 'Suivi et validation des encaissements',
+  },
+  '/encaissements/nouveau': {
+    title: 'Nouvel encaissement',
+    subtitle: 'Saisie d\'un encaissement',
+  },
+  '/encaissements/caisse': {
+    title: 'Journal de caisse',
+    subtitle: 'Mouvements espèces entrants et sortants',
+  },
+  '/encaissements/comptes': {
+    title: 'Comptes bancaires',
+    subtitle: 'Gestion des comptes par établissement',
+  },
+  '/facturation': {
+    title: 'Facturation',
+    subtitle: 'Tableau de bord facturation',
+  },
+  '/facturation/factures': {
+    title: 'Factures',
+    subtitle: 'Gestion des factures clients',
+  },
+  '/facturation/nouvelle': {
+    title: 'Nouvelle facture',
+    subtitle: 'Création d\'une facture',
+  },
+  '/facturation/clients': {
+    title: 'Clients',
+    subtitle: 'Répertoire clients de facturation',
+  },
+  '/clients': {
+    title: 'Clients',
+    subtitle: 'Fiche client complète — identification, contact, fiscal, bancaire',
+  },
+  '/clients/nouveau': {
+    title: 'Nouveau client',
+    subtitle: 'Création d\'un dossier client',
+  },
 };
 
 export function getPageTitle(pathname: string): { title: string; subtitle?: string } {
@@ -180,6 +228,16 @@ export function getPageTitle(pathname: string): { title: string; subtitle?: stri
   const factureEdit = pathname.match(/^\/portmaster\/factures\/(\d+)$/);
   if (factureEdit) {
     return { title: 'Facture', subtitle: `ID ${factureEdit[1]}` };
+  }
+
+  const clientDetail = pathname.match(/^\/clients\/(\d+)$/);
+  if (clientDetail) {
+    return { title: 'Fiche client', subtitle: `Dossier client #${clientDetail[1]}` };
+  }
+
+  const facturationDetail = pathname.match(/^\/facturation\/factures\/(\d+)$/);
+  if (facturationDetail) {
+    return { title: 'Détail facture', subtitle: `Facture #${facturationDetail[1]}` };
   }
 
   return { title: 'Hotel Metrics Pro', subtitle: undefined };

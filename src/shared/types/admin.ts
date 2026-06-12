@@ -18,6 +18,7 @@ export interface UserListItem {
   allHotelsAccess: boolean;
   hotelsLabel: string;
   isActive: boolean;
+  accountStatus: 'actif' | 'en_attente' | 'inactif';
   lastLoginAt: string | null;
   createdAt: string;
 }

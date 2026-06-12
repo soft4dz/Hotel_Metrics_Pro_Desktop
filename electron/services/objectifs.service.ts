@@ -6,6 +6,7 @@ import {
   assertRecettesValidate,
   getActorContext,
   applyActorHotelFilter,
+  isGlobalAdminRole,
   resolveHotelId,
   type ActorContext,
 } from './actorContext';

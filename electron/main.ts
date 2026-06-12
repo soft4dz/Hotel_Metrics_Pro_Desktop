@@ -22,6 +22,12 @@ import { registerSyncIpc } from './ipc/sync.ipc';
 import { registerSettingsIpc } from './ipc/settings.ipc';
 import { registerDatabaseIpc } from './ipc/database.ipc';
 import { registerBackupIpc } from './ipc/backup.ipc';
+import { registerTresorerieIpc } from './ipc/tresorerie.ipc';
+import { registerFacturationIpc } from './ipc/facturation.ipc';
+import { registerClientsIpc } from './ipc/clients.ipc';
+import { registerHebergementIpc } from './ipc/hebergement.ipc';
+import { registerTarifsIpc } from './ipc/tarifs.ipc';
+import { registerRhIpc } from './ipc/rh.ipc';
 import { runPortSeedIfNeeded } from './database/portSeed';
 import { runPortMigrateV2 } from './database/portMigrateV2';
 import { logger } from './utils/logger';
@@ -187,6 +193,12 @@ function bootstrap(): void {
     registerSettingsIpc();
     registerDatabaseIpc();
     registerBackupIpc();
+    registerTresorerieIpc();
+    registerFacturationIpc();
+    registerClientsIpc();
+    registerHebergementIpc();
+    registerTarifsIpc();
+    registerRhIpc();
     createWindow();
   } catch (err) {
     logger.error('Échec initialisation application', err);

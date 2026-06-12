@@ -19,6 +19,9 @@ const MONTHS = [
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
 
+const selectCls =
+  'h-8 rounded-lg border border-border/60 bg-white px-2.5 text-[13px] text-foreground shadow-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/10';
+
 export function DashboardFiltersBar({
   filters,
   onChange,
@@ -41,12 +44,16 @@ export function DashboardFiltersBar({
   }, []);
 
   return (
-    <div className="app-surface flex flex-wrap items-center gap-2 px-4 py-3 shadow-card">
-      <span className="section-label mr-1 shrink-0">Période</span>
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-white px-4 py-2.5 shadow-sm">
+      {/* Icone filtre */}
+      <Filter className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <span className="mr-1 shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+        Période
+      </span>
 
       {/* Mois */}
       <select
-        className="app-input h-9 min-w-0 flex-shrink-0 text-[13px]"
+        className={selectCls}
         value={filters.mois ?? ''}
         onChange={(e) =>
           onChange({ ...filters, mois: e.target.value ? Number(e.target.value) : undefined })
@@ -60,7 +67,7 @@ export function DashboardFiltersBar({
 
       {/* Année */}
       <select
-        className="app-input h-9 w-24 shrink-0 text-[13px]"
+        className={`${selectCls} w-20`}
         value={filters.annee}
         onChange={(e) => onChange({ ...filters, annee: Number(e.target.value) })}
       >
@@ -69,28 +76,28 @@ export function DashboardFiltersBar({
         ))}
       </select>
 
-      <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+      <div className="mx-1 h-4 w-px shrink-0 bg-border/70" />
 
-      {/* Date debut / fin */}
+      {/* Dates */}
       <input
         type="date"
-        className="app-input h-9 shrink-0 text-[13px]"
+        className={selectCls}
         value={filters.dateDebut ?? ''}
         onChange={(e) => onChange({ ...filters, dateDebut: e.target.value || undefined })}
       />
-      <span className="shrink-0 text-xs text-muted-foreground">→</span>
+      <span className="shrink-0 text-xs text-slate-400">→</span>
       <input
         type="date"
-        className="app-input h-9 shrink-0 text-[13px]"
+        className={selectCls}
         value={filters.dateFin ?? ''}
         onChange={(e) => onChange({ ...filters, dateFin: e.target.value || undefined })}
       />
 
       {showHotelFilter && (
         <>
-          <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+          <div className="mx-1 h-4 w-px shrink-0 bg-border/70" />
           <select
-            className="app-input h-9 min-w-[160px] shrink-0 text-[13px]"
+            className={`${selectCls} min-w-[148px]`}
             value={filters.hotelId ?? ''}
             onChange={(e) =>
               onChange({ ...filters, hotelId: e.target.value ? Number(e.target.value) : undefined })
@@ -106,7 +113,7 @@ export function DashboardFiltersBar({
 
       {rubriques.length > 0 && (
         <select
-          className="app-input h-9 min-w-[140px] shrink-0 text-[13px]"
+          className={`${selectCls} min-w-[130px]`}
           value={filters.rubriqueId ?? ''}
           onChange={(e) =>
             onChange({ ...filters, rubriqueId: e.target.value ? Number(e.target.value) : undefined })
@@ -119,14 +126,13 @@ export function DashboardFiltersBar({
         </select>
       )}
 
-      {/* Spacer */}
       <div className="flex-1" />
 
       <Button
         type="button"
         size="sm"
         onClick={onApply}
-        className="h-9 cursor-pointer gap-1.5 transition-colors duration-200"
+        className="h-8 gap-1.5 px-3 text-[13px]"
       >
         <Filter className="h-3.5 w-3.5" />
         Appliquer
@@ -136,9 +142,9 @@ export function DashboardFiltersBar({
         variant="outline"
         size="sm"
         onClick={onReset}
-        className="h-9 cursor-pointer gap-1.5 transition-colors duration-200"
+        className="h-8 gap-1.5 px-3 text-[13px]"
       >
-        <RotateCcw className="h-3.5 w-3.5" />
+        <RotateCcw className="h-3 w-3" />
         Réinitialiser
       </Button>
     </div>
