@@ -1,100 +1,146 @@
-import type { ComponentType } from 'react';
-import { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import {
-  Anchor,
-  BarChart3,
-  BedDouble,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  ClipboardList,
-  Cloud,
-  Database,
-  HardDrive,
-  History,
-  Layers,
-  LayoutDashboard,
-  ListTree,
-  Lock,
-  Palette,
-  Receipt,
-  Settings,
-  Shield,
-  Target,
-  Users,
-  Tag,
-  Wallet,
-} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { APP_LOGO_URL } from '@/lib/logos';
 import { ipcClient } from '@/lib/ipcClient';
+import { unwrapIpc } from '@/lib/ipcHelpers';
 import { Button } from '@/components/ui/button';
 import { useUiStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { canManageUsers } from '@/shared/permissions';
 import {
-  canAccessPortmaster,
-  canExportReports,
-  canManageHotels,
-  canManageSync,
-  canManageUsers,
-  canReadAudit,
-  canSaisieRecettes,
-  canValidateRecettes,
-  canViewObjectifs,
-  canViewRecettes,
-} from '@/shared/permissions';
+  buildSidebarModules,
+  findActiveModuleId,
+  type SidebarModule,
+  type SidebarNavItem,
+} from '@/layouts/sidebarModules';
 
-type Item = {
-  label: string;
-  to: string;
-  icon: ComponentType<{ className?: string }>;
-  visible?: boolean;
-};
-
-type Group = {
-  title: string;
-  items: Item[];
-};
-
-function NavItem({ item, collapsed }: { item: Item; collapsed: boolean }) {
-  const Icon = item.icon;
-
+function NavLeaf({
+  item,
+  collapsed,
+  onNavigate,
+}: {
+  item: SidebarNavItem;
+  collapsed: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <NavLink
       to={item.to}
       title={collapsed ? item.label : undefined}
+      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           'group flex items-center rounded-lg text-sm transition-colors duration-150',
-          collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
+          collapsed ? 'justify-center p-2.5' : 'gap-2.5 py-2 pl-9 pr-3',
           isActive
             ? 'bg-primary/[0.08] font-semibold text-primary'
             : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800',
         )
       }
     >
-      {({ isActive }) => (
+      {!collapsed && (
         <>
-          <Icon
-            className={cn(
-              'shrink-0 transition-colors',
-              collapsed ? 'h-5 w-5' : 'h-4 w-4',
-              isActive ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600',
-            )}
-          />
-          {!collapsed && <span className="truncate">{item.label}</span>}
+          <span className="truncate">{item.label}</span>
+          {item.badge != null && item.badge > 0 && (
+            <span className="ml-auto rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {item.badge}
+            </span>
+          )}
         </>
       )}
     </NavLink>
   );
 }
 
+function ModuleDropdown({
+  module,
+  collapsed,
+  isOpen,
+  onToggle,
+}: {
+  module: SidebarModule;
+  collapsed: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const { pathname } = useLocation();
+  const Icon = module.icon;
+  const items = module.items.filter((i) => i.visible !== false);
+  if (!items.length) return null;
+
+  const moduleActive = items.some(
+    (item) =>
+      pathname === item.to ||
+      (item.to !== '/' && pathname.startsWith(`${item.to}/`)),
+  );
+
+  if (collapsed) {
+    return (
+      <div className="space-y-0.5">
+        {items.map((item) => (
+          <NavLeaf key={item.to} item={item} collapsed />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          'flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
+          moduleActive ? 'text-primary' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+        )}
+        aria-expanded={isOpen}
+      >
+        <Icon className={cn('h-4 w-4 shrink-0', moduleActive ? 'text-primary' : 'text-slate-400')} />
+        <span className="flex-1 truncate">{module.title}</span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200',
+            isOpen && 'rotate-180',
+          )}
+        />
+      </button>
+
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-200 ease-out',
+          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-0.5 pb-1 pt-0.5">
+            {items.map((item) => (
+              <NavLeaf key={item.to} item={item} collapsed={false} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PremiumSidebar() {
   const role = useAuthStore((state) => state.user?.role);
   const { sidebarCollapsed, toggleSidebar } = useUiStore();
+  const { pathname } = useLocation();
   const [brandLogoUrl, setBrandLogoUrl] = useState(APP_LOGO_URL);
+  const [pendingUsers, setPendingUsers] = useState(0);
+  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
+
+  const modules = useMemo(
+    () =>
+      buildSidebarModules(role, pendingUsers).filter((mod) => {
+        if (mod.visible === false) return false;
+        return mod.items.some((item) => item.visible !== false);
+      }),
+    [role, pendingUsers],
+  );
 
   useEffect(() => {
     ipcClient.settings
@@ -104,70 +150,27 @@ export function PremiumSidebar() {
           setBrandLogoUrl(result.data.companyLogoUrl);
         }
       })
-      .catch(() => {
-        /* garder logo app par défaut */
-      });
+      .catch(() => undefined);
   }, []);
 
-  const sidebarLogo = brandLogoUrl || APP_LOGO_URL;
+  useEffect(() => {
+    if (!canManageUsers(role)) return;
+    void ipcClient.users
+      .pendingCount()
+      .then((r) => setPendingUsers(unwrapIpc(r)))
+      .catch(() => setPendingUsers(0));
+  }, [role, pathname]);
 
-  const groups: Group[] = [
-    {
-      title: 'Pilotage',
-      items: [
-        { label: 'Dashboard global', to: '/dashboard', icon: LayoutDashboard },
-        { label: 'Modules de pilotage', to: '/modules', icon: Layers },
-        { label: 'Rapports & exports', to: '/rapports', icon: BarChart3, visible: canExportReports(role) },
-      ],
-    },
-    {
-      title: 'Exploitation',
-      items: [
-        { label: 'Saisie journalière', to: '/recettes/journalieres', icon: Receipt, visible: canSaisieRecettes(role) },
-        { label: 'Historique recettes', to: '/recettes/historique', icon: History, visible: canViewRecettes(role) },
-        { label: 'Validation recettes', to: '/recettes/validation', icon: ClipboardCheck, visible: canValidateRecettes(role) },
-        { label: 'Saisie mensuelle', to: '/recettes/mensuelles', icon: Receipt, visible: canSaisieRecettes(role) },
-        { label: 'Objectifs', to: '/objectifs', icon: Target, visible: canViewObjectifs(role) },
-        { label: 'Hébergement & Occupation', to: '/hebergement', icon: BedDouble },
-        { label: 'Tarifs & Conventions', to: '/tarifs', icon: Tag },
-        { label: 'Encaissements & Trésorerie', to: '/encaissements', icon: Wallet },
-        { label: 'Facturation', to: '/facturation', icon: Receipt },
-        { label: 'Clients', to: '/clients', icon: Users },
-      ],
-    },
-    {
-      title: 'PortMaster',
-      items: [
-        { label: 'Dashboard port', to: '/portmaster', icon: Anchor, visible: canAccessPortmaster(role) },
-        { label: 'Référentiel', to: '/portmaster/referentiel', icon: Layers, visible: canAccessPortmaster(role) },
-        { label: 'Clients', to: '/portmaster/clients', icon: Users, visible: canAccessPortmaster(role) },
-        { label: 'Bateaux', to: '/portmaster/bateaux', icon: Anchor, visible: canAccessPortmaster(role) },
-        { label: 'Contrats', to: '/portmaster/contrats', icon: ClipboardList, visible: canAccessPortmaster(role) },
-        { label: 'Factures', to: '/portmaster/factures', icon: Receipt, visible: canAccessPortmaster(role) },
-      ],
-    },
-    {
-      title: 'Administration',
-      items: [
-        { label: 'Hôtels / unités', to: '/admin/hotels', icon: Building2, visible: canManageHotels(role) },
-        { label: 'Utilisateurs', to: '/admin/users', icon: Users, visible: canManageUsers(role) },
-        { label: 'Rôles', to: '/admin/roles', icon: Shield, visible: canManageUsers(role) },
-        { label: 'Rubriques', to: '/admin/rubriques', icon: ListTree, visible: canManageHotels(role) },
-      ],
-    },
-    {
-      title: 'Système',
-      items: [
-        { label: 'Synchronisation', to: '/system/sync', icon: Cloud, visible: canManageSync(role) },
-        { label: "Journal d'audit", to: '/audit/logs', icon: ClipboardList, visible: canReadAudit(role) },
-        { label: 'Paramètres', to: '/settings', icon: Settings },
-        { label: 'Interface', to: '/settings/interface', icon: Palette },
-        { label: 'Notifications', to: '/settings/notifications', icon: Lock },
-        { label: 'Base de données', to: '/settings/database', icon: Database, visible: canManageUsers(role) },
-        { label: 'Sauvegarde', to: '/settings/backup', icon: HardDrive, visible: canManageUsers(role) },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const activeId = findActiveModuleId(modules, pathname);
+    if (activeId) setOpenModuleId(activeId);
+  }, [pathname, modules]);
+
+  const handleToggle = (moduleId: string) => {
+    setOpenModuleId((prev) => (prev === moduleId ? null : moduleId));
+  };
+
+  const sidebarLogo = brandLogoUrl || APP_LOGO_URL;
 
   return (
     <aside
@@ -176,7 +179,6 @@ export function PremiumSidebar() {
         sidebarCollapsed ? 'w-[68px]' : 'w-[248px]',
       )}
     >
-      {/* Logo */}
       <div
         className={cn(
           'flex h-16 items-center border-b border-slate-200/70 px-3',
@@ -190,21 +192,13 @@ export function PremiumSidebar() {
             aria-label="Déplier le menu"
             className="flex flex-col items-center gap-1.5"
           >
-            <img
-              src={sidebarLogo}
-              alt="Hotel Metrics Pro"
-              className="h-8 w-8 rounded-lg object-contain"
-            />
+            <img src={sidebarLogo} alt="Hotel Metrics Pro" className="h-8 w-8 rounded-lg object-contain" />
             <ChevronRight className="h-3 w-3 text-slate-400" />
           </button>
         ) : (
           <>
             <div className="flex min-w-0 items-center gap-3">
-              <img
-                src={sidebarLogo}
-                alt="Hotel Metrics Pro"
-                className="h-8 w-8 shrink-0 rounded-lg object-contain"
-              />
+              <img src={sidebarLogo} alt="Hotel Metrics Pro" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-slate-900">Hotel Metrics</p>
                 <p className="text-[11px] text-slate-400">Pro Desktop</p>
@@ -223,30 +217,16 @@ export function PremiumSidebar() {
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-4 scrollbar-thin">
-        {groups.map((group) => {
-          const items = group.items.filter((item) => item.visible !== false);
-          if (!items.length) return null;
-
-          return (
-            <div key={group.title}>
-              {!sidebarCollapsed && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  {group.title}
-                </p>
-              )}
-              {sidebarCollapsed && (
-                <div className="mb-1.5 h-px bg-slate-200/60" />
-              )}
-              <div className="space-y-0.5">
-                {items.map((item) => (
-                  <NavItem key={item.to} item={item} collapsed={sidebarCollapsed} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4 scrollbar-thin">
+        {modules.map((module) => (
+          <ModuleDropdown
+            key={module.id}
+            module={module}
+            collapsed={sidebarCollapsed}
+            isOpen={!sidebarCollapsed && openModuleId === module.id}
+            onToggle={() => handleToggle(module.id)}
+          />
+        ))}
       </nav>
     </aside>
   );

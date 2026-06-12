@@ -3,6 +3,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Modules de pilotage',
     subtitle: 'Accédez aux modules disponibles selon votre profil',
   },
+  '/rh': {
+    title: 'RH & productivité',
+    subtitle: 'Effectifs, recrutement, présences et indicateurs',
+  },
   '/dashboard': {
     title: 'Tableau de bord',
     subtitle: 'Synthèse recettes, objectifs, unités, rubriques, alertes et accès rapides',
