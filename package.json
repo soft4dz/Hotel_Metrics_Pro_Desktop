@@ -10,8 +10,10 @@
   "scripts": {
     "dev": "node scripts/run-dev.mjs",
     "test": "vitest run",
+    "test:smoke": "vitest run src/routes/appRoutes.smoke.test.tsx",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:all": "vitest run && npm run test:rh-paie && npm run verify:phase3",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "dist": "npm run build && electron-builder",
