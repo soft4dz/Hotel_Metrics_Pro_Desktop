@@ -799,15 +799,24 @@ export interface IpcApi {
     ouvrir: (id: number) => Promise<IpcResult<boolean>>;
   };
   reports: {
+    overview: () => Promise<IpcResult<import('./reports').ReportOverview>>;
+    semanticCatalog: () => Promise<IpcResult<import('./reports').SemanticCatalog>>;
+    compatibleFields: (dimensions: string[], measures: string[]) => Promise<IpcResult<import('./reports').CompatibleFieldsResult>>;
+    previewComposed: (composition: import('./reports').ReportComposition, filters?: import('./reports').ReportFilters) => Promise<IpcResult<import('./reports').ReportPreviewResult>>;
+    exportComposed: (composition: import('./reports').ReportComposition, filters?: import('./reports').ReportFilters, name?: string) => Promise<IpcResult<import('./reports').ReportExportResult>>;
+    catalog: () => Promise<IpcResult<import('./reports').ReportSourceCatalog>>;
     listSources: () => Promise<IpcResult<import('./reports').ReportDataSourceMeta[]>>;
     listTemplates: () => Promise<IpcResult<import('./reports').ReportTemplate[]>>;
     getTemplate: (id: number) => Promise<IpcResult<import('./reports').ReportTemplate | null>>;
     createTemplate: (input: import('./reports').CreateReportTemplateInput) => Promise<IpcResult<import('./reports').ReportTemplate>>;
     updateTemplate: (id: number, input: import('./reports').UpdateReportTemplateInput) => Promise<IpcResult<import('./reports').ReportTemplate>>;
+    duplicateTemplate: (id: number, newName?: string) => Promise<IpcResult<import('./reports').ReportTemplate>>;
     deleteTemplate: (id: number) => Promise<IpcResult<boolean>>;
     preview: (dataSource: string, columns: string[], filters?: import('./reports').ReportFilters) => Promise<IpcResult<import('./reports').ReportPreviewResult>>;
+    previewKpi: (kpiId: string, filters?: import('./reports').ReportFilters) => Promise<IpcResult<import('./reports').ReportPreviewResult>>;
     exportTemplate: (templateId: number) => Promise<IpcResult<import('./reports').ReportExportResult>>;
     exportAdHoc: (dataSource: string, columns: string[], filters?: import('./reports').ReportFilters, name?: string) => Promise<IpcResult<import('./reports').ReportExportResult>>;
+    exportKpi: (kpiId: string, filters?: import('./reports').ReportFilters) => Promise<IpcResult<import('./reports').ReportExportResult>>;
     listRuns: (limit?: number) => Promise<IpcResult<import('./reports').ReportRunHistory[]>>;
   };
 }

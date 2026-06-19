@@ -554,17 +554,29 @@ const api: IpcApi = {
     ouvrir: (id: number) => ipcRenderer.invoke('ged:ouvrir', id),
   },
   reports: {
+    overview: () => ipcRenderer.invoke('reports:overview'),
+    semanticCatalog: () => ipcRenderer.invoke('reports:semanticCatalog'),
+    compatibleFields: (dimensions: string[], measures: string[]) =>
+      ipcRenderer.invoke('reports:compatibleFields', dimensions, measures),
+    previewComposed: (composition: unknown, filters?: unknown) =>
+      ipcRenderer.invoke('reports:previewComposed', composition, filters),
+    exportComposed: (composition: unknown, filters?: unknown, name?: string) =>
+      ipcRenderer.invoke('reports:exportComposed', composition, filters, name),
+    catalog: () => ipcRenderer.invoke('reports:catalog'),
     listSources: () => ipcRenderer.invoke('reports:listSources'),
     listTemplates: () => ipcRenderer.invoke('reports:listTemplates'),
     getTemplate: (id: number) => ipcRenderer.invoke('reports:getTemplate', id),
     createTemplate: (input: unknown) => ipcRenderer.invoke('reports:createTemplate', input),
     updateTemplate: (id: number, input: unknown) => ipcRenderer.invoke('reports:updateTemplate', id, input),
+    duplicateTemplate: (id: number, newName?: string) => ipcRenderer.invoke('reports:duplicateTemplate', id, newName),
     deleteTemplate: (id: number) => ipcRenderer.invoke('reports:deleteTemplate', id),
     preview: (dataSource: string, columns: string[], filters?: unknown) =>
       ipcRenderer.invoke('reports:preview', dataSource, columns, filters),
+    previewKpi: (kpiId: string, filters?: unknown) => ipcRenderer.invoke('reports:previewKpi', kpiId, filters),
     exportTemplate: (templateId: number) => ipcRenderer.invoke('reports:exportTemplate', templateId),
     exportAdHoc: (dataSource: string, columns: string[], filters?: unknown, name?: string) =>
       ipcRenderer.invoke('reports:exportAdHoc', dataSource, columns, filters, name),
+    exportKpi: (kpiId: string, filters?: unknown) => ipcRenderer.invoke('reports:exportKpi', kpiId, filters),
     listRuns: (limit?: number) => ipcRenderer.invoke('reports:listRuns', limit),
   },
 };

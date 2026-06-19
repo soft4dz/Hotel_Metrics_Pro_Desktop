@@ -1,7 +1,7 @@
 import Electron from '../lib/electronApi';
 import * as settingsService from '../services/settings.service';
 import type { CompanyBrandAsset } from '../services/logo.service';
-import { wrapIpc, wrapIpcAsync } from './ipcHelpers';
+import { wrapIpc, wrapIpcAsync, wrapIpcPublic } from './ipcHelpers';
 
 export function registerSettingsIpc(): void {
   Electron.ipcMain.handle('settings:getBranding', () =>
