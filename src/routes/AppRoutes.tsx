@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
+import { ModuleErrorBoundary } from '@/components/common/ModuleErrorBoundary';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { MandatoryPasswordChangePage } from '@/pages/auth/MandatoryPasswordChangePage';
 import { UsersPage } from '@/pages/administration/UsersPage';
@@ -112,7 +113,9 @@ export function AppRoutes() {
           <Route
             element={
               <ProtectedRoute>
-                <DashboardLayout />
+                <ModuleErrorBoundary moduleName="Application">
+                  <DashboardLayout />
+                </ModuleErrorBoundary>
               </ProtectedRoute>
             }
           >
@@ -157,7 +160,6 @@ export function AppRoutes() {
             <Route path="/portmaster/mouvements" element={<RequirePortmaster><MouvementsPage /></RequirePortmaster>} />
             <Route path="/portmaster/recouvrement" element={<RequirePortmaster><RecouvrementPage /></RequirePortmaster>} />
 
-            {/* Encaissements & Trésorerie */}
             <Route path="/encaissements" element={<TresorerieIndexPage />}>
               <Route index element={<TresorerieBoard />} />
               <Route path="liste" element={<EncaissementsListPage />} />
@@ -166,7 +168,6 @@ export function AppRoutes() {
             </Route>
             <Route path="/encaissements/nouveau" element={<SaisieEncaissementPage />} />
 
-            {/* Facturation */}
             <Route path="/facturation" element={<FacturationIndexPage />}>
               <Route index element={<FacturationBoard />} />
               <Route path="factures" element={<FacturesListPage />} />
@@ -175,25 +176,19 @@ export function AppRoutes() {
             <Route path="/facturation/nouvelle" element={<NouvelleFacturePage />} />
             <Route path="/facturation/factures/:id" element={<FactureDetailFacturationPage />} />
 
-            {/* Clients */}
             <Route path="/clients" element={<ClientsListPage />} />
             <Route path="/clients/nouveau" element={<NouveauClientPage />} />
             <Route path="/clients/:id" element={<ClientDetailPage />} />
 
-            {/* Hébergement */}
             <Route path="/hebergement" element={<HebergementPage />} />
-
-            {/* Tarifs */}
             <Route path="/tarifs" element={<HotelTarifsPage />} />
 
-            {/* RH & Productivité */}
             <Route element={<RequireRh />}>
               <Route path="/rh" element={<RhPage />} />
               <Route path="/rh/:hub" element={<RhPage />} />
               <Route path="/rh/:hub/:sub" element={<RhPage />} />
             </Route>
 
-            {/* Nouveaux modules métier */}
             <Route path="/anomalies" element={<AnomaliesPage />} />
             <Route path="/decisions" element={<DecisionsPage />} />
             <Route path="/reclamations" element={<ReclamationsPage />} />
