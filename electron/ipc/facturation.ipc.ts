@@ -1,6 +1,7 @@
 import Electron from '../lib/electronApi';
-import { wrapIpc } from './ipcHelpers';
+import { wrapIpc, wrapIpcAsync } from './ipcHelpers';
 import * as svc from '../services/facturation.service';
+import * as pdfSvc from '../services/facturation-pdf.service';
 
 export function registerFacturationIpc(): void {
   Electron.ipcMain.handle('facturation:getDashboard', (event, hotelId?: number) =>
@@ -47,4 +48,7 @@ export function registerFacturationIpc(): void {
 
   Electron.ipcMain.handle('facturation:deleteClient', (event, id: number) =>
     wrapIpc(event, (uid) => svc.deleteClient(uid, id)));
+
+  Electron.ipcMain.handle('facturation:exportPdf', (event, factureId: number) =>
+    wrapIpcAsync(event, (uid) => pdfSvc.exportFacturationPdf(uid, factureId)));
 }

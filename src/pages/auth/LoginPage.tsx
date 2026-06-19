@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/auth.store';
-import { APP_LOGO_URL } from '@/lib/logos';
+import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { logoUrl, companyName } = useCompanyBranding();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,11 +62,11 @@ export function LoginPage() {
       <CardHeader className="space-y-1 pb-2">
         <div className="mb-3 flex items-center gap-2 lg:hidden">
           <img
-            src={APP_LOGO_URL}
-            alt="Hotel Metrics Pro"
+            src={logoUrl}
+            alt={companyName}
             className="h-10 w-10 rounded-lg object-contain"
           />
-          <span className="font-heading font-semibold text-primary">Hotel Metrics Pro</span>
+          <span className="font-heading font-semibold text-primary">{companyName}</span>
         </div>
         <CardTitle className="text-2xl text-foreground">Connexion</CardTitle>
         <CardDescription>
@@ -142,19 +143,21 @@ export function LoginPage() {
             )}
           </Button>
 
-          <p className="rounded-lg bg-secondary/50 px-3 py-2 text-center text-xs text-muted-foreground">
-            <strong className="text-foreground">Comptes de connexion</strong>
-            <br />
-            <span className="text-foreground">dec@egt-sidifredj.dz</span> ou{' '}
-            <span className="text-foreground">admin@hotelmetrics.local</span>
-            <br />
-            Mot de passe : <strong className="text-foreground">Admin@2026!</strong>
-            <br />
-            <span className="mt-1 inline-block text-[11px]">
-              Fermez complètement l&apos;application, lancez <strong>fix-auth.bat</strong> puis{' '}
-              <strong>dev.bat</strong>. N&apos;ouvrez pas Chrome sur localhost:5173.
-            </span>
-          </p>
+          {import.meta.env.DEV && (
+            <p className="rounded-lg bg-secondary/50 px-3 py-2 text-center text-xs text-muted-foreground">
+              <strong className="text-foreground">Comptes de connexion (dev)</strong>
+              <br />
+              <span className="text-foreground">dec@egt-sidifredj.dz</span> ou{' '}
+              <span className="text-foreground">admin@hotelmetrics.local</span>
+              <br />
+              Mot de passe : <strong className="text-foreground">Admin@2026!</strong>
+              <br />
+              <span className="mt-1 inline-block text-[11px]">
+                Fermez complètement l&apos;application, lancez <strong>fix-auth.bat</strong> puis{' '}
+                <strong>dev.bat</strong>. N&apos;ouvrez pas Chrome sur localhost:5173.
+              </span>
+            </p>
+          )}
 
           <button
             type="button"

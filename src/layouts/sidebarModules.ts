@@ -1,15 +1,18 @@
 import type { ComponentType } from 'react';
 import {
   Anchor,
+  AlertTriangle,
   Building2,
+  Handshake,
   LayoutDashboard,
   Receipt,
   Settings,
   UserCog,
+  Wrench,
 } from 'lucide-react';
+import { getRhSidebarItemsForRole } from '@/pages/rh/rhNavigation';
 import {
   canAccessPortmaster,
-  canAccessRhSelf,
   canExportReports,
   canManageHotels,
   canManageRh,
@@ -19,6 +22,7 @@ import {
   canSaisieRecettes,
   canValidateRecettes,
   canValidateRhTeam,
+  canAccessRhSelf,
   canViewObjectifs,
   canViewRecettes,
 } from '@/shared/permissions';
@@ -34,6 +38,8 @@ export type SidebarModule = {
   id: string;
   title: string;
   icon: ComponentType<{ className?: string }>;
+  /** ID du module dans modules_config — si défini, la section est masquée quand le module est désactivé */
+  moduleId?: string;
   visible?: boolean;
   items: SidebarNavItem[];
 };
@@ -41,6 +47,7 @@ export type SidebarModule = {
 export function buildSidebarModules(
   role: string | undefined,
   pendingUsers = 0,
+  pendingValidationsN1 = 0,
 ): SidebarModule[] {
   return [
     {
@@ -71,16 +78,53 @@ export function buildSidebarModules(
       ],
     },
     {
+      id: 'operations',
+      title: 'Opérations',
+      icon: Wrench,
+      items: [
+        { label: 'Stocks & consommations', to: '/stocks' },
+        { label: 'Achats & fournisseurs', to: '/achats' },
+        { label: 'Maintenance', to: '/maintenance' },
+        { label: 'Parking', to: '/parking' },
+        { label: 'Plage & piscine', to: '/plage' },
+      ],
+    },
+    {
+      id: 'qualite',
+      title: 'Qualité & relation client',
+      icon: AlertTriangle,
+      items: [
+        { label: 'Anomalies', to: '/anomalies' },
+        { label: 'Réclamations', to: '/reclamations' },
+        { label: 'Décisions & instructions', to: '/decisions' },
+      ],
+    },
+    {
+      id: 'commercial-ged',
+      title: 'Commercial & documents',
+      icon: Handshake,
+      items: [
+        { label: 'Commercial', to: '/commercial' },
+        { label: 'Gestion documentaire', to: '/ged' },
+      ],
+    },
+    {
       id: 'rh',
       title: 'RH & productivité',
       icon: UserCog,
+      moduleId: 'rh-productivite',
       visible: canManageRh(role) || canValidateRhTeam(role) || canAccessRhSelf(role),
-      items: [{ label: 'Tableau de bord RH', to: '/rh' }],
+      items: getRhSidebarItemsForRole(role, pendingValidationsN1).map((item) => ({
+        label: item.label,
+        to: item.path,
+        badge: item.badge,
+      })),
     },
     {
       id: 'portmaster',
       title: 'PortMaster',
       icon: Anchor,
+      moduleId: 'portmaster',
       visible: canAccessPortmaster(role),
       items: [
         { label: 'Dashboard port', to: '/portmaster' },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cloud, Database, ImagePlus, Loader2, Save, Trash2, User } from 'lucide-react';
+import { Cloud, Database, ImagePlus, Loader2, Save, Trash2, User, UserCog } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ipcClient } from '@/lib/ipcClient';
+import { notifyBrandingUpdated } from '@/lib/branding';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
-import { canManageSync, canManageUsers } from '@/shared/permissions';
+import { canManageRh, canManageSync, canManageUsers } from '@/shared/permissions';
 import type { AppInfoDto, AppSettingsDto } from '@/shared/types/settings';
 
 const DEFAULT_SETTINGS: AppSettingsDto = {
@@ -156,6 +157,7 @@ export function SettingsPage() {
           ? unwrapIpc(await ipcClient.settings.pickBrandAsset(asset))
           : unwrapIpc(await ipcClient.settings.removeBrandAsset(asset));
       applySettings(updated);
+      notifyBrandingUpdated();
       setMessage(
         action === 'pick'
           ? 'Image enregistrée.'
@@ -250,6 +252,14 @@ export function SettingsPage() {
                 <Link to="/system/sync">
                   <Cloud className="mr-2 h-4 w-4" />
                   Synchronisation
+                </Link>
+              </Button>
+            )}
+            {canManageRh(user?.role) && (
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link to="/settings/rh-referentiel">
+                  <UserCog className="mr-2 h-4 w-4" />
+                  Référentiel RH
                 </Link>
               </Button>
             )}

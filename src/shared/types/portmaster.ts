@@ -132,6 +132,10 @@ export interface PortDashboardDto {
   resteARecouvrer: number;
   encaissementsMois: number;
   repartitionTypes: Array<{ type: string; count: number }>;
+  revenueChart: Array<{ mois: string; caFacture: number; encaissements: number }>;
+  periodeLabel: string;
+  variationCaPct: number | null;
+  variationEncaissementsPct: number | null;
   emplacements: EmplacementListItem[];
   contratsRecents: ContratListItem[];
   alertes: PortAlerte[];

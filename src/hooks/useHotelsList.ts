@@ -1,30 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
-import type { HotelListItem } from '@/shared/types/admin';
 
 export function useHotelsList() {
   const user = useAuthStore((s) => s.user);
-  const [hotels, setHotels] = useState<HotelListItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const list = unwrapIpc(await ipcClient.hotels.list());
-      setHotels(list);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: hotels = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['hotels-list'],
+    queryFn: async () => unwrapIpc(await ipcClient.hotels.list()),
+    staleTime: 60_000,
+  });
 
   const defaultHotelId =
     user?.hotelId ?? (hotels.length === 1 ? hotels[0].id : hotels[0]?.id ?? 0);
 
-  return { hotels, loading, defaultHotelId, reload: load };
+  return { hotels, loading, defaultHotelId, reload: () => { void refetch(); } };
 }

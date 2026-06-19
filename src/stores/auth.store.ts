@@ -5,8 +5,7 @@ import type { AuthUserDto } from '@/shared/types/auth';
 
 export type AuthUser = AuthUserDto;
 
-/** Patch dev temporaire — mettre à false pour réactiver le login. */
-const DEV_AUTO_ADMIN_LOGIN = true;
+const DEV_AUTO_ADMIN_LOGIN = import.meta.env.DEV && import.meta.env.VITE_AUTO_LOGIN === 'true';
 
 const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
 const DEV_ADMIN_PASSWORD = 'Admin@2026!';

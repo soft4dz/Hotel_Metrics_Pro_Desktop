@@ -29,6 +29,19 @@ export interface Chambre {
   createdAt: string;
 }
 
+export interface EstimateReservationPriceInput {
+  hotelId: number;
+  chambreId?: number | null;
+  typeChambreId?: number;
+  planId?: number;
+  formuleId?: number | null;
+  dateArrivee: string;
+  dateDepart: string;
+  nbAdultes?: number;
+  nbEnfants?: number;
+  clientId?: number | null;
+}
+
 export interface Reservation {
   id: number;
   hotelId: number;
@@ -36,6 +49,10 @@ export interface Reservation {
   chambreId: number | null;
   chambreNumero: string | null;
   typeChambreLabel: string | null;
+  clientId: number | null;
+  planId: number | null;
+  formuleId: number | null;
+  factureId: number | null;
   dateArrivee: string;
   dateDepart: string;
   nbNuits: number;
@@ -56,11 +73,14 @@ export interface Reservation {
 export interface CreateReservationInput {
   hotelId: number;
   chambreId?: number | null;
+  clientId?: number | null;
+  planId?: number;
+  formuleId?: number | null;
   dateArrivee: string;
   dateDepart: string;
   nbAdultes?: number;
   nbEnfants?: number;
-  clientNom: string;
+  clientNom?: string;
   clientPrenom?: string | null;
   clientEmail?: string | null;
   clientTelephone?: string | null;

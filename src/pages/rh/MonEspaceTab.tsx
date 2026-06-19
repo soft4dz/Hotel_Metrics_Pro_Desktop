@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
+import { ExternalLink } from 'lucide-react';
 import { formatMoney } from '@/lib/formatters';
 import type { RhMonEspace } from '@/shared/types/rh';
 
@@ -69,7 +70,14 @@ export function MonEspaceTab() {
     );
   }
 
-  const { employe, contratActif, pointagesRecents, absences } = data;
+  const {
+    employe, contratActif, affectationActive, pointagesRecents, absences,
+    formationsProches, entretiensAvenir, soldesConges, dernierBulletin, onboarding, mesDocuments,
+  } = data;
+
+  const onboardingDone = onboarding.filter((s) => s.statut === 'fait').length;
+  const onboardingTotal = onboarding.length;
+  const onboardingEnCours = onboardingTotal > 0 && onboardingDone < onboardingTotal;
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -77,6 +85,12 @@ export function MonEspaceTab() {
         <h2 className="font-semibold">Mon profil</h2>
         <p className="text-lg font-medium">{employe.prenom} {employe.nom}</p>
         <p className="text-sm text-muted-foreground">{employe.posteNom ?? 'Sans poste'} — {employe.departementNom ?? '—'}</p>
+        {affectationActive && (
+          <p className="text-sm">
+            Affectation : <strong>{affectationActive.hotelName}</strong>
+            {' '}({affectationActive.type}) depuis {affectationActive.dateDebut}
+          </p>
+        )}
         <Badge variant={employe.statutRh === 'actif' ? 'success' : 'muted'}>{employe.statutRh}</Badge>
         {contratActif && (
           <p className="text-sm">
@@ -110,6 +124,81 @@ export function MonEspaceTab() {
         </div>
         <Button onClick={() => void demanderAbsence()}>Envoyer la demande</Button>
       </div>
+
+      {onboardingEnCours && (
+        <div className="rounded-lg border bg-card p-5 space-y-3 lg:col-span-2">
+          <h2 className="font-semibold">Mon intégration ({onboardingDone}/{onboardingTotal})</h2>
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${(onboardingDone / onboardingTotal) * 100}%` }} />
+          </div>
+          <ul className="text-sm space-y-1">
+            {onboarding.map((s) => (
+              <li key={s.stepCode} className={s.statut === 'fait' ? 'text-muted-foreground line-through' : ''}>
+                {s.stepLibelle}{s.obligatoire ? ' *' : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {soldesConges.length > 0 && (
+        <div className="rounded-lg border bg-card p-5 space-y-2">
+          <h2 className="font-semibold">Mes soldes de congés</h2>
+          <ul className="text-sm space-y-1">
+            {soldesConges.map((s) => (
+              <li key={s.id}>{s.type} {s.annee} : {s.reste} j restants ({s.pris}/{s.acquis} pris)</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {dernierBulletin && (
+        <div className="rounded-lg border bg-card p-5 space-y-2">
+          <h2 className="font-semibold">Dernier bulletin</h2>
+          <p className="text-sm">Période {dernierBulletin.periode}</p>
+          <p className="text-sm">Brut {formatMoney(dernierBulletin.brut)} — Net {formatMoney(dernierBulletin.net)}</p>
+          <Badge variant={dernierBulletin.statut === 'valide' ? 'success' : 'muted'}>{dernierBulletin.statut}</Badge>
+        </div>
+      )}
+
+      {mesDocuments.length > 0 && (
+        <div className="rounded-lg border bg-card p-5 space-y-2">
+          <h2 className="font-semibold">Mes documents</h2>
+          <ul className="text-sm space-y-1">
+            {mesDocuments.map((d) => (
+              <li key={d.id} className="flex justify-between items-center">
+                <span>{d.nom} <span className="text-muted-foreground">({d.type})</span></span>
+                <Button size="sm" variant="ghost" onClick={() => void ipcClient.rh.openRhDocument(d.id)}>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {(formationsProches.length > 0 || entretiensAvenir.length > 0) && (
+        <div className="rounded-lg border bg-card p-5 space-y-3 lg:col-span-2">
+          <h2 className="font-semibold">Formations & entretiens</h2>
+          {formationsProches.length > 0 && (
+            <ul className="text-sm space-y-1">
+              {formationsProches.map((f) => (
+                <li key={f.id}>
+                  {f.formationLibelle} — {f.statut}
+                  {f.dateEcheance && <span className="text-muted-foreground"> (échéance {f.dateEcheance})</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {entretiensAvenir.length > 0 && (
+            <ul className="text-sm space-y-1">
+              {entretiensAvenir.map((e) => (
+                <li key={e.id}>Entretien {e.type} le {e.dateEntretien}{e.evaluateurNom ? ` avec ${e.evaluateurNom}` : ''}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="rounded-lg border bg-card p-5 space-y-2 lg:col-span-2">
         <h2 className="font-semibold">Historique récent</h2>

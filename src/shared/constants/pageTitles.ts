@@ -1,3 +1,5 @@
+import { RH_HUBS, rhPageTitle, type RhHubId } from '@/pages/rh/rhNavigation';
+
 export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   '/modules': {
     title: 'Modules de pilotage',
@@ -8,8 +10,8 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     subtitle: 'Effectifs, recrutement, présences et indicateurs',
   },
   '/dashboard': {
-    title: 'Tableau de bord',
-    subtitle: 'Synthèse recettes, objectifs, unités, rubriques, alertes et accès rapides',
+    title: 'Pilotage Global',
+    subtitle: 'Supervision de l\'activité consolidée du groupe',
   },
   '/objectifs': {
     title: 'Objectifs',
@@ -20,8 +22,8 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     subtitle: 'Objectifs et indicateurs',
   },
   '/portmaster': {
-    title: 'Dashboard PortMaster',
-    subtitle: 'Pilotage portuaire',
+    title: 'Tableau de bord Capitainerie',
+    subtitle: 'Aperçu de l\'activité du port',
   },
   '/portmaster/bateaux': {
     title: 'Bateaux',
@@ -199,10 +201,33 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Nouveau client',
     subtitle: 'Création d\'un dossier client',
   },
+  '/hebergement': {
+    title: 'Hébergement & Occupation',
+    subtitle: 'Chambres, réservations et indicateurs de performance',
+  },
+  '/tarifs': {
+    title: 'Tarifs & Conventions',
+    subtitle: 'Plans tarifaires, grille journalière, promotions et conventions',
+  },
 };
 
 export function getPageTitle(pathname: string): { title: string; subtitle?: string } {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+
+  const rhMatch = pathname.match(/^\/rh\/([\w-]+)(?:\/([\w-]+))?$/);
+  if (rhMatch) {
+    const hubId = rhMatch[1] as RhHubId;
+    const sub = rhMatch[2];
+    if (RH_HUBS.some((h) => h.id === hubId)) {
+      return rhPageTitle(hubId, sub);
+    }
+  }
+  if (pathname === '/rh') {
+    return { title: 'RH & productivité', subtitle: 'Effectifs, recrutement, présences et indicateurs' };
+  }
+  if (pathname === '/settings/rh-referentiel') {
+    return { title: 'Référentiel RH', subtitle: 'Postes, départements et modèles de dossier' };
+  }
 
   const userEdit = pathname.match(/^\/admin\/users\/(\d+)$/);
   if (userEdit) {

@@ -150,6 +150,10 @@ export interface PortDashboardDto {
   resteARecouvrer: number;
   encaissementsMois: number;
   repartitionTypes: Array<{ type: string; count: number }>;
+  revenueChart: Array<{ mois: string; caFacture: number; encaissements: number }>;
+  periodeLabel: string;
+  variationCaPct: number | null;
+  variationEncaissementsPct: number | null;
   emplacements: EmplacementListItem[];
   contratsRecents: ContratListItem[];
   alertes: PortAlerte[];
@@ -610,9 +614,29 @@ export function listBateauxOptions(actorUserId: number): Array<{ id: number; nom
     .all() as Array<{ id: number; nom: string }>;
 }
 
-export function getPortDashboard(actorUserId: number): PortDashboardDto {
+import type { DashboardFilters } from '../../src/shared/types/dashboard';
+
+export function getPortDashboard(actorUserId: number, filters?: DashboardFilters): PortDashboardDto {
   assertPortmaster(actorUserId);
   const db = getDatabase();
+  
+  const annee = filters?.annee ?? new Date().getFullYear();
+  const mois = filters?.mois;
+  
+  let dateDebutStr = `${annee}-01-01`;
+  let dateFinStr = `${annee}-12-31`;
+  
+  if (mois) {
+    const moisStr = mois.toString().padStart(2, '0');
+    dateDebutStr = `${annee}-${moisStr}-01`;
+    const lastDay = new Date(annee, mois, 0).getDate();
+    dateFinStr = `${annee}-${moisStr}-${lastDay.toString().padStart(2, '0')}`;
+  }
+
+  const periodeLabel = mois
+    ? `${new Date(annee, mois - 1).toLocaleString('fr-FR', { month: 'long' })} ${annee}`
+    : `Année ${annee}`;
+
   const t = new Date().toISOString().slice(0, 10);
   const limit30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
@@ -660,13 +684,15 @@ export function getPortDashboard(actorUserId: number): PortDashboardDto {
   const contrats = listContrats(actorUserId, 'actif');
   const resteARecouvrer = contrats.reduce((s, c) => s + c.resteARecouvrer, 0);
 
+  // CA Facturé sur la période
   const caFactureTotal =
-    (db.prepare(`SELECT COALESCE(SUM(montant_total), 0) AS t FROM port_contrats WHERE deleted_at IS NULL`).get() as { t: number }).t +
-    (db.prepare(`SELECT COALESCE(SUM(montant_ttc), 0) AS t FROM port_factures WHERE deleted_at IS NULL`).get() as { t: number }).t;
+    (db.prepare(`SELECT COALESCE(SUM(montant_total), 0) AS t FROM port_contrats WHERE deleted_at IS NULL AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?)`).get(dateFinStr, dateDebutStr) as { t: number }).t +
+    (db.prepare(`SELECT COALESCE(SUM(montant_ttc), 0) AS t FROM port_factures WHERE deleted_at IS NULL AND date_facture BETWEEN ? AND ?`).get(dateDebutStr, dateFinStr) as { t: number }).t;
 
+  // Encaissements sur la période
   const encaissementsRealises = db
-    .prepare(`SELECT COALESCE(SUM(montant), 0) AS total FROM port_encaissements`)
-    .get() as { total: number };
+    .prepare(`SELECT COALESCE(SUM(montant), 0) AS total FROM port_encaissements WHERE date_encaissement BETWEEN ? AND ?`)
+    .get(dateDebutStr, dateFinStr) as { total: number };
 
   const creancesClients = db
     .prepare(`SELECT COALESCE(SUM(solde_creances), 0) AS t FROM port_clients WHERE deleted_at IS NULL`)
@@ -694,6 +720,30 @@ export function getPortDashboard(actorUserId: number): PortDashboardDto {
     )
     .all() as Array<{ type: string; count: number }>;
 
+  // Génération des données pour le graphique de revenus (12 mois de l'année filtrée)
+  const revenueChart: Array<{ mois: string; caFacture: number; encaissements: number }> = [];
+  const moisNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+  
+  for (let i = 1; i <= 12; i++) {
+    const mStr = i.toString().padStart(2, '0');
+    const dDebut = `${annee}-${mStr}-01`;
+    const dFin = `${annee}-${mStr}-${new Date(annee, i, 0).getDate().toString().padStart(2, '0')}`;
+    
+    const caMois = 
+      (db.prepare(`SELECT COALESCE(SUM(montant_total), 0) AS t FROM port_contrats WHERE deleted_at IS NULL AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?)`).get(dFin, dDebut) as { t: number }).t +
+      (db.prepare(`SELECT COALESCE(SUM(montant_ttc), 0) AS t FROM port_factures WHERE deleted_at IS NULL AND date_facture BETWEEN ? AND ?`).get(dDebut, dFin) as { t: number }).t;
+      
+    const encMoisRow = db
+      .prepare(`SELECT COALESCE(SUM(montant), 0) AS total FROM port_encaissements WHERE date_encaissement BETWEEN ? AND ?`)
+      .get(dDebut, dFin) as { total: number };
+      
+    revenueChart.push({
+      mois: moisNames[i - 1],
+      caFacture: caMois,
+      encaissements: encMoisRow.total
+    });
+  }
+
   return {
     emplacementsTotal: empStats.total,
     emplacementsOccupes: empStats.occupes,
@@ -710,6 +760,10 @@ export function getPortDashboard(actorUserId: number): PortDashboardDto {
     resteARecouvrer,
     encaissementsMois: encMois.total,
     repartitionTypes: repartition.map((r) => ({ type: r.type, count: r.count })),
+    revenueChart,
+    periodeLabel,
+    variationCaPct: null, // À implémenter : calcul du mois/année précédente
+    variationEncaissementsPct: null,
     emplacements: listEmplacements(actorUserId),
     contratsRecents: listContrats(actorUserId).slice(0, 8),
     alertes: listAlertes(actorUserId).slice(0, 25),

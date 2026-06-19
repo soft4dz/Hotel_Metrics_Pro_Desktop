@@ -191,8 +191,8 @@ function ModuleCard({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-border/60 bg-white shadow-sm transition-all duration-200',
-        ready && 'hover:border-primary/20 hover:shadow-md',
+        'module-card flex flex-col overflow-hidden',
+        ready && 'cursor-default',
         !ready && 'opacity-70',
       )}
     >

@@ -163,19 +163,9 @@ export const TYPE_CONTACT_LABELS: Record<TypeContact, string> = {
   autre: 'Autre',
 };
 
+export { WILAYAS_ALGERIE } from '@/shared/constants/algerieGeo';
+export type { WilayaAlgerie } from '@/shared/constants/algerieGeo';
+
 export const FORMES_JURIDIQUES = [
   'SARL', 'SPA', 'EURL', 'SNC', 'EPIC', 'EPA', 'EI', 'SCP', 'SCS', 'autre',
-] as const;
-
-export const WILAYAS_ALGERIE = [
-  'Adrar', 'Chlef', 'Laghouat', 'Oum El Bouaghi', 'Batna', 'Béjaïa', 'Biskra',
-  'Béchar', 'Blida', 'Bouira', 'Tamanrasset', 'Tébessa', 'Tlemcen', 'Tiaret',
-  'Tizi Ouzou', 'Alger', 'Djelfa', 'Jijel', 'Sétif', 'Saïda', 'Skikda',
-  'Sidi Bel Abbès', 'Annaba', 'Guelma', 'Constantine', 'Médéa', 'Mostaganem',
-  'M\'Sila', 'Mascara', 'Ouargla', 'Oran', 'El Bayadh', 'Illizi', 'Bordj Bou Arréridj',
-  'Boumerdès', 'El Tarf', 'Tindouf', 'Tissemsilt', 'El Oued', 'Khenchela',
-  'Souk Ahras', 'Tipaza', 'Mila', 'Aïn Defla', 'Naâma', 'Aïn Témouchent',
-  'Ghardaïa', 'Relizane', 'Timimoun', 'Bordj Badji Mokhtar', 'Ouled Djellal',
-  'Béni Abbès', 'In Salah', 'In Guezzam', 'Touggourt', 'Djanet',
-  'El M\'Ghair', 'El Meniaa',
 ] as const;

@@ -37,6 +37,10 @@ export interface DashboardKpis {
   saisiesManquantes: number;
   periodeLabel: string;
   variationCaPct: number;
+  tauxOccupation?: number;
+  revPAR?: number;
+  adr?: number;
+  prixMoyenCouvert?: number;
 }
 
 export interface HotelRubriqueRow {
@@ -449,7 +453,7 @@ export function getDashboard(actorUserId: number, filters: DashboardFilters): Da
         ? `${MOIS_LABELS[moisRef - 1]} ${filters.annee}`
         : `Année ${filters.annee}`;
 
-  const kpis: DashboardKpis = {
+  const baseKpis = {
     caJour,
     caMois: realiseMois,
     caAnnuel,
@@ -743,6 +747,23 @@ export function getDashboard(actorUserId: number, filters: DashboardFilters): Da
       )
       .all() as DashboardAuditRow[];
   }
+
+  // Calculate new Hospitality KPIs
+  const caHebergement = rubriqueRows.find((r) => r.groupe === 'Hébergement')?.realise || 0;
+  const caRestauration = rubriqueRows.find((r) => r.groupe === 'Restauration')?.realise || 0;
+
+  const tauxOccupation = freqRow.chambres > 0 ? (freqRow.nuitees / freqRow.chambres) * 100 : 0;
+  const revPAR = freqRow.chambres > 0 ? caHebergement / freqRow.chambres : 0;
+  const adr = freqRow.nuitees > 0 ? caHebergement / freqRow.nuitees : 0;
+  const prixMoyenCouvert = freqRow.couverts > 0 ? caRestauration / freqRow.couverts : 0;
+
+  const kpis: DashboardKpis = {
+    ...baseKpis,
+    tauxOccupation: Math.round(tauxOccupation * 10) / 10,
+    revPAR: Math.round(revPAR),
+    adr: Math.round(adr),
+    prixMoyenCouvert: Math.round(prixMoyenCouvert),
+  };
 
   return {
     kpis,

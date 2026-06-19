@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Metrics Pro — Visualisation des Interactions Modules</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a8a, #0f172a);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #1e293b;
+  }
+  header h1 { margin: 0; font-size: 1.6rem; color: #f8fafc; }
+  header p { margin: .4rem 0 0; color: #94a3b8; font-size: .9rem; }
+  .tabs {
+    display: flex;
+    gap: .25rem;
+    padding: 1rem 2rem 0;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: .6rem 1.2rem;
+    cursor: pointer;
+    border: none;
+    background: #1e293b;
+    color: #94a3b8;
+    border-radius: 6px 6px 0 0;
+    font-size: .85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+  .tab:hover { background: #334155; color: #e2e8f0; }
+  .tab.active { background: #3b82f6; color: #fff; }
+  .panel {
+    display: none;
+    padding: 1.5rem 2rem;
+  }
+  .panel.active { display: block; }
+  .mermaid {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    overflow: auto;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .8rem 1.5rem;
+    padding: .8rem 1rem;
+    background: #1e293b;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: .8rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: .4rem; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; }
+  .info-box {
+    background: #1e293b;
+    border-left: 4px solid #3b82f6;
+    padding: 1rem 1.2rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: .85rem;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .card {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .card h3 { margin: 0 0 .5rem; font-size: 1rem; color: #f8fafc; }
+  .card p { margin: 0; color: #94a3b8; font-size: .8rem; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+    margin: 1rem 0;
+  }
+  th, td { padding: .5rem .8rem; text-align: left; border-bottom: 1px solid #334155; }
+  th { color: #f8fafc; background: #1e293b; }
+  tr:hover td { background: #252f47; }
+  .tag {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 12px;
+    font-size: .7rem;
+    font-weight: 600;
+  }
+  .tag-op { background: #14532d; color: #86efac; }
+  .tag-socle { background: #713f12; color: #fcd34d; }
+  .tag-adv { background: #1e3a8a; color: #93c5fd; }
+  .tag-db { background: #4c1d95; color: #c4b5fd; }
+  .tag-flow { background: #701a75; color: #f0abfc; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .stat-num { font-size: 1.8rem; font-weight: 700; color: #3b82f6; }
+  .stat-label { font-size: .75rem; color: #94a3b8; margin-top: .2rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏨 Hotel Metrics Pro Desktop — Cartographie des Interactions</h1>
+  <p>Architecture, modules, services, base de données et flux de données — Version 0.8.0 (Phase 8)</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('arch')">🗂️ Architecture Globale</button>
+  <button class="tab" onclick="switchTab('modules')">🧩 Modules Métier</button>
+  <button class="tab" onclick="switchTab('services')">⚙️ Services & Dépendances</button>
+  <button class="tab" onclick="switchTab('db')">🗄️ Base de Données</button>
+  <button class="tab" onclick="switchTab('flows')">🔄 Flux de Données</button>
+</div>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<div id="arch" class="panel active">
+  <div class="stats">
+    <div class="stat"><div class="stat-num">358</div><div class="stat-label">Fichiers TypeScript</div></div>
+    <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Handlers IPC</div></div>
+    <div class="stat"><div class="stat-num">30</div><div class="stat-label">Migrations SQL</div></div>
+    <div class="stat"><div class="stat-num">65</div><div class="stat-label">Tables SQLite</div></div>
+    <div class="stat"><div class="stat-num">55</div><div class="stat-label">Modules métier</div></div>
+  </div>
+
+  <div class="mermaid">
+flowchart TB
+    subgraph DESKTOP["🖥️ Application Desktop (Electron)"]
+        direction TB
+        subgraph RENDERER["Renderer Process (Chromium)"]
+            direction TB
+            REACT["React 18 + Vite<br/>~235 fichiers TSX/TS"]
+            TQ["TanStack Query"]
+            ZUSTAND["Zustand Stores<br/>auth, ui, modules"]
+            ROUTER["React Router<br/>HashRouter"]
+            TAILWIND["Tailwind CSS + Radix UI"]
+            REACT --> TQ --> ZUSTAND --> ROUTER --> TAILWIND
+        end
+
+        subgraph PRELOAD["Preload Script (Bridge)"]
+            IPC_API["window.electronAPI<br/>~40 namespaces IPC"]
+        end
+
+        subgraph MAIN["Main Process (Node.js)"]
+            direction TB
+            BOOT["Bootstrap:<br/>initDB → seed → IPC register"]
+            subgraph IPC_HANDLERS["IPC Handlers (~40 modules)"]
+                AUTH_IPC["auth.ipc"]
+                RECETTES_IPC["recettes.ipc"]
+                RH_IPC["rh.ipc (465 lignes)"]
+                PORT_IPC["portmaster.ipc"]
+                FACT_IPC["facturation.ipc"]
+                TRES_IPC["tresorerie.ipc"]
+                EXPORT_IPC["export.ipc"]
+                SYNC_IPC["sync.ipc"]
+                GED_IPC["ged.ipc"]
+                ...["... 30 autres"]
+            end
+            subgraph SERVICES["Services Métier (~60 fichiers)"]
+                AUTH_S["auth.service"]
+                REC_S["recettes.service"]
+                RH_S["rh-*.service (15+)"]
+                PORT_S["portmaster-*.service (8)"]
+                FACT_S["facturation.service"]
+                EXP_S["export.service"]
+                AUDIT_S["audit.service"]
+            end
+            DB[("SQLite<br/>better-sqlite3<br/>WAL mode")]
+            FS[("File System<br/>logos, PDF, exports")]
+        end
+    end
+
+    subgraph EXTERNAL["☁️ API Centrale (Optionnel)"]
+        NEST["NestJS + PostgreSQL<br/>server/ (Prisma)"]
+        DUAL["dualWrite.ts<br/>sync offline/online"]
+    end
+
+    RENDERER -->|invoke| IPC_API
+    IPC_API -->|ipcMain.handle| IPC_HANDLERS
+    IPC_HANDLERS -->|appelle| SERVICES
+    SERVICES -->|lit/écrit| DB
+    SERVICES -->|génère| FS
+    SERVICES -->|push/pull| DUAL
+    DUAL -->|REST API| NEST
+
+    style RENDERER fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style MAIN fill:#14532d,stroke:#16a34a,color:#fff
+    style PRELOAD fill:#713f12,stroke:#f59e0b,color:#fff
+    style EXTERNAL fill:#4c1d95,stroke:#a855f7,color:#fff
+    style DB fill:#701a75,stroke:#d946ef,color:#fff
+  </div>
+
+  <div class="info-box">
+    <strong>🔒 Sécurité :</strong> <code>contextIsolation: true</code>, <code>sandbox: true</code>, <code>nodeIntegration: false</code> — Le renderer n'a pas accès direct à Node.js. Toute communication passe par le preload bridge exposé via <code>contextBridge.exposeInMainWorld</code>.
+  </div>
+</div>
+
+<!-- ==================== MODULES ==================== -->
+<div id="modules" class="panel">
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#16a34a"></div>Opérationnel</div>
+    <div class="legend-item"><div class="dot" style="background:#f59e0b"></div>Socle prêt</div>
+    <div class="legend-item"><div class="dot" style="background:#3b82f6"></div>À développer</div>
+    <div class="legend-item"><div class="dot" style="background:#a855f7"></div>Spécifique</div>
+  </div>
+
+  <div class="mermaid">
+flowchart LR
+    subgraph SOCLE["🏗️ Socle"]
+        ADMIN["Administration<br/>& Utilisateurs"]
+        PARAM["Paramétrage<br/>global"]
+        UNITES["Unités<br/>hôtelières"]
+    end
+
+    subgraph FINANCE["💰 Finance"]
+        RECETTES["Recettes<br/>journalières"]
+        ENCAIS["Encaissements<br/>& Trésorerie"]
+        BUDGET["Budget &<br/>Prévisions"]
+        FACTUR["Facturation"]
+        CREANCES["Créances &<br/>Recouvrement"]
+        CLIENTS["Clients"]
+    end
+
+    subgraph EXPLOITATION["🏨 Exploitation"]
+        HEBERG["Hébergement &<br/>Occupation"]
+        TARIFS["Tarifs &<br/>Conventions"]
+        STOCKS["Stocks &<br/>Consommations"]
+        ACHATS["Achats &<br/>Approvisionnements"]
+        MAINT["Maintenance &<br/>Interventions"]
+        QUALITE["Qualité &<br/>Réclamations"]
+        PLAGE["Plage &<br/>Piscine"]
+        PARKING["Parking"]
+    end
+
+    subgraph RH["👥 RH & Productivité"]
+        RH_CORE["RH &<br/>Productivité"]
+    end
+
+    subgraph PORTMASTER["⚓ PortMaster"]
+        PORT["PortMaster<br/>(Portuaire)"]
+        CONTRATS["Contrats &<br/>Conventions"]
+    end
+
+    subgraph CONTROLE["🔍 Contrôle"]
+        AUDIT["Audit &<br/>Contrôle interne"]
+        ANOMALIES["Journal des<br/>Anomalies"]
+        DECISIONS["Décisions &<br/>Instructions"]
+    end
+
+    subgraph COMMERCIAL["🤝 Commercial"]
+        COMM["Commercial &<br/>Partenariats"]
+    end
+
+    subgraph PILOTAGE["📊 Pilotage"]
+        DASH["Tableaux de bord<br/>directionnels"]
+        RAPPORTS["Rapports<br/>automatiques"]
+        ALERTES["Alertes &<br/>Notifications"]
+        COMPAR["Comparatif<br/>inter-unités"]
+    end
+
+    subgraph SYSTEME["⚙️ Système"]
+        GED["Gestion<br/>documentaire"]
+        BACKUP["Sauvegarde &<br/>Restauration"]
+        SYNC["Synchronisation<br/>multi-postes"]
+        TRACE["Journalisation &<br/>Traçabilité"]
+    end
+
+    %% Data flows
+    RECETTES --> ENCAIS
+    RECETTES --> BUDGET
+    RECETTES --> DASH
+    ENCAIS --> FACTUR
+    ENCAIS --> CREANCES
+    FACTUR --> CREANCES
+    FACTUR --> CLIENTS
+    CLIENTS --> CREANCES
+    CLIENTS --> COMM
+    BUDGET --> HEBERG
+    BUDGET --> STOCKS
+    HEBERG --> TARIFS
+    TARIFS --> FACTUR
+    HEBERG --> QUALITE
+    STOCKS --> ACHATS
+    STOCKS --> MAINT
+    STOCKS --> PLAGE
+    MAINT --> QUALITE
+    MAINT --> ANOMALIES
+    PLAGE --> RECETTES
+    PLAGE --> ENCAIS
+    PLAGE --> MAINT
+    PARKING --> RECETTES
+    PARKING --> ENCAIS
+    PARKING --> FACTUR
+    RH_CORE --> UNITES
+    RH_CORE --> RECETTES
+    RH_CORE --> BUDGET
+    RH_CORE --> COMPAR
+    PORT --> CONTRATS
+    PORT --> FACTUR
+    PORT --> CREANCES
+    PORT --> DASH
+    CONTRATS --> FACTUR
+    CONTRATS --> COMM
+    AUDIT --> ANOMALIES
+    AUDIT --> DECISIONS
+    AUDIT --> TRACE
+    ANOMALIES --> MAINT
+    ANOMALIES --> ALERTES
+    DECISIONS --> ALERTES
+    DECISIONS --> RAPPORTS
+    QUALITE --> HEBERG
+    QUALITE --> MAINT
+    QUALITE --> DASH
+    COMM --> CONTRATS
+    COMM --> FACTUR
+    COMM --> CREANCES
+    DASH --> RAPPORTS
+    DASH --> COMPAR
+    RAPPORTS --> AUDIT
+    RAPPORTS --> RECETTES
+    RAPPORTS --> CREANCES
+    ALERTES --> RECETTES
+    ALERTES --> CREANCES
+    ALERTES --> BACKUP
+    GED --> CONTRATS
+    GED --> FACTUR
+    GED --> AUDIT
+    GED --> DECISIONS
+    BACKUP --> SYNC
+    BACKUP --> TRACE
+    SYNC --> TRACE
+    SYNC --> UNITES
+    TRACE --> ADMIN
+    TRACE --> AUDIT
+    TRACE --> BACKUP
+    TRACE --> SYNC
+    COMPAR --> UNITES
+    COMPAR --> RECETTES
+    COMPAR --> HEBERG
+    COMPAR --> RH_CORE
+
+    style ADMIN fill:#16a34a,stroke:#22c55e,color:#fff
+    style PARAM fill:#16a34a,stroke:#22c55e,color:#fff
+    style UNITES fill:#16a34a,stroke:#22c55e,color:#fff
+    style RECETTES fill:#16a34a,stroke:#22c55e,color:#fff
+    style ENCAIS fill:#16a34a,stroke:#22c55e,color:#fff
+    style BUDGET fill:#16a34a,stroke:#22c55e,color:#fff
+    style FACTUR fill:#16a34a,stroke:#22c55e,color:#fff
+    style CREANCES fill:#f59e0b,stroke:#fbbf24,color:#000
+    style CLIENTS fill:#16a34a,stroke:#22c55e,color:#fff
+    style HEBERG fill:#16a34a,stroke:#22c55e,color:#fff
+    style TARIFS fill:#16a34a,stroke:#22c55e,color:#fff
+    style STOCKS fill:#16a34a,stroke:#22c55e,color:#fff
+    style ACHATS fill:#16a34a,stroke:#22c55e,color:#fff
+    style MAINT fill:#16a34a,stroke:#22c55e,color:#fff
+    style QUALITE fill:#16a34a,stroke:#22c55e,color:#fff
+    style PLAGE fill:#16a34a,stroke:#22c55e,color:#fff
+    style PARKING fill:#16a34a,stroke:#22c55e,color:#fff
+    style RH_CORE fill:#16a34a,stroke:#22c55e,color:#fff
+    style PORT fill:#a855f7,stroke:#c084fc,color:#fff
+    style CONTRATS fill:#f59e0b,stroke:#fbbf24,color:#000
+    style AUDIT fill:#16a34a,stroke:#22c55e,color:#fff
+    style ANOMALIES fill:#16a34a,stroke:#22c55e,color:#fff
+    style DECISIONS fill:#16a34a,stroke:#22c55e,color:#fff
+    style COMM fill:#16a34a,stroke:#22c55e,color:#fff
+    style DASH fill:#16a34a,stroke:#22c55e,color:#fff
+    style RAPPORTS fill:#16a34a,stroke:#22c55e,color:#fff
+    style ALERTES fill:#16a34a,stroke:#22c55e,color:#fff
+    style COMPAR fill:#16a34a,stroke:#22c55e,color:#fff
+    style GED fill:#16a34a,stroke:#22c55e,color:#fff
+    style BACKUP fill:#16a34a,stroke:#22c55e,color:#fff
+    style SYNC fill:#16a34a,stroke:#22c55e,color:#fff
+    style TRACE fill:#16a34a,stroke:#22c55e,color:#fff
+  </div>
+</div>
+
+<!-- ==================== SERVICES ==================== -->
+<div id="services" class="panel">
+  <div class="info-box">
+    <strong>⚠️ Couplage des services :</strong> Les flèches représentent les imports directs entre fichiers service. Le module RH est le plus couplé (15+ sous-services s'appellent entre eux). <code>export.service.ts</code> dépend de <code>portmaster-factures.service.ts</code> et <code>dashboard.service.ts</code>.
+  </div>
+
+  <div class="mermaid">
+flowchart TB
+    subgraph CORE["🔧 Core Services"]
+        DB[("getDatabase<br/>sqlite.ts")]
+        AUDIT["audit.service<br/>(writeAuditLog)"]
+        PERMS["permissions.service"]
+        ACTOR["actorContext.ts"]
+        DUAL["dualWrite.ts"]
+    end
+
+    subgraph HOTEL["🏨 Hôtel"]
+        HOTEL_S["hotels.service"]
+        RUBRIQUES["rubriques.service"]
+        RECETTES["recettes.service"]
+        OBJ["objectifs.service"]
+        DASH["dashboard.service"]
+        HEBERG["hebergement.service"]
+        TARIFS["tarifs.service"]
+    end
+
+    subgraph FINANCE["💰 Finance"]
+        TRES["tresorerie.service"]
+        FACT["facturation.service"]
+        EXP["export.service"]
+        CLIENTS["clients.service"]
+    end
+
+    subgraph PORTMASTER["⚓ PortMaster"]
+        PORT["portmaster.service"]
+        PORT_CLI["portmaster-clients.service"]
+        PORT_FACT["portmaster-factures.service"]
+        PORT_TARIF["portmaster-tarifs.service"]
+        PORT_REF["portmaster-referentiel.service"]
+        PORT_MOV["portmaster-mouvements.service"]
+        PORT_REC["portmaster-recouvrement.service"]
+        PORT_VAL["portmaster-validations.service"]
+        PORT_ALERT["portmaster-alertes.service"]
+    end
+
+    subgraph RH["👥 RH (15+ services)"]
+        RH_MAIN["rh.service"]
+        RH_EMP["rh-employe.service"]
+        RH_CONTRAT["rh-contrat.service"]
+        RH_POINTAGE["rh-pointage.service"]
+        RH_PLANNING["rh-planning.service"]
+        RH_AFFECT["rh-affectation.service"]
+        RH_PAIE["rh-paie-dlg.service"]
+        RH_PAIE_ENG["rh-paie-dz-engine.ts"]
+        RH_CONF["rh-conformite-dz.service"]
+        RH_DASH["rh-dashboard.service"]
+        RH_TALENT["rh-talent.service"]
+        RH_GED["rh-ged.service"]
+        RH_RUPT["rh-rupture-contrat.service"]
+        RH_LEGAL["rh-registres-legaux.service"]
+        RH_REF["rh-referentiel.service"]
+        RH_HELP["rh-helpers.ts"]
+    end
+
+    subgraph SYS["⚙️ Système"]
+        AUTH["auth.service"]
+        USERS["users.service"]
+        BACKUP["backup.service"]
+        SYNC["sync.service"]
+        SETTINGS["settings.service"]
+        MODULES["modules.service"]
+        LOGO["logo.service"]
+    end
+
+    %% Core connections
+    DB --> HOTEL_S & RUBRIQUES & RECETTES & OBJ & DASH & HEBERG & TARIFS
+    DB --> TRES & FACT & EXP & CLIENTS
+    DB --> PORT & PORT_CLI & PORT_FACT & PORT_TARIF & PORT_REF & PORT_MOV & PORT_REC & PORT_VAL & PORT_ALERT
+    DB --> RH_MAIN & RH_EMP & RH_CONTRAT & RH_POINTAGE & RH_PLANNING & RH_AFFECT & RH_PAIE & RH_CONF & RH_DASH & RH_TALENT & RH_GED & RH_RUPT & RH_LEGAL & RH_REF
+    DB --> AUTH & USERS & BACKUP & SYNC & SETTINGS & MODULES & LOGO
+
+    AUDIT --> HOTEL_S & RUBRIQUES & RECETTES & OBJ & HEBERG & TARIFS
+    AUDIT --> TRES & FACT & CLIENTS
+    AUDIT --> PORT & PORT_CLI & PORT_FACT & PORT_MOV & PORT_REC & PORT_VAL & PORT_TARIF
+    AUDIT --> RH_EMP & RH_CONTRAT & RH_POINTAGE & RH_PLANNING & RH_AFFECT & RH_PAIE & RH_CONF & RH_TALENT & RH_GED & RH_RUPT & RH_LEGAL & RH_REF
+    AUDIT --> AUTH & USERS & BACKUP & SYNC & SETTINGS
+
+    PERMS --> HOTEL_S & RECETTES & OBJ & HEBERG & TARIFS
+    PERMS --> TRES & FACT & EXP & CLIENTS
+    PERMS --> PORT & PORT_CLI & PORT_FACT & PORT_TARIF & PORT_MOV & PORT_REC & PORT_VAL & PORT_ALERT & PORT_REF
+    PERMS --> RH_EMP & RH_CONTRAT & RH_POINTAGE & RH_PLANNING & RH_AFFECT & RH_PAIE & RH_CONF & RH_TALENT & RH_GED & RH_RUPT & RH_LEGAL & RH_REF & RH_DASH
+    PERMS --> AUTH & USERS & BACKUP & SYNC & SETTINGS
+
+    ACTOR --> HOTEL_S & RECETTES & OBJ & HEBERG & TARIFS & DASH
+    ACTOR --> FACT & EXP & CLIENTS
+    ACTOR --> PORT & PORT_CLI & PORT_FACT & PORT_TARIF & PORT_MOV & PORT_REC & PORT_VAL & PORT_ALERT & PORT_REF
+    ACTOR --> RH_DASH & RH_EMP & RH_CONF & RH_TALENT & RH_GED
+
+    DUAL --> TRES & FACT
+
+    %% Cross-service
+    PORT_FACT --> PORT
+    PORT_FACT --> PORT_TARIF
+    PORT_VAL --> PORT_FACT
+    PORT_MOV --> SYNC
+    PORT_REC --> SYNC
+    PORT_ALERT --> PERMS & ACTOR
+
+    EXP --> PORT_FACT & DASH
+    EXP --> PERMS & ACTOR
+
+    RH_DASH --> RH_AFFECT & RH_CONTRAT & RH_POINTAGE & RH_PLANNING
+    RH_EMP --> RH_CONF & RH_MAIN & RH_CONTRAT & RH_AFFECT
+    RH_PAIE --> RH_PAIE_ENG & RH_CONF & RH_MAIN
+    RH_RUPT --> RH_MAIN & RH_PAIE_ENG
+    RH_PLANNING --> RH_AFFECT & RH_POINTAGE
+    RH_POINTAGE --> RH_CONTRAT
+    RH_CONF --> RH_MAIN
+    RH_HELP --> PERMS & ACTOR
+    RH_LEGAL --> PERMS
+    RH_TALENT --> PERMS & LOGO
+    RH_GED --> PERMS & LOGO & AUDIT
+    RH_REF --> AUDIT
+    RH_VAL["rh-validation-n1.service"] --> RH_MAIN
+    RH_BULL["rh-bulletin-pdf.service"] --> RH_PAIE_ENG & PERMS
+
+    BACKUP --> AUDIT & LOGO & PERMS
+    SYNC --> AUDIT & PERMS & ACTOR
+    AUTH --> AUDIT
+    USERS --> PERMS & AUTH
+    SETTINGS --> PERMS & ACTOR & LOGO
+    CLIENTS --> AUDIT & ACTOR & DUAL
+    FACT --> AUDIT & DUAL
+    TRES --> AUDIT & DUAL
+
+    style DB fill:#701a75,stroke:#c084fc,color:#fff
+    style AUDIT fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    style PERMS fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    style ACTOR fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    style DUAL fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    style RH_DASH fill:#713f12,stroke:#fcd34d,color:#000
+    style RH_EMP fill:#713f12,stroke:#fcd34d,color:#000
+    style RH_PAIE fill:#713f12,stroke:#fcd34d,color:#000
+    style PORT_FACT fill:#4c1d95,stroke:#c084fc,color:#fff
+    style EXP fill:#4c1d95,stroke:#c084fc,color:#fff
+  </div>
+</div>
+
+<!-- ==================== DATABASE ==================== -->
+<div id="db" class="panel">
+  <div class="grid-2">
+    <div class="card">
+      <h3>📊 Répartition des tables par module</h3>
+      <table>
+        <tr><th>Module</th><th>Tables</th><th>%</th></tr>
+        <tr><td>RH & Productivité</td><td>18</td><td>28%</td></tr>
+        <tr><td>PortMaster</td><td>11</td><td>17%</td></tr>
+        <tr><td>Système & Auth</td><td>9</td><td>14%</td></tr>
+        <tr><td>Finance & Trésorerie</td><td>8</td><td>12%</td></tr>
+        <tr><td>Tarifs & Hébergement</td><td>7</td><td>11%</td></tr>
+        <tr><td>Exploitation (Stocks, Maint, etc.)</td><td>7</td><td>11%</td></tr>
+        <tr><td>Recettes & Objectifs</td><td>4</td><td>6%</td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>64</strong></td><td><strong>100%</strong></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>🗄️ Migrations par phase</h3>
+      <table>
+        <tr><th>Phase</th><th>Migrations</th><th>Tables créées</th></tr>
+        <tr><td>Phase 1-2 (Socle)</td><td>001-003</td><td>11</td></tr>
+        <tr><td>Phase 3-4 (Admin)</td><td>004, 011-012</td><td>5</td></tr>
+        <tr><td>Phase 5-6 (PortMaster)</td><td>005-008</td><td>13</td></tr>
+        <tr><td>Phase 7 (Finance)</td><td>018-019, 021</td><td>8</td></tr>
+        <tr><td>Phase 8 (Hébergement)</td><td>022-023</td><td>7</td></tr>
+        <tr><td>Phase 9 (RH)</td><td>024-030, 032, 034</td><td>18</td></tr>
+        <tr><td>Phase 10+ (Modules)</td><td>035-045</td><td>10</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="mermaid">
+erDiagram
+    %% AUTH & SYSTEM
+    USERS ||--o{ USER_HOTELS : "affecté à"
+    USERS ||--o{ LOGS_CONNEXIONS : "connecte"
+    ROLES ||--o{ ROLE_PERMISSIONS : "a"
+    PERMISSIONS ||--o{ ROLE_PERMISSIONS : "dans"
+    USERS }o--|| ROLES : "possède"
+    HOTELS ||--o{ USER_HOTELS : "lié"
+    USERS ||--o{ AUDIT_LOG : "agit"
+
+    %% RECETTES
+    HOTELS ||--o{ RECETTES_JOURNALIERES : "saisit"
+    RUBRIQUES ||--o{ RECETTES_JOURNALIERES : "catégorise"
+    HOTELS ||--o{ RECETTES_MENSUELLES : "déclare"
+    RECETTES_MENSUELLES ||--o{ RECETTES_MENSUELLES_LIGNES : "contient"
+    HOTELS ||--o{ OBJECTIFS : "vise"
+    RUBRIQUES ||--o{ OBJECTIFS : "concerné"
+
+    %% HEBERGEMENT
+    HOTELS ||--o{ TYPES_CHAMBRES : "définit"
+    TYPES_CHAMBRES ||--o{ CHAMBRES : "type de"
+    HOTELS ||--o{ CHAMBRES : "possède"
+    CHAMBRES ||--o{ RESERVATIONS : "réservée"
+
+    %% TARIFS
+    HOTELS ||--o{ COMPOSANTS_TARIF : "définit"
+    HOTELS ||--o{ FORMULES_TARIF : "crée"
+    FORMULES_TARIF ||--o{ FORMULE_COMPOSANTS : "compose"
+    COMPOSANTS_TARIF ||--o{ FORMULE_COMPOSANTS : "dans"
+    HOTELS ||--o{ PLANS_TARIFAIRES : "utilise"
+    PLANS_TARIFAIRES ||--o{ TARIFS_JOURNALIERS : "a"
+    HOTELS ||--o{ PROMOTIONS_TARIF : "applique"
+    HOTELS ||--o{ CONVENTIONS : "négocie"
+
+    %% FACTURATION
+    HOTELS ||--o{ FACTURES : "émet"
+    FACTURES ||--o{ LIGNES_FACTURE : "contient"
+    FACTURES ||--o{ PAIEMENTS_FACTURE : "reçoit"
+    CLIENTS_FACTURATION ||--o{ FACTURES : "destinataire"
+    CLIENTS_FACTURATION ||--o{ CLIENTS_CONTACTS : "a"
+
+    %% TRESORERIE
+    HOTELS ||--o{ COMPTES_BANCAIRES : "possède"
+    HOTELS ||--o{ ENCAISSEMENTS : "reçoit"
+    COMPTES_BANCAIRES ||--o{ ENCAISSEMENTS : "sur"
+    HOTELS ||--o{ JOURNAL_CAISSE : "enregistre"
+
+    %% PORTMASTER
+    PORT_BASSINS ||--o{ PORT_QUAIS : "contient"
+    PORT_QUAIS ||--o{ PORT_EMPLACEMENTS : "a"
+    PORT_CLIENTS ||--o{ PORT_BATEAUX : "possède"
+    PORT_BATEAUX ||--o{ PORT_CONTRATS : "souscrit"
+    PORT_EMPLACEMENTS ||--o{ PORT_CONTRATS : "occupe"
+    PORT_CONTRATS ||--o{ PORT_ENCAISSEMENTS : "génère"
+    PORT_CONTRATS ||--o{ PORT_FACTURES : "facture"
+    PORT_TARIFS ||--o{ PORT_TARIF_TRANCHES : "détaille"
+    PORT_FACTURES ||--o{ PORT_ENCAISSEMENTS_NEW : "paye"
+    PORT_FACTURES ||--o{ PORT_VALIDATIONS : "subit"
+    PORT_CONTRATS ||--o{ PORT_VALIDATIONS : "subit"
+    PORT_BATEAUX ||--o{ PORT_MOUVEMENTS : "subit"
+    PORT_EMPLACEMENTS ||--o{ PORT_MOUVEMENTS : "dans"
+    PORT_CLIENTS ||--o{ PORT_RELANCES : "reçoit"
+    PORT_BATEAUX ||--o{ PORT_DOCUMENTS : "a"
+
+    %% RH
+    RH_DEPARTEMENTS ||--o{ RH_POSTES : "contient"
+    RH_POSTES ||--o{ RH_EMPLOYES : "occupe"
+    RH_EMPLOYES ||--o{ RH_CONTRATS : "signe"
+    RH_EMPLOYES ||--o{ RH_RECRUTEMENTS : "candidat"
+    RH_EMPLOYES ||--o{ RH_POINTAGES : "pointe"
+    RH_EMPLOYES ||--o{ RH_ABSENCES : "prend"
+    RH_EMPLOYES ||--o{ RH_AFFECTATIONS : "affecté"
+    RH_EMPLOYES ||--o{ RH_SOLDES_CONGES : "accumule"
+    RH_EMPLOYES ||--o{ RH_PLANNINGS : "dans"
+    RH_EMPLOYES ||--o{ RH_EMPLOYE_FORMATIONS : "forme"
+    RH_FORMATIONS ||--o{ RH_EMPLOYE_FORMATIONS : "donnée"
+    RH_EMPLOYES ||--o{ RH_ENTRETIENS : "subit"
+    RH_EMPLOYES ||--o{ RH_DOCUMENTS : "possède"
+    RH_EMPLOYES ||--o{ RH_COMPETENCES : "a"
+    RH_POSTES ||--o{ RH_POSTE_COMPETENCES : "requiert"
+    RH_COMPETENCES ||--o{ RH_POSTE_COMPETENCES : "dans"
+    RH_EMPLOYES ||--o{ RH_BULLETINS : "reçoit"
+    RH_BULLETINS ||--o{ RH_PRIMES : "contient"
+    RH_EMPLOYES ||--o{ RH_ONBOARDING_SUIVI : "intègre"
+    RH_EMPLOYES ||--o{ RH_CONFORMITE_SUIVI : "soumis à"
+    RH_EMPLOYES ||--o{ RH_RUPTURES_CONTRAT : "subit"
+    RH_EMPLOYES ||--o{ RH_ACCIDENTS_TRAVAIL : "subit"
+    RH_EMPLOYES ||--o{ RH_VISITES_MEDICALES : "passe"
+    RH_EMPLOYES ||--o{ RH_EQUIPES : "dans"
+    RH_ORGANISATION ||--o{ RH_EMPLOYES : "structure"
+
+    %% EXPLOITATION
+    HOTELS ||--o{ EQUIPEMENTS : "possède"
+    EQUIPEMENTS ||--o{ INTERVENTIONS : "subit"
+    STOCK_CATEGORIES ||--o{ STOCK_PRODUITS : "contient"
+    STOCK_PRODUITS ||--o{ STOCK_MOUVEMENTS : "subit"
+    HOTELS ||--o{ STOCK_NIVEAUX : "stocke"
+    FOURNISSEURS ||--o{ BONS_COMMANDE : "reçoit"
+    BONS_COMMANDE ||--o{ BONS_COMMANDE_LIGNES : "contient"
+    HOTELS ||--o{ PARKING_CONFIG : "configure"
+    HOTELS ||--o{ PARKING_TICKETS : "gère"
+    HOTELS ||--o{ PLAGE_CONFIG : "configure"
+    HOTELS ||--o{ PLAGE_ENTREES : "enregistre"
+    HOTELS ||--o{ ANOMALIES : "signale"
+    HOTELS ||--o{ RECLAMATIONS : "reçoit"
+    HOTELS ||--o{ DECISIONS_DESTINATAIRES : "reçoit"
+    DECISIONS ||--o{ DECISIONS_DESTINATAIRES : "envoyé à"
+    HOTELS ||--o{ GED_DOCUMENTS : "archive"
+    GED_CATEGORIES ||--o{ GED_DOCUMENTS : "classe"
+    HOTELS ||--o{ COMMERCIAL_OPPORTUNITES : "gère"
+    PARTENAIRES ||--o{ COMMERCIAL_OPPORTUNITES : "propose"
+  </div>
+</div>
+
+<!-- ==================== FLOWS ==================== -->
+<div id="flows" class="panel">
+  <div class="info-box">
+    <strong>🔄 Flux critiques :</strong> Voici les 4 flux de données les plus importants de l'application — avec leurs points de validation, d'audit et de synchronisation.
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>💰 Flux Recettes → Trésorerie</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Contrôleur
+    participant UI as SaisieJournalièrePage
+    participant IPC as ipcClient.recettes
+    participant Svc as recettes.service
+    participant DB as SQLite
+    participant Audit as audit.service
+    participant DW as dualWrite.ts
+
+    User->>UI: Saisit montants par rubrique
+    UI->>IPC: saveSaisie(input)
+    IPC->>Svc: Insère/MAJ recettes_journalieres
+    Svc->>DB: INSERT/UPDATE
+    Svc->>Audit: writeAuditLog('RECETTE_SAISIE')
+    Svc->>DW: enqueueSync('recettes')
+    DW-->>Svc: {ok}
+    Svc-->>IPC: {success}
+    IPC-->>UI: Toast succès
+
+    Note over User,DB: Validation par Directeur/Admin
+    User->>UI: Valide journée
+    UI->>IPC: validerJour(hotelId, date)
+    IPC->>Svc: UPDATE statut = 'VALIDEE'
+    Svc->>DB: UPDATE + INSERT validations
+    Svc->>Audit: writeAuditLog('RECETTE_VALIDEE')
+    Svc-->>IPC: {success}
+    IPC-->>UI: Journée validée
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>⚓ Flux PortMaster — Contrat → Facture</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Resp as Responsable Port
+    participant UI as ContratFormPage
+    participant IPC as ipcClient.portmaster
+    participant Svc as portmaster.service
+    participant Fact as portmaster-factures.service
+    participant Tarif as portmaster-tarifs.service
+    participant DB as SQLite
+    participant Audit as audit.service
+
+    Resp->>UI: Crée contrat (bateau + empl. + dates)
+    UI->>IPC: saveContrat(input)
+    IPC->>Svc: INSERT port_contrats (status='BROUILLON')
+    Svc->>DB: INSERT
+    Svc->>Audit: writeAuditLog('CONTRAT_CREATE')
+    Svc-->>IPC: {id}
+    IPC-->>UI: Contrat créé
+
+    Resp->>UI: Soumet contrat
+    UI->>IPC: submitContrat(id)
+    IPC->>Svc: UPDATE status='SOUMIS'
+    Svc->>DB: UPDATE + INSERT port_validations
+    Svc-->>IPC: {ok}
+
+    Note over Resp,DB: Validation par Admin/Dec
+    Resp->>UI: Génère facture depuis contrat
+    UI->>IPC: createFactureFromContrat(contratId, tarifId)
+    IPC->>Fact: Récupère contrat + simule tarif
+    Fact->>Tarif: simulerTarif(tarifId, longueur)
+    Tarif-->>Fact: {montantCalcule}
+    Fact->>DB: INSERT port_factures + lignes
+    Fact->>Audit: writeAuditLog('FACTURE_CREATE')
+    Fact-->>IPC: {factureId}
+    IPC-->>UI: Facture générée
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>👥 Flux RH — Embauche → Paie</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor RH as RH Manager
+    participant UI as EmployeWizard
+    participant IPC as ipcClient.rh
+    participant Emp as rh-employe.service
+    participant Contrat as rh-contrat.service
+    participant Affect as rh-affectation.service
+    participant Conform as rh-conformite-dz.service
+    participant Onboard as rh-pilotage.service
+    participant DB as SQLite
+
+    RH->>UI: Wizard création employé
+    UI->>IPC: createEmployeWizard(input)
+    IPC->>Emp: INSERT rh_employes
+    Emp->>DB: INSERT
+    Emp->>Conform: initConformiteSuiviEmploye(id)
+    Conform->>DB: INSERT rh_conformite_suivi
+    Emp->>Onboard: initOnboardingForEmploye(id)
+    Onboard->>DB: INSERT rh_onboarding_suivi
+    Emp-->>IPC: {employeId}
+    IPC-->>UI: Employé créé
+
+    RH->>UI: Ajoute contrat
+    UI->>IPC: createContrat(input)
+    IPC->>Contrat: INSERT rh_contrats
+    Contrat->>DB: INSERT
+    Contrat->>DB: INSERT rh_soldes_conges
+    Contrat-->>IPC: {ok}
+
+    RH->>UI: Affecte à un hôtel/poste
+    UI->>IPC: createAffectation(input)
+    IPC->>Affect: INSERT rh_affectations
+    Affect->>DB: INSERT
+    Affect-->>IPC: {ok}
+    IPC-->>UI: Affectation active
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Flux Synchronisation Multi-postes</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as Admin Système
+    participant UI as SyncPage
+    participant IPC as ipcClient.sync
+    participant Svc as sync.service
+    participant DB as SQLite
+    participant API as NestJS API
+    participant Queue as sync_queue
+
+    Admin->>UI: Configure URL API
+    UI->>IPC: updateConfig(input)
+    IPC->>Svc: UPDATE sync_config
+    Svc->>DB: UPDATE
+    Svc-->>IPC: {ok}
+
+    Admin->>UI: Lance sync manuelle
+    UI->>IPC: sync.run()
+    IPC->>Svc: getStatus()
+    Svc->>API: GET /api/health
+    API-->>Svc: {status: 'ok'}
+
+    Svc->>DB: SELECT sync_queue WHERE status='PENDING'
+    DB-->>Svc: [items]
+
+    loop Pour chaque item
+        Svc->>API: POST /api/sync/{entity}
+        API-->>Svc: {success}
+        Svc->>DB: UPDATE sync_queue status='SYNCED'
+    end
+
+    Svc->>DB: INSERT sync_log
+    Svc-->>IPC: {synced: N, errors: 0}
+    IPC-->>UI: Synchronisation terminée
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#3b82f6',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#60a5fa',
+    lineColor: '#94a3b8',
+    secondaryColor: '#1e293b',
+    tertiaryColor: '#0f172a',
+    fontFamily: 'Segoe UI, system-ui, sans-serif',
+    fontSize: '13px'
+  },
+  flowchart: {
+    useMaxWidth: true,
+    htmlLabels: true,
+    curve: 'basis'
+  },
+  sequence: {
+    useMaxWidth: true,
+    wrap: true,
+    diagramMarginX: 10,
+    diagramMarginY: 10
+  }
+});
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab[onclick="switchTab(\'' + id + '\')"]').classList.add('active');
+  document.getElementById(id).classList.add('active');
+  // Re-render mermaid in the activated panel
+  setTimeout(() => mermaid.init(undefined, document.getElementById(id).querySelectorAll('.mermaid')), 50);
+}
+</script>
+
+</body>
+</html>

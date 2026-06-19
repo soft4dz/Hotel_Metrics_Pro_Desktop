@@ -29,8 +29,8 @@ import type { CreateClientInput, CreateContactInput, TypeContact } from '@/share
 import {
   REGIME_IMPOSITION_LABELS,
   TYPE_CONTACT_LABELS,
-  WILAYAS_ALGERIE,
 } from '@/shared/types/clients';
+import { WilayaCommuneFields } from '@/components/common/WilayaCommuneFields';
 import type { RegimeImposition } from '@/shared/types/clients';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -564,14 +564,14 @@ export function ClientDetailPage() {
               <div className="col-span-2"><label className={labelCls}>Ligne 1</label><input type="text" className={inputCls} value={form.adresseLigne1 ?? ''} onChange={(e) => set('adresseLigne1', e.target.value)} /></div>
               <div className="col-span-2"><label className={labelCls}>Ligne 2</label><input type="text" className={inputCls} value={form.adresseLigne2 ?? ''} onChange={(e) => set('adresseLigne2', e.target.value)} /></div>
               <div><label className={labelCls}>Code postal</label><input type="text" className={inputCls} value={form.codePostal ?? ''} onChange={(e) => set('codePostal', e.target.value)} /></div>
-              <div><label className={labelCls}>Ville</label><input type="text" className={inputCls} value={form.ville ?? ''} onChange={(e) => set('ville', e.target.value)} /></div>
-              <div>
-                <label className={labelCls}>Wilaya</label>
-                <select className={inputCls} value={form.wilaya ?? ''} onChange={(e) => set('wilaya', e.target.value)}>
-                  <option value="">— Sélectionner —</option>
-                  {WILAYAS_ALGERIE.map((w) => <option key={w} value={w}>{w}</option>)}
-                </select>
-              </div>
+              <WilayaCommuneFields
+                wilaya={form.wilaya ?? ''}
+                commune={form.ville ?? ''}
+                communeLabel="Ville / Commune"
+                selectClassName={inputCls}
+                onWilayaChange={(w) => set('wilaya', w)}
+                onCommuneChange={(c) => set('ville', c)}
+              />
               <div><label className={labelCls}>Pays</label><input type="text" className={inputCls} value={form.pays ?? 'Algérie'} onChange={(e) => set('pays', e.target.value)} /></div>
             </div>
           </div>

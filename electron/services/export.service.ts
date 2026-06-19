@@ -7,6 +7,12 @@ import { getActorContext, isGlobalAdminRole } from './actorContext';
 import { getFacture } from './portmaster-factures.service';
 import { listFactures } from './portmaster-factures.service';
 import { getDashboard, type DashboardFilters } from './dashboard.service';
+import {
+  formatDzdPdf,
+  getEmployeurLegalInfo,
+  loadPdfLib,
+  sanitizePdfText,
+} from './rh-legal-export.util';
 
 function assertExport(actorUserId: number) {
   const actor = getActorContext(actorUserId);
@@ -28,10 +34,6 @@ const require = createRequire(import.meta.url);
 async function loadExcelJS() {
   const mod = require('exceljs') as { default?: typeof import('exceljs') } & typeof import('exceljs');
   return ('default' in mod && mod.default ? mod.default : mod) as typeof import('exceljs');
-}
-
-async function loadPdfLib() {
-  return require('pdf-lib') as typeof import('pdf-lib');
 }
 
 export type ExportKind =
@@ -283,15 +285,24 @@ export async function exportDashboardPdf(
 ): Promise<ExportResult> {
   assertExport(actorUserId);
   const d = getDashboard(actorUserId, filters);
+  const emp = getEmployeurLegalInfo();
   const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  let page = pdf.addPage([595, 842]);
   let y = 800;
-  const draw = (text: string, size = 10, useBold = false) => {
-    page.drawText(text.slice(0, 90), {
-      x: 40,
+
+  const newPage = () => {
+    page = pdf.addPage([595, 842]);
+    y = 800;
+  };
+
+  const draw = (text: string, size = 10, useBold = false, x = 40) => {
+    if (y < 50) newPage();
+    page.drawText(sanitizePdfText(text).slice(0, 95), {
+      x,
       y,
       size,
       font: useBold ? bold : font,
@@ -299,20 +310,57 @@ export async function exportDashboardPdf(
     });
     y -= size + 6;
   };
+
   draw('TABLEAU DE BORD — HOTEL METRICS PRO', 14, true);
-  draw(`Période : ${d.kpis.periodeLabel}`);
-  draw(`CA mois : ${d.kpis.caMois.toLocaleString('fr-FR')} DZD`);
-  draw(`Objectif : ${d.kpis.objectifMois.toLocaleString('fr-FR')} — Taux : ${d.kpis.tauxRealisation}%`);
-  draw(`Encaissements : ${d.kpis.totalEncaissements.toLocaleString('fr-FR')} DZD`);
-  y -= 8;
-  draw('Synthèse par hôtel', 12, true);
-  for (const h of d.parHotel.slice(0, 12)) {
-    draw(`${h.hotelName} — ${h.realise.toLocaleString('fr-FR')} / obj. ${h.objectif.toLocaleString('fr-FR')} (${h.statut})`);
+  draw(emp.raisonSociale, 10, true);
+  draw(`Periode : ${d.kpis.periodeLabel}`, 10, true);
+  draw(`Genere le : ${new Date().toISOString().slice(0, 10)}`, 9);
+  y -= 4;
+
+  draw('INDICATEURS CLES', 11, true);
+  draw(`CA jour : ${formatDzdPdf(d.kpis.caJour)}`);
+  draw(`CA mois : ${formatDzdPdf(d.kpis.caMois)}`);
+  draw(`CA annuel : ${formatDzdPdf(d.kpis.caAnnuel)}`);
+  draw(`Objectif mois : ${formatDzdPdf(d.kpis.objectifMois)} — Taux realisation : ${d.kpis.tauxRealisation}%`);
+  draw(`Ecart objectif : ${formatDzdPdf(d.kpis.ecartObjectif)}`);
+  draw(`Encaissements : ${formatDzdPdf(d.kpis.totalEncaissements)} — Taux : ${d.kpis.tauxEncaissement}%`);
+  draw(`Variation CA : ${d.kpis.variationCaPct}%`);
+  y -= 4;
+
+  draw('HOSPITALITE', 11, true);
+  draw(`Taux occupation : ${d.kpis.tauxOccupation}% — RevPAR : ${formatDzdPdf(d.kpis.revPAR ?? 0)}`);
+  draw(`ADR : ${formatDzdPdf(d.kpis.adr ?? 0)} — Prix moyen couvert : ${formatDzdPdf(d.kpis.prixMoyenCouvert ?? 0)}`);
+  draw(`Chambres : ${d.frequentation.chambres} — Nuitees : ${d.frequentation.nuitees} — Couverts : ${d.frequentation.couverts}`);
+  y -= 4;
+
+  draw('SYNTHESE PAR HOTEL', 11, true);
+  for (const h of d.parHotel) {
+    draw(
+      `${h.hotelName} : ${formatDzdPdf(h.realise)} / obj. ${formatDzdPdf(h.objectif)} (${h.tauxRealisation}% — ${h.statut})`,
+    );
+    draw(`  Encaissements : ${formatDzdPdf(h.encaissements)} (${h.tauxEncaissement}%)`, 9);
   }
+  y -= 4;
+
+  draw('REPARTITION PAR RUBRIQUE', 11, true);
+  for (const r of d.parRubrique) {
+    draw(
+      `${r.groupe} : ${formatDzdPdf(r.realise)} (${r.pctTotal}% du CA) — Obj. ${formatDzdPdf(r.objectif)} (${r.tauxObjectif}%)`,
+    );
+  }
+
+  if (d.alertes.length > 0) {
+    y -= 4;
+    draw('ALERTES', 11, true);
+    for (const a of d.alertes.slice(0, 8)) {
+      draw(`${a.niveau.toUpperCase()} : ${a.description}`, 9);
+    }
+  }
+
+  y -= 6;
+  draw('Document de synthese interne — Hotel Metrics Pro Desktop.', 8);
+
+  const suffix = filters.mois ? `${filters.annee}_${String(filters.mois).padStart(2, '0')}` : String(filters.annee);
   const bytes = await pdf.save();
-  return saveWithDialog(
-    Buffer.from(bytes),
-    `dashboard_${filters.annee}.pdf`,
-    'pdf',
-  );
+  return saveWithDialog(Buffer.from(bytes), `dashboard_${suffix}.pdf`, 'pdf');
 }

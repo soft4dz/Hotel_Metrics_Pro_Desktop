@@ -63,6 +63,22 @@ export function toLogoUrl(relativePath: string | null | undefined): string | nul
   return `${LOGO_SCHEME}:///${normalized}`;
 }
 
+/** Extrait le chemin relatif depuis l'URL reçue par le protocole custom. */
+export function parseLogoRequestPath(requestUrl: string): string | null {
+  try {
+    const url = new URL(requestUrl);
+    let relativePath = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+    // Chromium normalise hmp-logo:///company/logo.png → hmp-logo://company/logo.png
+    if (url.hostname) {
+      relativePath = relativePath ? `${url.hostname}/${relativePath}` : url.hostname;
+    }
+    if (!relativePath || relativePath.includes('..')) return null;
+    return relativePath;
+  } catch {
+    return null;
+  }
+}
+
 export function resolveLogoAbsolutePath(relativePath: string): string | null {
   const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
   if (normalized.includes('..')) return null;

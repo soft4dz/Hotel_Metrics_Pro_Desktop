@@ -1,9 +1,12 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { getActorContext, applyActorHotelFilter, isGlobalAdminRole } from './actorContext';
+import { simulerPrix } from './tarifs.service';
+import { createFacture } from './facturation.service';
 import type {
   TypeChambre, Chambre, Reservation, OccupationKpis, OccupationPeriode,
   CreateTypeChambreInput, CreateChambreInput, CreateReservationInput,
+  EstimateReservationPriceInput,
   StatutChambre, StatutReservation,
 } from '../../src/shared/types/hebergement';
 
@@ -13,6 +16,51 @@ function diffNuits(dateArrivee: string, dateDepart: string): number {
   const a = new Date(dateArrivee).getTime();
   const d = new Date(dateDepart).getTime();
   return Math.max(1, Math.round((d - a) / 86_400_000));
+}
+
+export function estimateReservationPrice(actorUserId: number, input: EstimateReservationPriceInput): number {
+  const db = getDatabase();
+  let typeChambreId = input.typeChambreId;
+  if (!typeChambreId && input.chambreId) {
+    const ch = db.prepare(`SELECT type_chambre_id FROM chambres WHERE id = ?`).get(input.chambreId) as { type_chambre_id: number | null } | undefined;
+    typeChambreId = ch?.type_chambre_id ?? undefined;
+  }
+  if (!typeChambreId) {
+    const tc = db.prepare(`SELECT id, tarif_base FROM types_chambres WHERE hotel_id = ? AND actif = 1 ORDER BY id LIMIT 1`).get(input.hotelId) as { id: number; tarif_base: number } | undefined;
+    if (!tc) return 0;
+    return Math.round(tc.tarif_base * diffNuits(input.dateArrivee, input.dateDepart) * 100) / 100;
+  }
+
+  let planId = input.planId;
+  if (!planId) {
+    const plan = db.prepare(`SELECT id FROM plans_tarifaires WHERE hotel_id = ? AND actif = 1 ORDER BY id LIMIT 1`).get(input.hotelId) as { id: number } | undefined;
+    planId = plan?.id;
+  }
+  if (!planId) {
+    const tc = db.prepare(`SELECT tarif_base FROM types_chambres WHERE id = ?`).get(typeChambreId) as { tarif_base: number };
+    return Math.round(tc.tarif_base * diffNuits(input.dateArrivee, input.dateDepart) * 100) / 100;
+  }
+
+  const result = simulerPrix(actorUserId, {
+    hotelId: input.hotelId,
+    typeChambreId,
+    planId,
+    formuleId: input.formuleId ?? undefined,
+    dateArrivee: input.dateArrivee,
+    dateDepart: input.dateDepart,
+    nbAdultes: input.nbAdultes ?? 1,
+    nbEnfants: input.nbEnfants ?? 0,
+    clientId: input.clientId ?? undefined,
+  });
+  return result.prixTotal;
+}
+
+function resolveClientFields(db: ReturnType<typeof getDatabase>, clientId?: number | null) {
+  if (!clientId) return null;
+  return db.prepare(`
+    SELECT nom, prenom, raison_sociale, type, email, telephone, mobile
+    FROM clients_facturation WHERE id = ? AND deleted_at IS NULL
+  `).get(clientId) as Record<string, unknown> | undefined;
 }
 
 // ── Types de chambres ─────────────────────────────────────────────────────────
@@ -199,9 +247,10 @@ export function createReservation(actorUserId: number, input: CreateReservationI
     throw new Error('Accès hôtel refusé.');
   }
 
+  const db = getDatabase();
+
   // Vérif disponibilité chambre
   if (input.chambreId) {
-    const db = getDatabase();
     const conflict = db.prepare(`
       SELECT COUNT(*) as cnt FROM reservations
       WHERE chambre_id = ? AND deleted_at IS NULL
@@ -211,21 +260,55 @@ export function createReservation(actorUserId: number, input: CreateReservationI
     if (conflict.cnt > 0) throw new Error('Chambre déjà occupée sur cette période.');
   }
 
+  let clientNom = input.clientNom ?? '';
+  let clientPrenom = input.clientPrenom ?? null;
+  let clientEmail = input.clientEmail ?? null;
+  let clientTelephone = input.clientTelephone ?? null;
+
+  if (input.clientId) {
+    const c = resolveClientFields(db, input.clientId);
+    if (!c) throw new Error('Client introuvable.');
+    if (c.type === 'entreprise' && c.raison_sociale) {
+      clientNom = String(c.raison_sociale);
+      clientPrenom = null;
+    } else {
+      clientNom = String(c.nom ?? c.raison_sociale ?? '');
+      clientPrenom = c.prenom ? String(c.prenom) : null;
+    }
+    clientEmail = input.clientEmail ?? (c.email ? String(c.email) : null);
+    clientTelephone = input.clientTelephone ?? (c.telephone ?? c.mobile ? String(c.telephone ?? c.mobile) : null);
+  }
+
+  if (!clientNom.trim()) throw new Error('Nom client requis.');
+
   const nbNuits = diffNuits(input.dateArrivee, input.dateDepart);
-  const db = getDatabase();
+  const montantTotal = input.montantTotal ?? estimateReservationPrice(actorUserId, {
+    hotelId: input.hotelId,
+    chambreId: input.chambreId,
+    planId: input.planId,
+    formuleId: input.formuleId,
+    dateArrivee: input.dateArrivee,
+    dateDepart: input.dateDepart,
+    nbAdultes: input.nbAdultes,
+    nbEnfants: input.nbEnfants,
+    clientId: input.clientId,
+  });
+
   const result = db.prepare(`
     INSERT INTO reservations
-      (hotel_id, chambre_id, date_arrivee, date_depart, nb_nuits,
+      (hotel_id, chambre_id, client_id, plan_id, formule_id,
+       date_arrivee, date_depart, nb_nuits,
        nb_adultes, nb_enfants, client_nom, client_prenom,
        client_email, client_telephone, montant_total, statut, source, notes, created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     input.hotelId, input.chambreId ?? null,
+    input.clientId ?? null, input.planId ?? null, input.formuleId ?? null,
     input.dateArrivee, input.dateDepart, nbNuits,
     input.nbAdultes ?? 1, input.nbEnfants ?? 0,
-    input.clientNom, input.clientPrenom ?? null,
-    input.clientEmail ?? null, input.clientTelephone ?? null,
-    input.montantTotal ?? 0,
+    clientNom.trim(), clientPrenom,
+    clientEmail, clientTelephone,
+    montantTotal,
     input.statut ?? 'confirmee', input.source ?? 'direct',
     input.notes ?? null, actorUserId,
   );
@@ -235,8 +318,46 @@ export function createReservation(actorUserId: number, input: CreateReservationI
     db.prepare(`UPDATE chambres SET statut='occupee', updated_at=datetime('now') WHERE id=?`).run(input.chambreId);
   }
 
-  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'hebergement', description: `Réservation ${input.clientNom} du ${input.dateArrivee} créée` });
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'hebergement', description: `Réservation ${clientNom} du ${input.dateArrivee} créée` });
   return getReservation(actorUserId, Number(result.lastInsertRowid));
+}
+
+export function createFactureFromReservation(actorUserId: number, reservationId: number) {
+  const res = getReservation(actorUserId, reservationId);
+  if (res.factureId) throw new Error('Une facture existe déjà pour cette réservation.');
+  if (res.montantTotal <= 0) throw new Error('Montant de réservation invalide.');
+
+  const prixUnitaire = res.nbNuits > 0
+    ? Math.round((res.montantTotal / res.nbNuits) * 100) / 100
+    : res.montantTotal;
+  const chambreLabel = res.chambreNumero ? `ch. ${res.chambreNumero}` : 'hébergement';
+  const clientLabel = res.clientPrenom ? `${res.clientNom} ${res.clientPrenom}` : res.clientNom;
+
+  const facture = createFacture(actorUserId, {
+    hotelId: res.hotelId,
+    clientId: res.clientId ?? undefined,
+    clientNom: res.clientId ? undefined : clientLabel,
+    dateEmission: res.dateArrivee,
+    notes: `Réservation #${res.id}`,
+    lignes: [{
+      designation: `Séjour ${chambreLabel} (${res.dateArrivee} → ${res.dateDepart})`,
+      quantite: res.nbNuits,
+      prixUnitaire,
+      tauxTva: 19,
+    }],
+  });
+
+  const db = getDatabase();
+  db.prepare(`UPDATE factures SET reservation_id = ? WHERE id = ?`).run(reservationId, facture.id);
+  db.prepare(`UPDATE reservations SET facture_id = ?, updated_at = datetime('now') WHERE id = ?`).run(facture.id, reservationId);
+
+  writeAuditLog({
+    userId: actorUserId,
+    action: 'CREATE',
+    module: 'hebergement',
+    description: `Facture ${facture.numero} générée depuis réservation #${reservationId}`,
+  });
+  return facture;
 }
 
 export function updateReservationStatut(actorUserId: number, id: number, statut: StatutReservation): Reservation {
@@ -365,6 +486,8 @@ function mapReservation(r: any): Reservation {
   return {
     id: r.id, hotelId: r.hotel_id, hotelName: r.hotel_name,
     chambreId: r.chambre_id, chambreNumero: r.chambre_numero, typeChambreLabel: r.type_label,
+    clientId: r.client_id ?? null, planId: r.plan_id ?? null, formuleId: r.formule_id ?? null,
+    factureId: r.facture_id ?? null,
     dateArrivee: r.date_arrivee, dateDepart: r.date_depart, nbNuits: r.nb_nuits,
     nbAdultes: r.nb_adultes, nbEnfants: r.nb_enfants,
     clientNom: r.client_nom, clientPrenom: r.client_prenom,

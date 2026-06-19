@@ -19,6 +19,7 @@ export const PERMISSIONS = {
   PORTMASTER_FULL: 'portmaster.full',
   SYNC_FULL: 'sync.full',
   REPORTS_EXPORT: 'reports.export',
+  REPORTS_CREATE: 'reports.create',
   RH_MANAGE: 'rh.manage',
   RH_TEAM: 'rh.team',
   RH_SELF: 'rh.self',
@@ -128,8 +129,13 @@ export function canExportReports(roleCode?: string): boolean {
   return (
     isAdminRole(roleCode) ||
     hasPermission(roleCode, PERMISSIONS.REPORTS_EXPORT) ||
+    hasPermission(roleCode, PERMISSIONS.REPORTS_CREATE) ||
     canAccessPortmaster(roleCode) ||
     roleCode === 'PDG' ||
     roleCode === 'AUDIT_INTERNE'
   );
+}
+
+export function canCreateReports(roleCode?: string): boolean {
+  return canExportReports(roleCode);
 }

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Metrics Pro — Guide des Maquettes d'Interfaces</title>
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --sidebar: #0f172a;
+  --sidebar-hover: #1e293b;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --text: #0f172a;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --guide-nav-w: 280px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1120; color: #e2e8f0; line-height: 1.5; }
+
+/* Guide layout */
+.guide-shell { display: flex; min-height: 100vh; }
+.guide-nav {
+  width: var(--guide-nav-w); background: #0f172a; border-right: 1px solid #1e293b;
+  position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100;
+}
+.guide-nav-header { padding: 1.25rem; border-bottom: 1px solid #1e293b; }
+.guide-nav-header h1 { font-size: 1rem; color: #f8fafc; }
+.guide-nav-header p { font-size: .75rem; color: #94a3b8; margin-top: .25rem; }
+.guide-search { width: 100%; margin-top: .75rem; padding: .5rem .75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: .8rem; }
+.guide-nav-group { padding: .5rem 0; }
+.guide-nav-group-title { padding: .4rem 1.25rem; font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #64748b; font-weight: 600; }
+.guide-nav a {
+  display: block; padding: .35rem 1.25rem .35rem 1.5rem; font-size: .78rem; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent; transition: all .15s;
+}
+.guide-nav a:hover { color: #f8fafc; background: #1e293b; }
+.guide-nav a.active { color: #60a5fa; border-left-color: #3b82f6; background: #1e293b; }
+.guide-content { margin-left: var(--guide-nav-w); flex: 1; padding: 2rem; max-width: 1200px; }
+
+/* Section */
+.section { margin-bottom: 3rem; scroll-margin-top: 1rem; }
+.section-meta { margin-bottom: 1rem; }
+.section-meta h2 { font-size: 1.4rem; color: #f8fafc; }
+.section-meta .route { font-size: .8rem; color: #60a5fa; font-family: monospace; margin-top: .25rem; }
+.section-meta .desc { font-size: .85rem; color: #94a3b8; margin-top: .5rem; max-width: 700px; }
+.section-tag { display: inline-block; font-size: .65rem; padding: .15rem .5rem; border-radius: 4px; margin-right: .4rem; margin-top: .5rem; }
+.tag-op { background: #14532d; color: #86efac; }
+.tag-socle { background: #1e3a5f; color: #93c5fd; }
+.tag-auth { background: #4c1d95; color: #c4b5fd; }
+
+/* App mockup frame */
+.mockup {
+  background: var(--bg); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,.5); border: 1px solid #334155;
+}
+.mockup-label { background: #1e293b; padding: .4rem 1rem; font-size: .7rem; color: #94a3b8; display: flex; justify-content: space-between; }
+.mockup-body { display: flex; height: 420px; }
+.mock-sidebar {
+  width: 200px; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-right: 1px solid rgba(255,255,255,.08); padding: .75rem 0; flex-shrink: 0;
+}
+.mock-logo { padding: 0 .75rem .75rem; font-size: .7rem; font-weight: 700; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: .5rem; }
+.mock-nav-item { padding: .3rem .75rem; font-size: .6rem; color: #94a3b8; }
+.mock-nav-item.active { color: #60a5fa; background: rgba(59,130,246,.15); border-left: 2px solid #3b82f6; }
+.mock-nav-section { font-size: .55rem; text-transform: uppercase; color: #475569; padding: .5rem .75rem .2rem; letter-spacing: .05em; }
+.mock-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.mock-header {
+  background: var(--card); border-bottom: 1px solid var(--border); padding: .6rem 1rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.mock-header h3 { font-size: .85rem; color: var(--text); font-weight: 600; }
+.mock-header span { font-size: .6rem; color: var(--muted); }
+.mock-header-actions { display: flex; gap: .4rem; }
+.mock-btn { font-size: .55rem; padding: .25rem .6rem; border-radius: 5px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+.mock-btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.mock-content { flex: 1; padding: .75rem 1rem; overflow: hidden; }
+
+/* UI components */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .6rem; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; }
+.kpi-label { font-size: .5rem; color: var(--muted); text-transform: uppercase; }
+.kpi-value { font-size: .9rem; font-weight: 700; color: var(--text); }
+.kpi-value.blue { color: var(--primary); }
+.kpi-value.green { color: var(--success); }
+.kpi-value.red { color: var(--danger); }
+.kpi-value.amber { color: var(--warning); }
+
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .6rem; }
+.chart-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: .5rem; height: 100px; }
+.chart-title { font-size: .55rem; font-weight: 600; color: var(--text); margin-bottom: .3rem; }
+.chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 60px; }
+.bar { flex: 1; background: linear-gradient(180deg, #60a5fa, #2563eb); border-radius: 2px 2px 0 0; min-height: 8px; }
+.line-chart { height: 60px; background: linear-gradient(180deg, transparent 60%, rgba(37,99,235,.08)); border-bottom: 1px solid var(--border); position: relative; }
+.line-chart::after { content: ''; position: absolute; bottom: 20%; left: 0; right: 0; height: 2px; background: #2563eb; border-radius: 1px; transform: skewY(-3deg); }
+
+.mock-table { width: 100%; border-collapse: collapse; font-size: .55rem; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.mock-table th { background: #f1f5f9; color: var(--muted); text-align: left; padding: .35rem .5rem; font-weight: 600; }
+.mock-table td { padding: .35rem .5rem; border-top: 1px solid var(--border); color: var(--text); }
+.badge { display: inline-block; font-size: .5rem; padding: .1rem .35rem; border-radius: 3px; font-weight: 500; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-gray { background: #f1f5f9; color: #475569; }
+
+.filters { display: flex; gap: .4rem; margin-bottom: .6rem; flex-wrap: wrap; }
+.filter { font-size: .55rem; padding: .2rem .5rem; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--muted); }
+.filter.active { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.form-field { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: .4rem .5rem; }
+.form-label { font-size: .5rem; color: var(--muted); margin-bottom: .15rem; }
+.form-input { font-size: .6rem; color: var(--text); height: .8rem; }
+
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: .6rem; }
+.tab { font-size: .55rem; padding: .35rem .7rem; color: var(--muted); border-bottom: 2px solid transparent; }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+.alert-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: .4rem .6rem; font-size: .55rem; color: #991b1b; margin-bottom: .5rem; }
+.info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: .4rem .6rem; font-size: .55rem; color: #1e40af; margin-bottom: .5rem; }
+
+.grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: .5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.card-block { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: .5rem; }
+.card-block h4 { font-size: .6rem; font-weight: 600; color: var(--text); margin-bottom: .3rem; }
+
+.login-mock { display: flex; height: 380px; }
+.login-left { flex: 1; background: linear-gradient(135deg, #1e3a8a, #0f172a); display: flex; align-items: center; justify-content: center; }
+.login-left-text { text-align: center; color: #f8fafc; }
+.login-left-text h2 { font-size: 1.1rem; }
+.login-left-text p { font-size: .65rem; color: #94a3b8; margin-top: .3rem; }
+.login-right { width: 280px; background: var(--card); padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; }
+.login-right h3 { font-size: .9rem; color: var(--text); margin-bottom: .2rem; }
+.login-right p { font-size: .6rem; color: var(--muted); margin-bottom: 1rem; }
+
+.mooring-plan { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.berth { aspect-ratio: 1; border-radius: 4px; font-size: .45rem; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.berth-free { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.berth-occ { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.berth-res { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+.rh-hub-tabs { display: flex; gap: .3rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.rh-hub { font-size: .5rem; padding: .2rem .45rem; border-radius: 4px; background: #f1f5f9; color: var(--muted); }
+.rh-hub.active { background: #dbeafe; color: #1e40af; }
+
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+.module-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: .4rem; }
+.module-card h5 { font-size: .55rem; color: var(--text); }
+.module-card span { font-size: .45rem; color: var(--muted); }
+
+@media print {
+  .guide-nav { display: none; }
+  .guide-content { margin-left: 0; max-width: 100%; }
+  .mockup { break-inside: avoid; page-break-inside: avoid; }
+  .section { break-before: page; }
+}
+@media (max-width: 900px) {
+  .guide-nav { display: none; }
+  .guide-content { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="guide-shell">
+<nav class="guide-nav" id="guideNav">
+  <div class="guide-nav-header">
+    <h1>Guide des Maquettes</h1>
+    <p>Hotel Metrics Pro Desktop</p>
+    <input type="search" class="guide-search" id="searchInput" placeholder="Rechercher une interface…">
+  </div>
+  <div id="navLinks"></div>
+</nav>
+<main class="guide-content" id="guideContent">
+  <div style="margin-bottom:2rem;padding:1.5rem;background:#1e293b;border-radius:12px;border:1px solid #334155;">
+    <h1 style="font-size:1.6rem;color:#f8fafc;margin-bottom:.5rem;">Maquettes d'interfaces — Hotel Metrics Pro</h1>
+    <p style="color:#94a3b8;font-size:.9rem;max-width:700px;">Ce guide présente les maquettes visuelles de toutes les interfaces de l'application. Chaque écran reproduit la structure réelle : barre latérale, en-tête, KPIs, tableaux et formulaires. Utilisez la navigation à gauche ou la recherche pour accéder à une interface.</p>
+    <p style="color:#64748b;font-size:.75rem;margin-top:.75rem;">Version guide · Juin 2026 · 70+ écrans documentés</p>
+  </div>
+  <div id="sectionsContainer"></div>
+</main>
+</div>
+<script src="GUIDE_MAQUETTES_DATA.js"></script>
+<script>
+(function() {
+  const container = document.getElementById('sectionsContainer');
+  const navContainer = document.getElementById('navLinks');
+  const searchInput = document.getElementById('searchInput');
+
+  function el(tag, cls, html) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html) e.innerHTML = html;
+    return e;
+  }
+
+  function renderMockup(s) {
+    return `<div class="mockup" id="${s.id}">
+      <div class="mockup-label"><span>${s.title}</span><span>${s.route}</span></div>
+      ${s.html}
+    </div>`;
+  }
+
+  function buildNav(sections) {
+    let currentGroup = '';
+    sections.forEach(s => {
+      if (s.group !== currentGroup) {
+        currentGroup = s.group;
+        const g = el('div', 'guide-nav-group');
+        g.innerHTML = `<div class="guide-nav-group-title">${currentGroup}</div>`;
+        navContainer.appendChild(g);
+      }
+      const a = el('a', '', s.title);
+      a.href = '#' + s.id;
+      a.dataset.search = (s.title + ' ' + s.route + ' ' + s.desc).toLowerCase();
+      navContainer.lastElementChild.appendChild(a);
+    });
+  }
+
+  function buildSections(sections) {
+    sections.forEach(s => {
+      const sec = el('section', 'section');
+      sec.id = s.id;
+      sec.dataset.search = (s.title + ' ' + s.route + ' ' + s.desc + ' ' + s.group).toLowerCase();
+      const tags = (s.tags || []).map(t => `<span class="section-tag tag-${t}">${t}</span>`).join('');
+      sec.innerHTML = `
+        <div class="section-meta">
+          <h2>${s.title}</h2>
+          <div class="route">${s.route}</div>
+          <p class="desc">${s.desc}</p>
+          ${tags}
+        </div>
+        ${renderMockup(s)}
+      `;
+      container.appendChild(sec);
+    });
+  }
+
+  buildNav(SECTIONS);
+  buildSections(SECTIONS);
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase().trim();
+    document.querySelectorAll('.section').forEach(sec => {
+      sec.style.display = !q || sec.dataset.search.includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('.guide-nav a').forEach(a => {
+      a.style.display = !q || a.dataset.search.includes(q) ? '' : 'none';
+    });
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.guide-nav a').forEach(a => a.classList.remove('active'));
+        const link = document.querySelector(`.guide-nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+})();
+</script>
+</body>
+</html>

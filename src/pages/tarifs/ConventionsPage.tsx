@@ -5,8 +5,16 @@ import {
 } from 'lucide-react';
 import { useConventions } from '@/hooks/useTarifs';
 import { useTypesChambre } from '@/hooks/useHebergement';
+import { useHotelsList } from '@/hooks/useHotelsList';
+import { useClients } from '@/hooks/useClients';
 import { cn } from '@/lib/utils';
 import type { CreateConventionInput, TypeReductionConvention } from '@/shared/types/tarifs';
+import type { ClientItem } from '@/shared/types/clients';
+
+function clientLabel(c: ClientItem) {
+  if (c.type === 'entreprise') return c.raisonSociale || c.nom;
+  return [c.nom, c.prenom].filter(Boolean).join(' ');
+}
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function in1y() { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); }
@@ -19,11 +27,14 @@ interface TarifLigneForm {
 }
 
 export function ConventionsPage() {
+  const { hotels } = useHotelsList();
+  const { items: clients } = useClients({ actif: true });
   const { data, loading, create, toggle, remove } = useConventions();
   const { data: allTypes } = useTypesChambre();
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [form, setForm] = useState<Partial<CreateConventionInput>>({
+    hotelId: hotels[0]?.id,
     dateDebut: today(), dateFin: in1y(), priorite: 1, tarifs: [],
   });
   const [lignes, setLignes] = useState<TarifLigneForm[]>([]);
@@ -91,14 +102,30 @@ export function ConventionsPage() {
                 placeholder="ex: Convention Société X 2025" value={form.nom ?? ''} onChange={(e) => set('nom', e.target.value)} />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">ID Client *</label>
-              <input type="number" className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="ID client" value={form.clientId ?? ''} onChange={(e) => set('clientId', +e.target.value)} />
+              <label className="text-xs font-medium text-muted-foreground">Client *</label>
+              <select
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                value={form.clientId ?? ''}
+                onChange={(e) => set('clientId', Number(e.target.value))}
+              >
+                <option value="">— Sélectionner —</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{clientLabel(c)}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">ID Hôtel *</label>
-              <input type="number" className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="ID hôtel" value={form.hotelId ?? ''} onChange={(e) => set('hotelId', +e.target.value)} />
+              <label className="text-xs font-medium text-muted-foreground">Hôtel *</label>
+              <select
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                value={form.hotelId ?? ''}
+                onChange={(e) => set('hotelId', Number(e.target.value))}
+              >
+                <option value="">— Sélectionner —</option>
+                {hotels.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Date début</label>

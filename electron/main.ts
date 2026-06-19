@@ -28,11 +28,28 @@ import { registerClientsIpc } from './ipc/clients.ipc';
 import { registerHebergementIpc } from './ipc/hebergement.ipc';
 import { registerTarifsIpc } from './ipc/tarifs.ipc';
 import { registerRhIpc } from './ipc/rh.ipc';
+import { registerModulesIpc } from './ipc/modules.ipc';
+import { registerAnomaliesIpc } from './ipc/anomalies.ipc';
+import { registerDecisionsIpc } from './ipc/decisions.ipc';
+import { registerReclamationsIpc } from './ipc/reclamations.ipc';
+import { registerParkingIpc } from './ipc/parking.ipc';
+import { registerPlageIpc } from './ipc/plage.ipc';
+import { registerStocksIpc } from './ipc/stocks.ipc';
+import { registerAchatsIpc } from './ipc/achats.ipc';
+import { registerMaintenanceIpc } from './ipc/maintenance.ipc';
+import { registerCommercialIpc } from './ipc/commercial.ipc';
+import { registerGedIpc } from './ipc/ged.ipc';
+import { registerReportsIpc } from './ipc/reports.ipc';
 import { runPortSeedIfNeeded } from './database/portSeed';
 import { runPortMigrateV2 } from './database/portMigrateV2';
 import { logger } from './utils/logger';
+import { loadDotEnvFile } from './utils/loadEnv';
 import { clearWebContentsSession } from './services/session.service';
-import { ensureLogoDirectories, resolveLogoAbsolutePath } from './services/logo.service';
+import {
+  ensureLogoDirectories,
+  parseLogoRequestPath,
+  resolveLogoAbsolutePath,
+} from './services/logo.service';
 
 Electron.protocol.registerSchemesAsPrivileged([
   {
@@ -138,9 +155,8 @@ function logoMimeType(filePath: string): string {
 
 function registerLogoProtocol(): void {
   Electron.protocol.handle('hmp-logo', async (request) => {
-    const url = new URL(request.url);
-    const relativePath = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
-    const filePath = resolveLogoAbsolutePath(relativePath);
+    const relativePath = parseLogoRequestPath(request.url);
+    const filePath = relativePath ? resolveLogoAbsolutePath(relativePath) : null;
     if (!filePath) {
       return new Response(null, { status: 404 });
     }
@@ -160,6 +176,7 @@ function registerLogoProtocol(): void {
 
 function bootstrap(): void {
   try {
+    loadDotEnvFile();
     initDatabase();
 
     const importPath = getLegacyImportPath();
@@ -199,6 +216,18 @@ function bootstrap(): void {
     registerHebergementIpc();
     registerTarifsIpc();
     registerRhIpc();
+    registerModulesIpc();
+    registerAnomaliesIpc();
+    registerDecisionsIpc();
+    registerReclamationsIpc();
+    registerParkingIpc();
+    registerPlageIpc();
+    registerStocksIpc();
+    registerAchatsIpc();
+    registerMaintenanceIpc();
+    registerCommercialIpc();
+    registerGedIpc();
+    registerReportsIpc();
     createWindow();
   } catch (err) {
     logger.error('Échec initialisation application', err);

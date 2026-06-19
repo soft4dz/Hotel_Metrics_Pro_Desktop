@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import type {
-  ClientContact,
   ClientFilters,
-  ClientItem,
-  ClientItemDetail,
-  ClientsDashboard,
   CreateClientInput,
   CreateContactInput,
 } from '@/shared/types/clients';
@@ -14,156 +11,115 @@ import type {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function useClientsDashboard() {
-  const [data, setData] = useState<ClientsDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(unwrapIpc(await ipcClient.clients.getDashboard()));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-  return { data, loading, error, reload: load };
+  const { data = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['clients-dashboard'],
+    queryFn: async () => unwrapIpc(await ipcClient.clients.getDashboard()),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement' : null;
+  return { data, loading, error, reload: () => { void refetch(); } };
 }
 
 // ── List ──────────────────────────────────────────────────────────────────────
 
 export function useClients(initialFilters?: ClientFilters) {
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<ClientFilters>(initialFilters ?? {});
-  const [items, setItems] = useState<ClientItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setItems(unwrapIpc(await ipcClient.clients.list(filters)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement clients');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const { data: items = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['clients', filters],
+    queryFn: async () => unwrapIpc(await ipcClient.clients.list(filters)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement clients' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['clients'] });
 
-  const create = useCallback(async (input: CreateClientInput) => {
+  const create = async (input: CreateClientInput) => {
     const c = unwrapIpc(await ipcClient.clients.create(input));
-    setItems((prev) => [...prev, c].sort((a, b) => a.nom.localeCompare(b.nom)));
+    await invalidate();
     return c;
-  }, []);
+  };
 
-  const update = useCallback(async (id: number, input: Partial<CreateClientInput>) => {
+  const update = async (id: number, input: Partial<CreateClientInput>) => {
     const c = unwrapIpc(await ipcClient.clients.update(id, input));
-    setItems((prev) => prev.map((x) => (x.id === id ? c : x)));
+    await invalidate();
     return c;
-  }, []);
+  };
 
-  const toggleActif = useCallback(async (id: number) => {
+  const toggleActif = async (id: number) => {
     const c = unwrapIpc(await ipcClient.clients.toggleActif(id));
-    setItems((prev) => prev.map((x) => (x.id === id ? c : x)));
+    await invalidate();
     return c;
-  }, []);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.clients.delete(id));
-    setItems((prev) => prev.filter((x) => x.id !== id));
-  }, []);
+    await invalidate();
+  };
 
-  return { items, loading, error, filters, setFilters, reload: load, create, update, toggleActif, remove };
+  return { items, loading, error, filters, setFilters, reload: () => { void refetch(); }, create, update, toggleActif, remove };
 }
 
-// ── Single client (detail avec contacts) ─────────────────────────────────────
+// ── Single client detail ──────────────────────────────────────────────────────
 
 export function useClientDetail(id: number | null) {
-  const [client, setClient] = useState<ClientItemDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const key = ['client-detail', id];
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      setClient(unwrapIpc(await ipcClient.clients.get(id)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement client');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const { data: client = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrapIpc(await ipcClient.clients.get(id!)),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement client' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
 
-  const update = useCallback(async (input: Partial<CreateClientInput>) => {
+  const update = async (input: Partial<CreateClientInput>) => {
     if (!id) throw new Error('ID manquant');
     const c = unwrapIpc(await ipcClient.clients.update(id, input));
-    setClient(c);
+    await invalidate();
     return c;
-  }, [id]);
+  };
 
-  const toggleActif = useCallback(async () => {
+  const toggleActif = async () => {
     if (!id) throw new Error('ID manquant');
     const c = unwrapIpc(await ipcClient.clients.toggleActif(id));
-    setClient(c);
+    await invalidate();
     return c;
-  }, [id]);
+  };
 
-  // ── Contacts ──────────────────────────────────────────────────────────────
-
-  const createContact = useCallback(async (input: CreateContactInput) => {
+  const createContact = async (input: CreateContactInput) => {
     if (!id) throw new Error('ID manquant');
     const contact = unwrapIpc(await ipcClient.clients.createContact(id, input));
-    setClient((prev) => prev ? { ...prev, contacts: [...prev.contacts, contact].sort((a, b) => (b.principal ? 1 : 0) - (a.principal ? 1 : 0)) } : prev);
+    await invalidate();
     return contact;
-  }, [id]);
+  };
 
-  const updateContact = useCallback(async (contactId: number, input: Partial<CreateContactInput>) => {
+  const updateContact = async (contactId: number, input: Partial<CreateContactInput>) => {
     const contact = unwrapIpc(await ipcClient.clients.updateContact(contactId, input));
-    setClient((prev) => {
-      if (!prev) return prev;
-      const contacts = prev.contacts.map((c) => (c.id === contactId ? contact : c));
-      if (input.principal) {
-        contacts.forEach((c) => { if (c.id !== contactId) c.principal = false; });
-      }
-      return { ...prev, contacts: contacts.sort((a, b) => (b.principal ? 1 : 0) - (a.principal ? 1 : 0)) };
-    });
+    await invalidate();
     return contact;
-  }, []);
+  };
 
-  const deleteContact = useCallback(async (contactId: number) => {
+  const deleteContact = async (contactId: number) => {
     unwrapIpc(await ipcClient.clients.deleteContact(contactId));
-    setClient((prev) => prev ? { ...prev, contacts: prev.contacts.filter((c) => c.id !== contactId) } : prev);
-  }, []);
+    await invalidate();
+  };
 
-  return { client, loading, error, reload: load, update, toggleActif, createContact, updateContact, deleteContact };
+  return { client, loading, error, reload: () => { void refetch(); }, update, toggleActif, createContact, updateContact, deleteContact };
 }
 
-// ── Contacts seuls (usage indépendant) ───────────────────────────────────────
+// ── Contacts seuls ────────────────────────────────────────────────────────────
 
 export function useClientContacts(clientId: number | null) {
-  const [contacts, setContacts] = useState<ClientContact[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    if (!clientId) return;
-    setLoading(true);
-    try {
-      setContacts(unwrapIpc(await ipcClient.clients.listContacts(clientId)));
-    } finally {
-      setLoading(false);
-    }
-  }, [clientId]);
-
-  useEffect(() => { void load(); }, [load]);
-  return { contacts, loading, reload: load };
+  const { data: contacts = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['client-contacts', clientId],
+    queryFn: async () => unwrapIpc(await ipcClient.clients.listContacts(clientId!)),
+    enabled: !!clientId,
+    staleTime: 30_000,
+  });
+  return { contacts, loading, reload: () => { void refetch(); } };
 }

@@ -1,161 +1,127 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import type {
   AddPaiementInput,
-  ClientFacturation,
   CreateClientInput,
-  FacturationDashboard,
-  FactureDetail,
   FactureFilters,
-  FactureListItem,
 } from '@/shared/types/facturation';
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function useFacturationDashboard(hotelId?: number) {
-  const [data, setData] = useState<FacturationDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(unwrapIpc(await ipcClient.facturation.getDashboard(hotelId)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement');
-    } finally {
-      setLoading(false);
-    }
-  }, [hotelId]);
-
-  useEffect(() => { void load(); }, [load]);
-  return { data, loading, error, reload: load };
+  const { data = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['facturation-dashboard', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.facturation.getDashboard(hotelId)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement' : null;
+  return { data, loading, error, reload: () => { void refetch(); } };
 }
 
 // ── Factures List ─────────────────────────────────────────────────────────────
 
 export function useFactures(initialFilters?: FactureFilters) {
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<FactureFilters>(initialFilters ?? {});
-  const [items, setItems] = useState<FactureListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setItems(unwrapIpc(await ipcClient.facturation.listFactures(filters)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement factures');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const { data: items = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['factures', filters],
+    queryFn: async () => unwrapIpc(await ipcClient.facturation.listFactures(filters)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement factures' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['factures'] });
 
-  const soumettre = useCallback(async (id: number) => {
+  const soumettre = async (id: number) => {
     const updated = unwrapIpc(await ipcClient.facturation.soumettre(id));
-    setItems((prev) => prev.map((f) => (f.id === id ? updated : f)));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const valider = useCallback(async (id: number) => {
+  const valider = async (id: number) => {
     const updated = unwrapIpc(await ipcClient.facturation.valider(id));
-    setItems((prev) => prev.map((f) => (f.id === id ? updated : f)));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const annuler = useCallback(async (id: number) => {
+  const annuler = async (id: number) => {
     const updated = unwrapIpc(await ipcClient.facturation.annuler(id));
-    setItems((prev) => prev.map((f) => (f.id === id ? updated : f)));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.facturation.deleteFacture(id));
-    setItems((prev) => prev.filter((f) => f.id !== id));
-  }, []);
+    await invalidate();
+  };
 
-  return { items, loading, error, filters, setFilters, reload: load, soumettre, valider, annuler, remove };
+  return { items, loading, error, filters, setFilters, reload: () => { void refetch(); }, soumettre, valider, annuler, remove };
 }
 
 // ── Facture Detail ────────────────────────────────────────────────────────────
 
 export function useFactureDetail(id: number | null) {
-  const [facture, setFacture] = useState<FactureDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const key = ['facture-detail', id];
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      setFacture(unwrapIpc(await ipcClient.facturation.getFacture(id)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement facture');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const { data: facture = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrapIpc(await ipcClient.facturation.getFacture(id!)),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement facture' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
 
-  const addPaiement = useCallback(async (input: AddPaiementInput) => {
+  const addPaiement = async (input: AddPaiementInput) => {
     const updated = unwrapIpc(await ipcClient.facturation.addPaiement(input));
-    setFacture(updated);
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const deletePaiement = useCallback(async (paiementId: number) => {
+  const deletePaiement = async (paiementId: number) => {
     const updated = unwrapIpc(await ipcClient.facturation.deletePaiement(paiementId));
-    setFacture(updated);
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  return { facture, loading, error, reload: load, addPaiement, deletePaiement };
+  return { facture, loading, error, reload: () => { void refetch(); }, addPaiement, deletePaiement };
 }
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 
 export function useClientsFacturation(search?: string) {
-  const [clients, setClients] = useState<ClientFacturation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setClients(unwrapIpc(await ipcClient.facturation.listClients(search)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement clients');
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
+  const { data: clients = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['clients-facturation', search],
+    queryFn: async () => unwrapIpc(await ipcClient.facturation.listClients(search)),
+    staleTime: 60_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement clients' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['clients-facturation'] });
 
-  const create = useCallback(async (input: CreateClientInput) => {
+  const create = async (input: CreateClientInput) => {
     const c = unwrapIpc(await ipcClient.facturation.createClient(input));
-    setClients((prev) => [...prev, c]);
+    await invalidate();
     return c;
-  }, []);
+  };
 
-  const update = useCallback(async (id: number, input: Partial<CreateClientInput>) => {
+  const update = async (id: number, input: Partial<CreateClientInput>) => {
     const c = unwrapIpc(await ipcClient.facturation.updateClient(id, input));
-    setClients((prev) => prev.map((x) => (x.id === id ? c : x)));
+    await invalidate();
     return c;
-  }, []);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.facturation.deleteClient(id));
-    setClients((prev) => prev.filter((x) => x.id !== id));
-  }, []);
+    await invalidate();
+  };
 
-  return { clients, loading, error, reload: load, create, update, remove };
+  return { clients, loading, error, reload: () => { void refetch(); }, create, update, remove };
 }

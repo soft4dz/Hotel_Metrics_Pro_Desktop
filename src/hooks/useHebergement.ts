@@ -1,116 +1,136 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import type {
-  Chambre, CreateChambreInput, CreateReservationInput, CreateTypeChambreInput,
-  OccupationPeriode, Reservation, StatutChambre, StatutReservation, TypeChambre,
+  CreateChambreInput,
+  CreateReservationInput,
+  CreateTypeChambreInput,
+  EstimateReservationPriceInput,
+  StatutChambre,
+  StatutReservation,
 } from '@/shared/types/hebergement';
 
-// ── unwrapIpc helper (local si pas exporté) ───────────────────────────────────
 function unwrap<T>(result: { ok: boolean; data?: T; error?: string }): T {
   if (!result.ok) throw new Error(result.error ?? 'Erreur inconnue');
   return result.data as T;
 }
 
+// ── Types de chambre ──────────────────────────────────────────────────────────
+
 export function useTypesChambre(hotelId?: number) {
-  const [data, setData] = useState<TypeChambre[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const key = ['types-chambre', hotelId];
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { setData(unwrap(await ipcClient.hebergement.listTypesChambre(hotelId))); }
-    catch { setData([]); } finally { setLoading(false); }
-  }, [hotelId]);
+  const { data = [], isLoading: loading, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrap(await ipcClient.hebergement.listTypesChambre(hotelId)),
+    staleTime: 60_000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
 
-  const create = useCallback(async (input: CreateTypeChambreInput) => {
+  const create = async (input: CreateTypeChambreInput) => {
     const result = unwrap(await ipcClient.hebergement.createTypeChambre(input));
-    await load();
+    await invalidate();
     return result;
-  }, [load]);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrap(await ipcClient.hebergement.deleteTypeChambre(id));
-    await load();
-  }, [load]);
+    await invalidate();
+  };
 
-  return { data, loading, refresh: load, create, remove };
+  return { data, loading, refresh: () => { void refetch(); }, create, remove };
 }
+
+// ── Chambres ──────────────────────────────────────────────────────────────────
 
 export function useChambres(hotelId?: number, statut?: StatutChambre) {
-  const [data, setData] = useState<Chambre[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const key = ['chambres', hotelId, statut];
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { setData(unwrap(await ipcClient.hebergement.listChambres(hotelId, statut))); }
-    catch { setData([]); } finally { setLoading(false); }
-  }, [hotelId, statut]);
+  const { data = [], isLoading: loading, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrap(await ipcClient.hebergement.listChambres(hotelId, statut)),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
 
-  const updateStatut = useCallback(async (id: number, s: StatutChambre) => {
+  const updateStatut = async (id: number, s: StatutChambre) => {
     unwrap(await ipcClient.hebergement.updateStatutChambre(id, s));
-    await load();
-  }, [load]);
+    await invalidate();
+  };
 
-  const create = useCallback(async (input: CreateChambreInput) => {
+  const create = async (input: CreateChambreInput) => {
     const result = unwrap(await ipcClient.hebergement.createChambre(input));
-    await load();
+    await invalidate();
     return result;
-  }, [load]);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrap(await ipcClient.hebergement.deleteChambre(id));
-    await load();
-  }, [load]);
+    await invalidate();
+  };
 
-  return { data, loading, refresh: load, updateStatut, create, remove };
+  return { data, loading, refresh: () => { void refetch(); }, updateStatut, create, remove };
 }
 
-export function useReservations(hotelId?: number, dateDebut?: string, dateFin?: string, statut?: StatutReservation) {
-  const [data, setData] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// ── Réservations ──────────────────────────────────────────────────────────────
 
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try { setData(unwrap(await ipcClient.hebergement.listReservations(hotelId, dateDebut, dateFin, statut))); }
-    catch (e) { setError((e as Error).message); setData([]); }
-    finally { setLoading(false); }
-  }, [hotelId, dateDebut, dateFin, statut]);
+export function useReservations(
+  hotelId?: number,
+  dateDebut?: string,
+  dateFin?: string,
+  statut?: StatutReservation,
+) {
+  const qc = useQueryClient();
+  const key = ['reservations', hotelId, dateDebut, dateFin, statut];
 
-  useEffect(() => { load(); }, [load]);
+  const { data = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrap(await ipcClient.hebergement.listReservations(hotelId, dateDebut, dateFin, statut)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : null;
 
-  const create = useCallback(async (input: CreateReservationInput) => {
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
+
+  const create = async (input: CreateReservationInput) => {
     const result = unwrap(await ipcClient.hebergement.createReservation(input));
-    await load();
+    await invalidate();
     return result;
-  }, [load]);
+  };
 
-  const updateStatut = useCallback(async (id: number, s: StatutReservation) => {
+  const estimatePrice = async (input: EstimateReservationPriceInput) => {
+    return unwrap(await ipcClient.hebergement.estimatePrice(input));
+  };
+
+  const createFactureFromReservation = async (reservationId: number) => {
+    const result = unwrap(await ipcClient.hebergement.createFactureFromReservation(reservationId));
+    await invalidate();
+    return result;
+  };
+
+  const updateStatut = async (id: number, s: StatutReservation) => {
     unwrap(await ipcClient.hebergement.updateReservationStatut(id, s));
-    await load();
-  }, [load]);
+    await invalidate();
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrap(await ipcClient.hebergement.deleteReservation(id));
-    await load();
-  }, [load]);
+    await invalidate();
+  };
 
-  return { data, loading, error, refresh: load, create, updateStatut, remove };
+  return { data, loading, error, refresh: () => { void refetch(); }, create, estimatePrice, createFactureFromReservation, updateStatut, remove };
 }
+
+// ── KPIs occupation ───────────────────────────────────────────────────────────
 
 export function useOccupationKpis(dateDebut: string, dateFin: string, hotelId?: number) {
-  const [data, setData] = useState<OccupationPeriode | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { setData(unwrap(await ipcClient.hebergement.getOccupationKpis(dateDebut, dateFin, hotelId))); }
-    catch { setData(null); } finally { setLoading(false); }
-  }, [dateDebut, dateFin, hotelId]);
-
-  useEffect(() => { load(); }, [load]);
-  return { data, loading, refresh: load };
+  const { data = null, isLoading: loading, refetch } = useQuery({
+    queryKey: ['occupation-kpis', dateDebut, dateFin, hotelId],
+    queryFn: async () => unwrap(await ipcClient.hebergement.getOccupationKpis(dateDebut, dateFin, hotelId)),
+    staleTime: 30_000,
+  });
+  return { data, loading, refresh: () => { void refetch(); } };
 }

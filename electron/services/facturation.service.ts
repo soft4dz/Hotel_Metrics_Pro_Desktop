@@ -8,6 +8,7 @@ import {
   isGlobalAdminRole,
   applyActorHotelFilter,
 } from './actorContext';
+import { syncEncaissementFacturePaiement } from './encaissement-sync.service';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -529,7 +530,7 @@ export function addPaiement(actorUserId: number, input: AddPaiementInput): Factu
   if (input.montant <= 0) throw new Error('Le montant doit être positif.');
 
   const db = getDatabase();
-  db.prepare(`
+  const pmtResult = db.prepare(`
     INSERT INTO paiements_facture (facture_id, date_paiement, montant, mode, reference, notes, created_by)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
@@ -540,6 +541,19 @@ export function addPaiement(actorUserId: number, input: AddPaiementInput): Factu
     input.reference ?? null,
     input.notes ?? null,
     actorUserId,
+  );
+  const paiementId = Number(pmtResult.lastInsertRowid);
+
+  syncEncaissementFacturePaiement(
+    actorUserId,
+    row.hotelId,
+    row.numero,
+    input.factureId,
+    paiementId,
+    input.datePaiement,
+    input.montant,
+    input.mode,
+    input.reference,
   );
 
   const totalPaye = db.prepare(

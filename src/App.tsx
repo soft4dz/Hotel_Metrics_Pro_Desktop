@@ -1,9 +1,22 @@
 import { useEffect } from 'react';
 import { HashRouter, useNavigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { AppRoutes } from '@/routes/AppRoutes';
 import { applyUiTheme } from '@/lib/applyUiTheme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiStore } from '@/stores/ui.store';
+import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function SessionBootstrap() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
@@ -33,9 +46,14 @@ export default function App() {
   }, [accentColor, density]);
 
   return (
-    <HashRouter>
-      <SessionBootstrap />
-      <AppRoutes />
-    </HashRouter>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <HashRouter>
+          <SessionBootstrap />
+          <AppRoutes />
+          <Toaster position="top-right" richColors closeButton duration={4000} />
+        </HashRouter>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   );
 }

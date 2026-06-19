@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
-import type { DashboardDto, DashboardFilters } from '@/shared/types/dashboard';
+import type { DashboardFilters } from '@/shared/types/dashboard';
 
 const now = new Date();
 
@@ -12,28 +13,16 @@ export function createDefaultDashboardFilters(): DashboardFilters {
 export function useDashboard(canView: boolean) {
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>(createDefaultDashboardFilters);
   const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>(createDefaultDashboardFilters);
-  const [data, setData] = useState<DashboardDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [exportMsg, setExportMsg] = useState('');
 
-  const reload = useCallback(async () => {
-    if (!canView) return;
-    setLoading(true);
-    setError('');
-    try {
-      setData(unwrapIpc(await ipcClient.dashboard.get(appliedFilters)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [appliedFilters, canView]);
+  const { data = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['dashboard', appliedFilters],
+    queryFn: async () => unwrapIpc(await ipcClient.dashboard.get(appliedFilters)),
+    enabled: canView,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur' : '';
 
   const applyFilters = useCallback(() => {
     setAppliedFilters({ ...draftFilters });
@@ -46,15 +35,29 @@ export function useDashboard(canView: boolean) {
   }, []);
 
   const exportExcel = useCallback(async () => {
-    if (!data?.canExport) return;
-    const r = unwrapIpc(await ipcClient.export.dashboardExcel(appliedFilters));
-    setExportMsg(r.message ?? (r.ok ? `Export : ${r.filePath}` : 'Échec export'));
+    if (!data?.canExport) {
+      setExportMsg('Export non autorisé pour votre profil.');
+      return;
+    }
+    try {
+      const r = unwrapIpc(await ipcClient.export.dashboardExcel(appliedFilters));
+      setExportMsg(r.ok && r.filePath ? `Excel enregistré : ${r.filePath}` : r.message ?? 'Export annulé.');
+    } catch (e) {
+      setExportMsg(e instanceof Error ? e.message : 'Échec export Excel');
+    }
   }, [appliedFilters, data?.canExport]);
 
   const exportPdf = useCallback(async () => {
-    if (!data?.canExport) return;
-    const r = unwrapIpc(await ipcClient.export.dashboardPdf(appliedFilters));
-    setExportMsg(r.message ?? (r.ok ? `Export : ${r.filePath}` : 'Échec export'));
+    if (!data?.canExport) {
+      setExportMsg('Export non autorisé pour votre profil.');
+      return;
+    }
+    try {
+      const r = unwrapIpc(await ipcClient.export.dashboardPdf(appliedFilters));
+      setExportMsg(r.ok && r.filePath ? `PDF enregistré : ${r.filePath}` : r.message ?? 'Export annulé.');
+    } catch (e) {
+      setExportMsg(e instanceof Error ? e.message : 'Échec export PDF');
+    }
   }, [appliedFilters, data?.canExport]);
 
   return {
@@ -69,5 +72,6 @@ export function useDashboard(canView: boolean) {
     resetFilters,
     exportExcel,
     exportPdf,
+    reload: () => { void refetch(); },
   };
 }

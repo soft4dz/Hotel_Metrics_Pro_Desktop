@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { cn } from '@/lib/utils';
-import { FORMES_JURIDIQUES, REGIME_IMPOSITION_LABELS, WILAYAS_ALGERIE } from '@/shared/types/clients';
+import { FORMES_JURIDIQUES, REGIME_IMPOSITION_LABELS } from '@/shared/types/clients';
+import { WilayaCommuneFields } from '@/components/common/WilayaCommuneFields';
 import type { CreateClientInput, RegimeImposition, TypeClient } from '@/shared/types/clients';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -227,17 +228,14 @@ export function NouveauClientPage() {
                 <label className={labelCls}>Code postal</label>
                 <input type="text" className={inputCls} value={form.codePostal ?? ''} onChange={(e) => set('codePostal', e.target.value)} maxLength={5} />
               </div>
-              <div>
-                <label className={labelCls}>Ville / Commune</label>
-                <input type="text" className={inputCls} value={form.ville ?? ''} onChange={(e) => set('ville', e.target.value)} />
-              </div>
-              <div>
-                <label className={labelCls}>Wilaya</label>
-                <select className={inputCls} value={form.wilaya ?? ''} onChange={(e) => set('wilaya', e.target.value)}>
-                  <option value="">— Sélectionner —</option>
-                  {WILAYAS_ALGERIE.map((w) => <option key={w} value={w}>{w}</option>)}
-                </select>
-              </div>
+              <WilayaCommuneFields
+                wilaya={form.wilaya ?? ''}
+                commune={form.ville ?? ''}
+                communeLabel="Ville / Commune"
+                selectClassName={inputCls}
+                onWilayaChange={(w) => set('wilaya', w)}
+                onCommuneChange={(c) => set('ville', c)}
+              />
               <div>
                 <label className={labelCls}>Pays</label>
                 <input type="text" className={inputCls} value={form.pays ?? 'Algérie'} onChange={(e) => set('pays', e.target.value)} />

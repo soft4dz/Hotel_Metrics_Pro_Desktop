@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Check, Plus, X } from 'lucide-react';
 import { DataTable, type Column } from '@/components/tables/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -10,11 +11,12 @@ import { unwrapIpc } from '@/lib/ipcHelpers';
 import type { RhPoste, RhRecrutement } from '@/shared/types/rh';
 
 export function RecrutementsTab() {
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState<RhRecrutement[]>([]);
   const [postes, setPostes] = useState<RhPoste[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ posteId: '', candidatNom: '', candidatPrenom: '', candidatEmail: '' });
+  const [form, setForm] = useState({ posteId: '', candidatNom: '', candidatPrenom: '', candidatEmail: '', notes: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,6 +36,21 @@ export function RecrutementsTab() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const posteId = searchParams.get('posteId');
+    const notes = searchParams.get('notes');
+    if (posteId) {
+      setShowForm(true);
+      setForm({
+        posteId,
+        candidatNom: 'À pourvoir',
+        candidatPrenom: '',
+        candidatEmail: '',
+        notes: notes ?? '',
+      });
+    }
+  }, [searchParams]);
+
   const handleCreate = async () => {
     if (!form.posteId || !form.candidatNom.trim()) return;
     try {
@@ -42,9 +59,10 @@ export function RecrutementsTab() {
         candidatNom: form.candidatNom.trim(),
         candidatPrenom: form.candidatPrenom.trim() || null,
         candidatEmail: form.candidatEmail.trim() || null,
+        notes: form.notes.trim() || null,
       }));
       setShowForm(false);
-      setForm({ posteId: '', candidatNom: '', candidatPrenom: '', candidatEmail: '' });
+      setForm({ posteId: '', candidatNom: '', candidatPrenom: '', candidatEmail: '', notes: '' });
       void load();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur');
@@ -145,6 +163,10 @@ export function RecrutementsTab() {
           <div>
             <Label>E-mail</Label>
             <Input type="email" value={form.candidatEmail} onChange={(e) => setForm((f) => ({ ...f, candidatEmail: e.target.value }))} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Notes</Label>
+            <Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Origine du besoin, unité…" />
           </div>
           <div className="sm:col-span-2 flex gap-2">
             <Button onClick={() => void handleCreate()}>Enregistrer</Button>

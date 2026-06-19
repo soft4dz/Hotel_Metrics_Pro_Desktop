@@ -4,15 +4,17 @@ import * as portClients from '../services/portmaster-clients.service';
 import * as portReferentiel from '../services/portmaster-referentiel.service';
 import * as portAlertes from '../services/portmaster-alertes.service';
 import * as portTarifs from '../services/portmaster-tarifs.service';
+
 import * as portFactures from '../services/portmaster-factures.service';
 import * as portValidations from '../services/portmaster-validations.service';
 import * as portMouvements from '../services/portmaster-mouvements.service';
 import * as portRecouvrement from '../services/portmaster-recouvrement.service';
 import { wrapIpc } from './ipcHelpers';
+import type { DashboardFilters } from '../../src/shared/types/dashboard';
 
 export function registerPortmasterIpc(): void {
-  Electron.ipcMain.handle('portmaster:dashboard', (event) =>
-    wrapIpc(event, (actorUserId) => portService.getPortDashboard(actorUserId)),
+  Electron.ipcMain.handle('portmaster:dashboard', (event, filters?: DashboardFilters) =>
+    wrapIpc(event, (actorUserId) => portService.getPortDashboard(actorUserId, filters)),
   );
 
   Electron.ipcMain.handle('portmaster:bateaux:list', (event, search?: string) =>

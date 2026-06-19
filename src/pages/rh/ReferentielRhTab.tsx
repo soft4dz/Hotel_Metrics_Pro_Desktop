@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Pencil } from 'lucide-react';
 import { DataTable, type Column } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,8 @@ export function ReferentielRhTab() {
   const [postes, setPostes] = useState<RhPoste[]>([]);
   const [deptNom, setDeptNom] = useState('');
   const [posteForm, setPosteForm] = useState({ nom: '', departementId: '', role: '', salaireMin: '' });
+  const [editDept, setEditDept] = useState<RhDepartement | null>(null);
+  const [editPoste, setEditPoste] = useState<RhPoste | null>(null);
 
   const load = useCallback(async () => {
     const [d, p] = await Promise.all([ipcClient.rh.listDepartements(), ipcClient.rh.listPostes()]);
@@ -42,6 +45,26 @@ export function ReferentielRhTab() {
     void load();
   };
 
+  const saveDept = async () => {
+    if (!editDept) return;
+    unwrapIpc(await ipcClient.rh.updateDepartement(editDept.id, { nom: editDept.nom, description: editDept.description }));
+    setEditDept(null);
+    void load();
+  };
+
+  const savePoste = async () => {
+    if (!editPoste) return;
+    unwrapIpc(await ipcClient.rh.updatePoste(editPoste.id, {
+      nom: editPoste.nom,
+      salaireMin: editPoste.salaireMin,
+      salaireMax: editPoste.salaireMax,
+      roleSystemAssocie: editPoste.roleSystemAssocie,
+      description: editPoste.description,
+    }));
+    setEditPoste(null);
+    void load();
+  };
+
   const posteColumns: Column<RhPoste>[] = [
     { key: 'nom', header: 'Poste', render: (p) => p.nom },
     { key: 'dept', header: 'Département', render: (p) => p.departementNom },
@@ -53,6 +76,15 @@ export function ReferentielRhTab() {
         p.salaireMin != null || p.salaireMax != null
           ? `${p.salaireMin ?? '?'} – ${p.salaireMax ?? '?'}`
           : '—',
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (p) => (
+        <Button size="sm" variant="ghost" onClick={() => setEditPoste({ ...p })}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+      ),
     },
   ];
 
@@ -66,9 +98,24 @@ export function ReferentielRhTab() {
         </div>
         <ul className="text-sm space-y-1">
           {departements.map((d) => (
-            <li key={d.id} className="rounded border px-3 py-2">{d.nom}</li>
+            <li key={d.id} className="rounded border px-3 py-2 flex items-center justify-between">
+              <span>{d.nom}</span>
+              <Button size="sm" variant="ghost" onClick={() => setEditDept({ ...d })}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </li>
           ))}
         </ul>
+        {editDept && (
+          <div className="rounded border p-3 space-y-2">
+            <Label>Modifier département</Label>
+            <Input value={editDept.nom} onChange={(e) => setEditDept((d) => d && { ...d, nom: e.target.value })} />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => void saveDept()}>Enregistrer</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditDept(null)}>Annuler</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -87,6 +134,20 @@ export function ReferentielRhTab() {
           <Button onClick={() => void addPoste()}>Créer le poste</Button>
         </div>
       </div>
+
+      {editPoste && (
+        <div className="lg:col-span-2 rounded border p-4 grid gap-2 sm:grid-cols-2">
+          <h3 className="sm:col-span-2 font-semibold">Modifier poste</h3>
+          <div><Label>Nom</Label><Input value={editPoste.nom} onChange={(e) => setEditPoste((p) => p && { ...p, nom: e.target.value })} /></div>
+          <div><Label>Rôle système</Label><Input value={editPoste.roleSystemAssocie ?? ''} onChange={(e) => setEditPoste((p) => p && { ...p, roleSystemAssocie: e.target.value || null })} /></div>
+          <div><Label>Salaire min</Label><Input type="number" value={editPoste.salaireMin ?? ''} onChange={(e) => setEditPoste((p) => p && { ...p, salaireMin: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Salaire max</Label><Input type="number" value={editPoste.salaireMax ?? ''} onChange={(e) => setEditPoste((p) => p && { ...p, salaireMax: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div className="sm:col-span-2 flex gap-2">
+            <Button onClick={() => void savePoste()}>Enregistrer</Button>
+            <Button variant="outline" onClick={() => setEditPoste(null)}>Annuler</Button>
+          </div>
+        </div>
+      )}
 
       <div className="lg:col-span-2">
         <DataTable columns={posteColumns} data={postes} keyExtractor={(p) => p.id} emptyMessage="Aucun poste." />

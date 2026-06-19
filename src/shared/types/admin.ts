@@ -1,8 +1,8 @@
-export interface IpcResult<T> {
-  ok: boolean;
-  data?: T;
-  error?: string;
-}
+export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'SERVER_ERROR';
+
+export type IpcResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; errorCode: IpcErrorCode };
 
 export interface UserListItem {
   id: number;

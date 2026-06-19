@@ -39,8 +39,8 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
   );
 
   return (
-    <div className="space-y-5">
-      {/* Hero principal */}
+    <div className="space-y-8">
+      {/* Hero principal Premium */}
       <DashboardHero
         periodeLabel={data.kpis.periodeLabel}
         kpis={data.kpis}
@@ -48,37 +48,13 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
         actions={exportActions}
       />
 
-      {/* KPIs primaires + secondaires */}
+      {/* Nouveaux KPIs structurés */}
       <DashboardKpiSection kpis={data.kpis} />
 
-      {/* Analyse par hôtel */}
-      <SectionBlock
-        title="Analyse par hôtel"
-        description="Performance par unité sur la période filtrée"
-      >
-        <HotelAnalyseGrid hotels={data.parHotel} />
-      </SectionBlock>
-
-      {/* Alertes + répartition rubrique */}
-      <div className="grid gap-5 xl:grid-cols-2">
-        <SectionBlock
-          title="Alertes intelligentes"
-          description="Détection automatique sur la période"
-        >
-          <DashboardAlertsPanel alertes={data.alertes} />
-        </SectionBlock>
-        <SectionBlock
-          title="Répartition par rubrique"
-          description="Part du CA par activité"
-        >
-          <RubriqueBreakdown rows={data.parRubrique} />
-        </SectionBlock>
-      </div>
-
-      {/* Graphiques (lazy) */}
+      {/* Graphiques Principaux */}
       <Suspense
         fallback={
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2">
             <DashboardChartSkeleton />
             <DashboardChartSkeleton />
           </div>
@@ -86,6 +62,32 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
       >
         <DashboardChartsSection data={data} annee={annee} />
       </Suspense>
+
+      {/* Répartition et Alertes (Côte à côte) */}
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <SectionBlock
+            title="Performance par unité"
+            description="Vue détaillée des hôtels sur la période"
+          >
+            <HotelAnalyseGrid hotels={data.parHotel} />
+          </SectionBlock>
+        </div>
+        <div className="space-y-6">
+          <SectionBlock
+            title="Alertes intelligentes"
+            description="Détection d'anomalies sur la période"
+          >
+            <DashboardAlertsPanel alertes={data.alertes} />
+          </SectionBlock>
+          <SectionBlock
+            title="Répartition des revenus"
+            description="Part du CA par activité (Hébergement, F&B...)"
+          >
+            <RubriqueBreakdown rows={data.parRubrique} />
+          </SectionBlock>
+        </div>
+      </div>
 
       {/* Tables de synthèse */}
       <DashboardTablesSection data={data} />
@@ -126,9 +128,8 @@ export function DashboardGlobalPage() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="dashboard-print space-y-5">
-        {/* Barre de filtres */}
-        <div className="print:hidden">
+      <div className="dashboard-print mx-auto max-w-[1600px] space-y-6 pb-10">
+        <div className="flex w-full flex-col gap-3 print:hidden sm:flex-row sm:justify-end">
           <DashboardFiltersBar
             filters={draftFilters}
             onChange={setDraftFilters}
@@ -139,24 +140,24 @@ export function DashboardGlobalPage() {
         </div>
 
         {exportMsg && (
-          <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary print:hidden">
+          <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary print:hidden shadow-sm">
             {exportMsg}
           </p>
         )}
         {error && (
-          <p className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <p className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-sm">
             {error}
           </p>
         )}
 
         {loading ? (
           <div
-            className="flex min-h-[420px] items-center justify-center gap-2.5 text-sm text-muted-foreground"
+            className="flex min-h-[420px] flex-col items-center justify-center gap-4 text-sm text-muted-foreground"
             role="status"
             aria-live="polite"
           >
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            Chargement du tableau de bord…
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="animate-pulse">Génération des statistiques en cours...</p>
           </div>
         ) : data ? (
           <DashboardBody

@@ -11,6 +11,7 @@ import {
   assertRecettesValidation,
   type ActorContext,
 } from './actorContext';
+import { syncEncaissementRecetteJour } from './encaissement-sync.service';
 
 export type RecetteStatut = 'brouillon' | 'soumis' | 'valide' | 'refuse';
 
@@ -733,6 +734,8 @@ export function validerJour(
     module: 'recettes',
     description: `Validation journalière ${dateJournal} — hôtel ${hid}`,
   });
+
+  syncEncaissementRecetteJour(actor.userId, hid, dateJournal);
 }
 
 export function refuserJour(

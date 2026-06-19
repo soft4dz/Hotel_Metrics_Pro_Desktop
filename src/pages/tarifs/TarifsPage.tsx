@@ -4,14 +4,16 @@ import { PlansFormules } from './PlansFormules';
 import { GrilleTarifaire } from './GrilleTarifaire';
 import { PromotionsPage } from './PromotionsPage';
 import { ConventionsPage } from './ConventionsPage';
+import { SimulateurTarifPage } from './SimulateurTarifPage';
 
-type Tab = 'plans' | 'grille' | 'promotions' | 'conventions';
+type Tab = 'plans' | 'grille' | 'promotions' | 'conventions' | 'simulateur';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'plans',       label: 'Plans & Formules' },
   { id: 'grille',      label: 'Grille tarifaire' },
   { id: 'promotions',  label: 'Promotions' },
   { id: 'conventions', label: 'Conventions client' },
+  { id: 'simulateur',  label: 'Simulateur' },
 ];
 
 export function TarifsPage() {
@@ -19,13 +21,6 @@ export function TarifsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tarifs & Conventions</h1>
-        <p className="text-sm text-muted-foreground">
-          Plans tarifaires, grille journalière, formules (BB/HB…), promotions et tarifs conventionnés clients
-        </p>
-      </div>
-
       <div className="border-b border-border">
         <div className="flex gap-1 overflow-x-auto">
           {TABS.map((tab) => (
@@ -50,6 +45,7 @@ export function TarifsPage() {
         {active === 'grille'      && <GrilleTarifaire />}
         {active === 'promotions'  && <PromotionsPage />}
         {active === 'conventions' && <ConventionsPage />}
+        {active === 'simulateur'  && <SimulateurTarifPage />}
       </div>
     </div>
   );

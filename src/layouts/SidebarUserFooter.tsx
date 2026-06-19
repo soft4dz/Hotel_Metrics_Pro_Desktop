@@ -6,9 +6,10 @@ import { useAuthStore } from '@/stores/auth.store';
 
 interface SidebarUserFooterProps {
   collapsed: boolean;
+  onNavigate?: () => void;
 }
 
-export function SidebarUserFooter({ collapsed }: SidebarUserFooterProps) {
+export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
@@ -56,7 +57,10 @@ export function SidebarUserFooter({ collapsed }: SidebarUserFooterProps) {
             size="icon"
             className="h-8 w-8 cursor-pointer text-white/70 hover:bg-white/10 hover:text-white"
             aria-label="Paramètres"
-            onClick={() => navigate('/settings')}
+            onClick={() => {
+              onNavigate?.();
+              navigate('/settings');
+            }}
           >
             <Settings className="h-4 w-4" strokeWidth={1.75} />
           </Button>
@@ -66,7 +70,10 @@ export function SidebarUserFooter({ collapsed }: SidebarUserFooterProps) {
             size="icon"
             className="h-8 w-8 cursor-pointer text-white/70 hover:bg-red-500/20 hover:text-red-200"
             aria-label="Déconnexion"
-            onClick={() => void handleLogout()}
+            onClick={() => {
+              onNavigate?.();
+              void handleLogout();
+            }}
           >
             <LogOut className="h-4 w-4" strokeWidth={1.75} />
           </Button>

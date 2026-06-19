@@ -23,19 +23,14 @@ export function HebergementPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Hébergement & Occupation</h1>
-        <p className="text-sm text-muted-foreground">Chambres, réservations et indicateurs de performance</p>
-      </div>
-
       <div className="border-b border-border">
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.filter((t) => !t.hidden).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActive(tab.id)}
               className={cn(
-                'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+                'whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px min-h-[44px]',
                 active === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-slate-700 hover:border-slate-300',

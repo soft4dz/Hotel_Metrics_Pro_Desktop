@@ -39,12 +39,14 @@ const DEFAULT_NOTIF: NotifPrefs = {
 
 interface UiState {
   sidebarCollapsed: boolean;
+  mobileNavOpen: boolean;
   accentColor: AccentColor;
   density:     Density;
   notifPrefs:  NotifPrefs;
 
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setMobileNavOpen: (open: boolean) => void;
   setAccentColor: (color: AccentColor) => void;
   setDensity: (density: Density) => void;
   setNotifPref: <K extends keyof NotifPrefs>(key: K, value: NotifPrefs[K]) => void;
@@ -55,6 +57,7 @@ export const useUiStore = create<UiState>()(
   persist(
     (set, get) => ({
       sidebarCollapsed: false,
+      mobileNavOpen:    false,
       accentColor:      'navy',
       density:          'comfortable',
       notifPrefs:        DEFAULT_NOTIF,
@@ -62,6 +65,7 @@ export const useUiStore = create<UiState>()(
       toggleSidebar: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
       setAccentColor: (accentColor) => {
         set({ accentColor });
         applyUiTheme(accentColor, get().density);

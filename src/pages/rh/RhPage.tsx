@@ -1,72 +1,95 @@
-import { useState } from 'react';
+import { Navigate, NavLink, useParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { canManageRh, canValidateRhTeam, canAccessRhSelf } from '@/shared/permissions';
-import { RhDashboardTab } from './RhDashboardTab';
-import { RecrutementsTab } from './RecrutementsTab';
-import { EmployesTab } from './EmployesTab';
-import { PointagesTab } from './PointagesTab';
-import { AbsencesTab } from './AbsencesTab';
-import { MonEspaceTab } from './MonEspaceTab';
-import { ReferentielRhTab } from './ReferentielRhTab';
+import {
+  getDefaultRhPath,
+  RH_LEGACY_REDIRECTS,
+  isRhLegacySection,
+  resolveRhHub,
+  resolveRhSub,
+  type RhHub,
+} from './rhNavigation';
+import { RhHubContent } from './RhHubContent';
 
-type RhTab = 'dashboard' | 'recrutements' | 'employes' | 'pointages' | 'absences' | 'referentiel' | 'mon-espace';
+function visibleSubs(hub: RhHub, canManage: boolean, canTeam: boolean, canSelf: boolean) {
+  return hub.subs.filter((s) => {
+    if (hub.id === 'mon-espace') return canSelf;
+    if (hub.id === 'validations') return canTeam || canManage;
+    if (hub.id === 'temps') {
+      if (canManage || canTeam) return true;
+      if (canSelf) return s.id === 'pointages' || s.id === 'absences';
+      return false;
+    }
+    if (hub.id === 'collaborateurs' && s.id === 'affectations') return canManage || canTeam;
+    return canManage;
+  });
+}
 
 export function RhPage() {
   const role = useAuthStore((s) => s.user?.role);
+  const { hub: hubParam, sub: subParam } = useParams<{ hub?: string; sub?: string }>();
   const canManage = canManageRh(role);
   const canTeam = canValidateRhTeam(role);
   const canSelf = canAccessRhSelf(role);
-  const [active, setActive] = useState<RhTab>(canManage ? 'dashboard' : 'mon-espace');
 
-  const tabs: { id: RhTab; label: string; hidden?: boolean }[] = [
-    { id: 'dashboard', label: 'Tableau de bord', hidden: !canManage },
-    { id: 'recrutements', label: 'Recrutements', hidden: !canManage },
-    { id: 'employes', label: 'Employés', hidden: !canManage },
-    { id: 'pointages', label: 'Pointages', hidden: !canTeam && !canSelf },
-    { id: 'absences', label: 'Absences', hidden: !canTeam && !canSelf },
-    { id: 'referentiel', label: 'Postes & départements', hidden: !canManage },
-    { id: 'mon-espace', label: 'Mon espace', hidden: !canSelf },
-  ];
+  if (hubParam && isRhLegacySection(hubParam) && !subParam) {
+    return <Navigate to={RH_LEGACY_REDIRECTS[hubParam]} replace />;
+  }
+
+  if (!hubParam) {
+    return <Navigate to={getDefaultRhPath(role)} replace />;
+  }
+
+  const hub = resolveRhHub(hubParam, role);
+  if (!hub) {
+    const legacy = hubParam ? RH_LEGACY_REDIRECTS[hubParam] : undefined;
+    if (legacy) return <Navigate to={legacy} replace />;
+    return <Navigate to={getDefaultRhPath(role)} replace />;
+  }
+
+  const subs = visibleSubs(hub, canManage, canTeam, canSelf);
+  const hasSubs = subs.length > 1;
+  const activeSub = hasSubs ? resolveRhSub(hub, subParam, role, canTeam) : hub.defaultSub;
+  const subPath = hasSubs && subs.some((s) => s.id === activeSub) ? activeSub : (subs[0]?.id ?? hub.defaultSub);
+
+  if (hasSubs && subParam !== subPath) {
+    return <Navigate to={`${hub.path}/${subPath}`} replace />;
+  }
+  if (!hasSubs && subParam) {
+    return <Navigate to={hub.path} replace />;
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">RH & Productivité</h1>
-        <p className="text-sm text-muted-foreground">
-          Effectifs, recrutement, présences et indicateurs de performance
-        </p>
-      </div>
-
-      <div className="border-b border-border">
-        <div className="flex flex-wrap gap-1">
-          {tabs.filter((t) => !t.hidden).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActive(tab.id)}
-              className={cn(
-                'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-                active === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-slate-700 hover:border-slate-300',
-              )}
+      {hasSubs && (
+        <div className="flex flex-wrap gap-1 overflow-x-auto border-b border-border pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {subs.map((s) => (
+            <NavLink
+              key={s.id}
+              to={`${hub.path}/${s.id}`}
+              className={({ isActive }) =>
+                cn(
+                  'whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px min-h-[44px] flex items-center',
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )
+              }
             >
-              {tab.label}
-            </button>
+              {s.label}
+            </NavLink>
           ))}
         </div>
-      </div>
+      )}
 
-      <div>
-        {active === 'dashboard' && canManage && <RhDashboardTab />}
-        {active === 'recrutements' && canManage && <RecrutementsTab />}
-        {active === 'employes' && canManage && <EmployesTab />}
-        {active === 'pointages' && (canTeam || canSelf) && <PointagesTab canValidate={canTeam} />}
-        {active === 'absences' && (canTeam || canSelf) && <AbsencesTab canValidate={canTeam} />}
-        {active === 'referentiel' && canManage && <ReferentielRhTab />}
-        {active === 'mon-espace' && canSelf && <MonEspaceTab />}
-      </div>
+      <RhHubContent
+        hub={hub}
+        sub={subPath}
+        canManage={canManage}
+        canTeam={canTeam}
+        canSelf={canSelf}
+      />
     </div>
   );
 }

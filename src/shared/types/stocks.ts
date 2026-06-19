@@ -1,0 +1,2 @@
+export interface StockProduit { id: number; uuid: string; code: string; designation: string; categorieId: number | null; categorieLabel: string | null; unite: string; prixUnitaire: number; seuilAlerte: number; isActive: boolean }
+export interface StockNiveau { hotelId: number; produitId: number; produitCode: string; produitDesignation: string; unite: string; quantite: number; seuilAlerte: number; enAlerte: boolean; valeur: number }

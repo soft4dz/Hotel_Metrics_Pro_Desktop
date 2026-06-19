@@ -4,9 +4,9 @@ import {
   listTypesChambre, createTypeChambre, deleteTypeChambre,
   listChambres, createChambre, updateChambre, updateStatutChambre, deleteChambre,
   listReservations, getReservation, createReservation, updateReservationStatut, deleteReservation,
-  getOccupationKpis,
+  getOccupationKpis, estimateReservationPrice, createFactureFromReservation,
 } from '../services/hebergement.service';
-import type { CreateTypeChambreInput, CreateChambreInput, CreateReservationInput, StatutChambre, StatutReservation } from '../../src/shared/types/hebergement';
+import type { CreateTypeChambreInput, CreateChambreInput, CreateReservationInput, EstimateReservationPriceInput, StatutChambre, StatutReservation } from '../../src/shared/types/hebergement';
 
 export function registerHebergementIpc() {
   Electron.ipcMain.handle('hebergement:listTypesChambre', (event, hotelId?: number) =>
@@ -37,6 +37,12 @@ export function registerHebergementIpc() {
     wrapIpc(event, (uid) => updateReservationStatut(uid, id, statut)));
   Electron.ipcMain.handle('hebergement:deleteReservation', (event, id: number) =>
     wrapIpc(event, (uid) => deleteReservation(uid, id)));
+
+  Electron.ipcMain.handle('hebergement:estimatePrice', (event, input: EstimateReservationPriceInput) =>
+    wrapIpc(event, (uid) => estimateReservationPrice(uid, input)));
+
+  Electron.ipcMain.handle('hebergement:createFactureFromReservation', (event, reservationId: number) =>
+    wrapIpc(event, (uid) => createFactureFromReservation(uid, reservationId)));
 
   Electron.ipcMain.handle('hebergement:getOccupationKpis', (event, deb: string, fin: string, hotelId?: number) =>
     wrapIpc(event, (uid) => getOccupationKpis(uid, deb, fin, hotelId)));

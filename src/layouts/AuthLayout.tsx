@@ -1,23 +1,25 @@
 import { Outlet } from 'react-router-dom';
 import { Anchor, BarChart3, Building2 } from 'lucide-react';
-import { APP_LOGO_URL } from '@/lib/logos';
+import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 
 /**
  * Layout pour les écrans non authentifiés (login, activation licence).
  */
 export function AuthLayout() {
+  const { logoUrl, companyName } = useCompanyBranding();
+
   return (
     <div className="flex min-h-full">
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#1E40AF] via-[#2563EB] to-[#3B82F6] p-12 text-white lg:flex">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <img
-              src={APP_LOGO_URL}
-              alt="Hotel Metrics Pro"
+              src={logoUrl}
+              alt={companyName}
               className="h-12 w-12 rounded-xl object-contain shadow-lg"
             />
             <div>
-              <p className="font-heading text-lg font-semibold">Hotel Metrics Pro</p>
+              <p className="font-heading text-lg font-semibold">{companyName}</p>
               <p className="text-sm text-white/60">Desktop Edition</p>
             </div>
           </div>
@@ -62,7 +64,7 @@ export function AuthLayout() {
         />
       </div>
 
-      <div className="page-mesh flex flex-1 items-center justify-center p-6 lg:p-10">
+      <div className="page-mesh flex flex-1 items-center justify-center p-4 sm:p-6 lg:p-10">
         <div className="w-full max-w-md">
           <Outlet />
         </div>

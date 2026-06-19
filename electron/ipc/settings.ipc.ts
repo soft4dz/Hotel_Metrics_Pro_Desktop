@@ -4,8 +4,8 @@ import type { CompanyBrandAsset } from '../services/logo.service';
 import { wrapIpc, wrapIpcAsync } from './ipcHelpers';
 
 export function registerSettingsIpc(): void {
-  Electron.ipcMain.handle('settings:getBranding', (event) =>
-    wrapIpc(event, () => settingsService.getCompanyBranding()),
+  Electron.ipcMain.handle('settings:getBranding', () =>
+    wrapIpcPublic(() => settingsService.getCompanyBranding()),
   );
 
   Electron.ipcMain.handle('settings:getAppInfo', (event) =>

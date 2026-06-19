@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
@@ -26,7 +26,7 @@ import { ObjectifsPage } from '@/pages/objectifs/ObjectifsPage';
 import { ObjectifFormPage } from '@/pages/objectifs/ObjectifFormPage';
 import { RequireObjectifsView } from '@/routes/RequireObjectifsView';
 import { RequirePortmaster } from '@/routes/RequirePortmaster';
-import { PortDashboardPage } from '@/pages/portmaster/PortDashboardPage';
+import PortDashboardPage from '@/pages/portmaster/PortDashboardPage';
 import { BateauxPage } from '@/pages/portmaster/BateauxPage';
 import { BateauFormPage } from '@/pages/portmaster/BateauFormPage';
 import { ContratsPage } from '@/pages/portmaster/ContratsPage';
@@ -65,15 +65,25 @@ import { FacturationBoard } from '@/pages/facturation/FacturationBoard';
 import { FacturesListPage } from '@/pages/facturation/FacturesListPage';
 import { NouvelleFacturePage } from '@/pages/facturation/NouvelleFacturePage';
 import { FactureDetailPage as FactureDetailFacturationPage } from '@/pages/facturation/FactureDetailPage';
-import { ClientsFacturationPage } from '@/pages/facturation/ClientsFacturationPage';
 import { ClientsListPage } from '@/pages/clients/ClientsListPage';
 import { ClientDetailPage } from '@/pages/clients/ClientDetailPage';
 import { NouveauClientPage } from '@/pages/clients/NouveauClientPage';
 import { HebergementPage } from '@/pages/hebergement/HebergementPage';
 import { TarifsPage as HotelTarifsPage } from '@/pages/tarifs/TarifsPage';
 import { RhPage } from '@/pages/rh/RhPage';
+import { RhReferentielPage } from '@/pages/system/RhReferentielPage';
 import { RequireRh } from '@/routes/RequireRh';
 import { PERMISSIONS } from '@/shared/permissions';
+import AnomaliesPage from '@/pages/anomalies/AnomaliesPage';
+import DecisionsPage from '@/pages/decisions/DecisionsPage';
+import ReclamationsPage from '@/pages/reclamations/ReclamationsPage';
+import ParkingPage from '@/pages/parking/ParkingPage';
+import PlagePage from '@/pages/plage/PlagePage';
+import StocksPage from '@/pages/stocks/StocksPage';
+import AchatsPage from '@/pages/achats/AchatsPage';
+import MaintenancePage from '@/pages/maintenance/MaintenancePage';
+import CommercialPage from '@/pages/commercial/CommercialPage';
+import GedPage from '@/pages/ged/GedPage';
 
 const DashboardGlobalPage = lazy(() =>
   import('@/pages/dashboard/DashboardGlobalPage').then((m) => ({ default: m.DashboardGlobalPage })),
@@ -160,7 +170,7 @@ export function AppRoutes() {
             <Route path="/facturation" element={<FacturationIndexPage />}>
               <Route index element={<FacturationBoard />} />
               <Route path="factures" element={<FacturesListPage />} />
-              <Route path="clients" element={<ClientsFacturationPage />} />
+              <Route path="clients" element={<Navigate to="/clients" replace />} />
             </Route>
             <Route path="/facturation/nouvelle" element={<NouvelleFacturePage />} />
             <Route path="/facturation/factures/:id" element={<FactureDetailFacturationPage />} />
@@ -179,11 +189,28 @@ export function AppRoutes() {
             {/* RH & Productivité */}
             <Route element={<RequireRh />}>
               <Route path="/rh" element={<RhPage />} />
+              <Route path="/rh/:hub" element={<RhPage />} />
+              <Route path="/rh/:hub/:sub" element={<RhPage />} />
             </Route>
+
+            {/* Nouveaux modules métier */}
+            <Route path="/anomalies" element={<AnomaliesPage />} />
+            <Route path="/decisions" element={<DecisionsPage />} />
+            <Route path="/reclamations" element={<ReclamationsPage />} />
+            <Route path="/parking" element={<ParkingPage />} />
+            <Route path="/plage" element={<PlagePage />} />
+            <Route path="/stocks" element={<StocksPage />} />
+            <Route path="/achats" element={<AchatsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/commercial" element={<CommercialPage />} />
+            <Route path="/ged" element={<GedPage />} />
 
             <Route path="/rapports" element={<RequireReportsExport><RapportsPage /></RequireReportsExport>} />
             <Route path="/system/sync" element={<RequireSync><SyncPage /></RequireSync>} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route element={<RequireRh />}>
+              <Route path="/settings/rh-referentiel" element={<RhReferentielPage />} />
+            </Route>
             <Route path="/settings/interface" element={<InterfaceThemePage />} />
             <Route path="/settings/notifications" element={<NotificationsPage />} />
             <Route path="/settings/securite" element={<SecuriteAccesPage />} />

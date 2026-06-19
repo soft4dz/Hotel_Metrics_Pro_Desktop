@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Plus, SendHorizonal, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, Plus, SendHorizonal, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
@@ -81,6 +81,20 @@ export function FactureDetailPage() {
   const canValider   = facture.statut === 'soumise';
   const canAnnuler   = ['brouillon', 'soumise'].includes(facture.statut);
   const canAddPmt    = facture.statut === 'validee' && facture.montantRestant > 0;
+  const canExportPdf = ['validee', 'payee'].includes(facture.statut);
+
+  const handleExportPdf = async () => {
+    setActionLoading(true);
+    try {
+      const res = unwrapIpc(await ipcClient.facturation.exportPdf(factureId));
+      if (res.ok && res.filePath) alert(`Facture PDF enregistree : ${res.filePath}`);
+      else if (res.message) alert(res.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur export PDF');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -99,6 +113,11 @@ export function FactureDetailPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">{facture.hotelName} · {facture.clientNom}</p>
         </div>
         <div className="flex gap-2">
+          {canExportPdf && (
+            <Button size="sm" variant="outline" onClick={() => void handleExportPdf()} disabled={actionLoading} className="gap-1.5">
+              <FileText className="h-4 w-4" /> PDF
+            </Button>
+          )}
           {canSoumettre && <Button size="sm" onClick={() => void handleSoumettre()} disabled={actionLoading} className="gap-1.5"><SendHorizonal className="h-4 w-4" /> Soumettre</Button>}
           {canValider   && <Button size="sm" onClick={() => void handleValider()} disabled={actionLoading} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" /> Valider</Button>}
           {canAnnuler   && <Button size="sm" variant="outline" onClick={() => void handleAnnuler()} disabled={actionLoading} className="gap-1.5 text-amber-600 hover:bg-amber-50"><XCircle className="h-4 w-4" /> Annuler</Button>}

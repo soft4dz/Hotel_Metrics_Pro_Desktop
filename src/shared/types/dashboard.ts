@@ -21,6 +21,10 @@ export interface DashboardKpis {
   saisiesManquantes: number;
   periodeLabel: string;
   variationCaPct: number;
+  tauxOccupation: number;
+  revPAR: number;
+  adr: number;
+  prixMoyenCouvert: number;
 }
 
 export interface HotelRubriqueRow {

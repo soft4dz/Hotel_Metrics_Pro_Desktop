@@ -381,16 +381,19 @@ export function listConventions(actorUserId: number, hotelId?: number, clientId?
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const rows = db.prepare(`
     SELECT cv.*, h.name as hotel_name,
-           c.nom as client_nom, c.prenom as client_prenom
+           CASE
+             WHEN c.type = 'entreprise' THEN COALESCE(NULLIF(c.raison_sociale, ''), c.nom)
+             ELSE TRIM(c.nom || ' ' || COALESCE(c.prenom, ''))
+           END as client_nom
     FROM conventions cv
     INNER JOIN hotels h ON h.id = cv.hotel_id
-    INNER JOIN clients c ON c.id = cv.client_id
+    INNER JOIN clients_facturation c ON c.id = cv.client_id AND c.deleted_at IS NULL
     ${where} ORDER BY cv.date_debut DESC
   `).all(...params) as any[];
   return rows.map((r) => ({
     id: r.id, hotelId: r.hotel_id, hotelName: r.hotel_name,
     clientId: r.client_id,
-    clientNom: `${r.client_nom}${r.client_prenom ? ' ' + r.client_prenom : ''}`,
+    clientNom: r.client_nom,
     nom: r.nom, description: r.description,
     dateDebut: r.date_debut, dateFin: r.date_fin,
     priorite: r.priorite, estActive: r.est_active === 1,

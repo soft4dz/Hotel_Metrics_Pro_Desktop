@@ -1,171 +1,127 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import type {
   AddCaisseInput,
-  CompteBancaire,
   CreateCompteInput,
   CreateEncaissementInput,
   EncaissementFilters,
-  EncaissementItem,
-  JournalCaisseEntry,
-  TresorerieDashboard,
 } from '@/shared/types/tresorerie';
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function useTresorerieDashboard(hotelId?: number) {
-  const [data, setData] = useState<TresorerieDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await ipcClient.tresorerie.getDashboard(hotelId);
-      setData(unwrapIpc(result));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement trésorerie');
-    } finally {
-      setLoading(false);
-    }
-  }, [hotelId]);
-
-  useEffect(() => { void load(); }, [load]);
-  return { data, loading, error, reload: load };
+  const { data = null, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['tresorerie-dashboard', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.tresorerie.getDashboard(hotelId)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement trésorerie' : null;
+  return { data, loading, error, reload: () => { void refetch(); } };
 }
 
-// ── Encaissements list ────────────────────────────────────────────────────────
+// ── Encaissements ─────────────────────────────────────────────────────────────
 
 export function useEncaissements(initialFilters?: EncaissementFilters) {
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<EncaissementFilters>(initialFilters ?? {});
-  const [items, setItems] = useState<EncaissementItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await ipcClient.tresorerie.listEncaissements(filters);
-      setItems(unwrapIpc(result));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement encaissements');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const { data: items = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['encaissements', filters],
+    queryFn: async () => unwrapIpc(await ipcClient.tresorerie.listEncaissements(filters)),
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement encaissements' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['encaissements'] });
 
-  const createEncaissement = useCallback(async (input: CreateEncaissementInput) => {
-    const result = await ipcClient.tresorerie.createEncaissement(input);
-    const created = unwrapIpc(result);
-    setItems((prev) => [created, ...prev]);
+  const createEncaissement = async (input: CreateEncaissementInput) => {
+    const created = unwrapIpc(await ipcClient.tresorerie.createEncaissement(input));
+    await invalidate();
     return created;
-  }, []);
+  };
 
-  const confirmer = useCallback(async (id: number) => {
-    const result = await ipcClient.tresorerie.confirmerEncaissement(id);
-    const updated = unwrapIpc(result);
-    setItems((prev) => prev.map((e) => (e.id === id ? updated : e)));
+  const confirmer = async (id: number) => {
+    const updated = unwrapIpc(await ipcClient.tresorerie.confirmerEncaissement(id));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const rejeter = useCallback(async (id: number, motif: string) => {
-    const result = await ipcClient.tresorerie.rejeterEncaissement(id, motif);
-    const updated = unwrapIpc(result);
-    setItems((prev) => prev.map((e) => (e.id === id ? updated : e)));
+  const rejeter = async (id: number, motif: string) => {
+    const updated = unwrapIpc(await ipcClient.tresorerie.rejeterEncaissement(id, motif));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.tresorerie.deleteEncaissement(id));
-    setItems((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+    await invalidate();
+  };
 
-  return { items, loading, error, filters, setFilters, reload: load, createEncaissement, confirmer, rejeter, remove };
+  return { items, loading, error, filters, setFilters, reload: () => { void refetch(); }, createEncaissement, confirmer, rejeter, remove };
 }
 
 // ── Comptes bancaires ─────────────────────────────────────────────────────────
 
 export function useComptesBancaires(hotelId?: number) {
-  const [comptes, setComptes] = useState<CompteBancaire[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await ipcClient.tresorerie.listComptes(hotelId);
-      setComptes(unwrapIpc(result));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur chargement comptes');
-    } finally {
-      setLoading(false);
-    }
-  }, [hotelId]);
+  const { data: comptes = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['comptes-bancaires', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.tresorerie.listComptes(hotelId)),
+    staleTime: 60_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur chargement comptes' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['comptes-bancaires'] });
 
-  const create = useCallback(async (input: CreateCompteInput) => {
-    const result = await ipcClient.tresorerie.createCompte(input);
-    const created = unwrapIpc(result);
-    setComptes((prev) => [...prev, created]);
+  const create = async (input: CreateCompteInput) => {
+    const created = unwrapIpc(await ipcClient.tresorerie.createCompte(input));
+    await invalidate();
     return created;
-  }, []);
+  };
 
-  const update = useCallback(async (id: number, input: Partial<CreateCompteInput>) => {
-    const result = await ipcClient.tresorerie.updateCompte(id, input);
-    const updated = unwrapIpc(result);
-    setComptes((prev) => prev.map((c) => (c.id === id ? updated : c)));
+  const update = async (id: number, input: Partial<CreateCompteInput>) => {
+    const updated = unwrapIpc(await ipcClient.tresorerie.updateCompte(id, input));
+    await invalidate();
     return updated;
-  }, []);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.tresorerie.deleteCompte(id));
-    setComptes((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+    await invalidate();
+  };
 
-  return { comptes, loading, error, reload: load, create, update, remove };
+  return { comptes, loading, error, reload: () => { void refetch(); }, create, update, remove };
 }
 
 // ── Journal de caisse ─────────────────────────────────────────────────────────
 
 export function useJournalCaisse(hotelId: number, dateDebut: string, dateFin: string) {
-  const [entries, setEntries] = useState<JournalCaisseEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const key = ['journal-caisse', hotelId, dateDebut, dateFin];
 
-  const load = useCallback(async () => {
-    if (!hotelId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await ipcClient.tresorerie.getJournalCaisse(hotelId, dateDebut, dateFin);
-      setEntries(unwrapIpc(result));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur journal caisse');
-    } finally {
-      setLoading(false);
-    }
-  }, [hotelId, dateDebut, dateFin]);
+  const { data: entries = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: key,
+    queryFn: async () => unwrapIpc(await ipcClient.tresorerie.getJournalCaisse(hotelId, dateDebut, dateFin)),
+    enabled: !!hotelId,
+    staleTime: 30_000,
+  });
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erreur journal caisse' : null;
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
 
-  const add = useCallback(async (input: AddCaisseInput) => {
-    const result = await ipcClient.tresorerie.addOperationCaisse(input);
-    const entry = unwrapIpc(result);
-    void load();
+  const add = async (input: AddCaisseInput) => {
+    const entry = unwrapIpc(await ipcClient.tresorerie.addOperationCaisse(input));
+    await invalidate();
     return entry;
-  }, [load]);
+  };
 
-  const remove = useCallback(async (id: number) => {
+  const remove = async (id: number) => {
     unwrapIpc(await ipcClient.tresorerie.deleteOperationCaisse(id));
-    void load();
-  }, [load]);
+    await invalidate();
+  };
 
-  return { entries, loading, error, reload: load, add, remove };
+  return { entries, loading, error, reload: () => { void refetch(); }, add, remove };
 }

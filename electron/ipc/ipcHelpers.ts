@@ -8,15 +8,31 @@ import {
   SessionError,
 } from '../services/session.service';
 
+export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'SERVER_ERROR';
+
 export interface IpcErrorResult {
   ok: false;
   error: string;
+  errorCode: IpcErrorCode;
 }
 
 export type IpcResult<T> = { ok: true; data: T } | IpcErrorResult;
 
-/** Patch dev temporaire — mettre à false pour exiger une session IPC. */
-const DEV_AUTO_ADMIN_ACTOR = true;
+function classifyError(err: Error): IpcErrorCode {
+  if (err instanceof PermissionError) return 'FORBIDDEN';
+  if (err instanceof SessionError) return 'SESSION_EXPIRED';
+  if (err.message.toLowerCase().includes('introuvable')) return 'NOT_FOUND';
+  return 'SERVER_ERROR';
+}
+
+function toIpcError(err: unknown): IpcErrorResult {
+  if (err instanceof Error) {
+    return { ok: false, error: err.message, errorCode: classifyError(err) };
+  }
+  return { ok: false, error: 'Erreur inconnue.', errorCode: 'SERVER_ERROR' };
+}
+
+const DEV_AUTO_ADMIN_ACTOR = process.env.NODE_ENV !== 'production';
 
 const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
 
@@ -57,13 +73,7 @@ export function wrapIpc<T>(event: IpcMainInvokeEvent, fn: (actorUserId: number) 
     const actorUserId = requireActor(event);
     return { ok: true, data: fn(actorUserId) };
   } catch (err) {
-    if (err instanceof PermissionError || err instanceof SessionError) {
-      return { ok: false, error: err.message };
-    }
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
-    return { ok: false, error: 'Erreur inconnue.' };
+    return toIpcError(err);
   }
 }
 
@@ -76,13 +86,7 @@ export async function wrapIpcAsync<T>(
     const data = await fn(actorUserId);
     return { ok: true, data };
   } catch (err) {
-    if (err instanceof PermissionError || err instanceof SessionError) {
-      return { ok: false, error: err.message };
-    }
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
-    return { ok: false, error: 'Erreur inconnue.' };
+    return toIpcError(err);
   }
 }
 
@@ -90,10 +94,7 @@ export function wrapIpcPublic<T>(fn: () => T): IpcResult<T> {
   try {
     return { ok: true, data: fn() };
   } catch (err) {
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
-    return { ok: false, error: 'Erreur inconnue.' };
+    return toIpcError(err);
   }
 }
 
@@ -102,9 +103,6 @@ export async function wrapIpcPublicAsync<T>(fn: () => Promise<T> | T): Promise<I
     const data = await fn();
     return { ok: true, data };
   } catch (err) {
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
-    return { ok: false, error: 'Erreur inconnue.' };
+    return toIpcError(err);
   }
 }

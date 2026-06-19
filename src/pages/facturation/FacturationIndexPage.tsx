@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { to: '/facturation',         label: 'Tableau de bord', icon: BarChart3,  end: true },
   { to: '/facturation/factures', label: 'Factures',        icon: FileText,   end: false },
-  { to: '/facturation/clients',  label: 'Clients',         icon: Users,      end: false },
+  { to: '/clients',              label: 'Clients',         icon: Users,      end: false },
 ];
 
 export function FacturationIndexPage() {
