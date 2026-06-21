@@ -20,3 +20,7 @@ Thumbs.db
 *.db
 *.db-journal
 data/
+
+# Artefacts locaux
+admin_module_v1_patch.zip
+server/server.log.err

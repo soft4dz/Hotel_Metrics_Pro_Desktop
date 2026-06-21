@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   AlertCircle,
   Anchor,
@@ -25,7 +26,7 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { notify } from '@/lib/toast';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   canAccessPortmaster,
@@ -233,6 +234,17 @@ function ModuleCard({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export function ModulesIndexPage() {
   const role = useAuthStore((s) => s.user?.role);
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { disabledModuleName?: string } | null;
+    if (!state?.disabledModuleName) return;
+    notify.warning(
+      'Module désactivé',
+      `« ${state.disabledModuleName} » n'est pas activé pour cette installation.`,
+    );
+    window.history.replaceState({}, document.title);
+  }, [location.state]);
 
   return (
     <div className="space-y-8">

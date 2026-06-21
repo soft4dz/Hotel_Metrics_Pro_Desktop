@@ -1,194 +1,180 @@
 # Hotel Metrics Pro Desktop
 
-Application desktop de pilotage hôtelier et portuaire (module **PortMaster** intégré).
+Application desktop **offline-first** de pilotage hôtelier multi-établissements (Algérie), avec module marina **PortMaster** et suite **RH algérienne** (paie DZ, conformité, registres légaux).
 
-**Phase actuelle : 8 — Sync, mouvements & recouvrement**
-
-## Prérequis
-
-- **Node.js** 20 LTS ou plus récent ([nodejs.org](https://nodejs.org))
-- **Windows** 10/11 (cible principale)
-- **SQLite natif** : après `npm install`, le script `postinstall` télécharge automatiquement le binaire `better-sqlite3` pour **Electron 36** (aucun Python requis). En cas d’échec : `npm run rebuild:native`
-
-> **Note Electron** : la version est fixée à **36.x** car `better-sqlite3` ne fournit pas encore de prebuild pour Electron 42 sans compiler avec Python + Visual Studio Build Tools.
-
-## Installation
-
-```bash
-cd d:\Projects\Hotel_Metrics_Pro_Desktop
-npm install
-```
-
-## Lancer en développement
-
-### Test rapide (Windows)
-
-Double-cliquez sur **`dev.bat`** à la racine du projet (installe les dépendances si besoin, puis lance l’app).
-
-Ou en PowerShell : `.\dev.ps1`
-
-### Ligne de commande
-
-```bash
-npm run dev
-```
-
-Cette commande démarre :
-
-1. Le serveur Vite (interface React) sur `http://localhost:5173`
-2. La fenêtre **Electron** avec `contextIsolation` et `sandbox` activés
-
-> Ne ouvrez pas uniquement `http://localhost:5173` dans le navigateur : l'API IPC (`window.electronAPI`) n'existe que dans Electron.
-
-## Import base existante (MySQL / phpMyAdmin)
-
-Pour importer `hotel_metrics_pro (25).sql` :
-
-```bat
-import.bat
-```
-
-Ou avec un autre fichier :
-
-```bat
-import.bat "C:\chemin\vers\votre_dump.sql"
-```
-
-Ou :
-
-```bash
-npm run import:legacy
-```
-
-**Données importées :** hôtels (5), utilisateurs (9), rubriques (10), objectifs (120), recettes journalières (901 lignes), journal d'audit (2947).
-
-**Connexion après import** — utilisez vos comptes d'origine, par exemple :
-
-| E-mail | Rôle |
-|--------|------|
-| `dec@egt-sidifredj.dz` | Administrateur |
-| `dg@egt-sidifredj.dz` | PDG |
-| `controle@hotelelmanar.dz` | Contrôleur hôtel |
-
-(Mot de passe inchangé — hash bcrypt conservé depuis l'ancienne base.)
+**Version : 0.8.0** · **Stack :** Electron 36 + React 18 + SQLite + TypeScript
 
 ---
 
-## Connexion (Phase 2 — sans import)
+## Prérequis
 
-| Champ | Valeur |
-|-------|--------|
-| E-mail | `admin@hotelmetrics.local` |
-| Mot de passe | `Admin@2026!` |
+- **Node.js** 20 LTS ou plus récent
+- **Windows** 10/11 (cible principale)
+- **SQLite natif** : `npm install` exécute `postinstall` (prebuild `better-sqlite3` pour Electron 36). En cas d'échec : `npm run rebuild:native`
 
-- Base SQLite : `C:\ProgramData\HotelMetricsPro\data\hotel_metrics_local.db`
-- Créée automatiquement au premier lancement (seed admin + rôles + rubriques)
-- Après **5** échecs : compte verrouillé **15** minutes
-- Connexions journalisées dans `logs_connexions` et `audit_log`
+> Electron est fixé en **36.x** (prebuild natif sans compilation locale).
 
-## Structure Phase 1
+---
 
-```
-hotel-metrics-pro-desktop/
-├── electron/          # Process principal + preload IPC
-├── src/             # Interface React
-├── assets/          # Icônes et logos
-├── server/          # API centrale (phases ultérieures)
-├── package.json
-├── vite.config.ts
-└── README.md
+## Installation et lancement
+
+```bash
+git clone https://github.com/soft4dz/Hotel_Metrics_Pro_Desktop.git
+cd Hotel_Metrics_Pro_Desktop
+npm install
+npm run dev
 ```
 
-## Scripts disponibles
+**Windows rapide :** double-clic sur `dev.bat` ou `.\dev.ps1`
 
-| Commande        | Description                          |
-|-----------------|--------------------------------------|
-| `npm run dev`   | Développement Electron + Vite        |
-| `npm run build` | Build production (renderer + electron) |
-| `npm run dist`  | Installateur Windows (Phase 10)      |
+L'app démarre :
+1. Vite (UI) sur `http://localhost:5173`
+2. Fenêtre Electron (`contextIsolation` + `sandbox`)
 
-## Administration (Phase 3)
+> Ne pas utiliser uniquement le navigateur : `window.electronAPI` n'existe que dans Electron.
 
-Menu **Administration** (compte `ADMIN_DEC`) :
+### Connexion par défaut (base neuve)
 
-- **Utilisateurs** — liste, création, modification, désactivation
-- **Hôtels / unités** — CRUD des établissements
-- **Rôles** — consultation des profils et permissions
-- **Rubriques** — catégories de recettes
-- **Journal d'audit** — traçabilité (menu Système)
+| E-mail | Mot de passe |
+|--------|--------------|
+| `admin@hotelmetrics.local` | `Admin@2026!` |
 
-## Recettes (Phase 4)
+**Base SQLite :** `%AppData%\hotel-metrics-pro-desktop\data\hotel_metrics_local.db`  
+Verrouillage après 5 échecs (15 min). Connexions journalisées.
 
-Menu **Exploitation** :
+### Auto-login développement (optionnel)
 
-- **Saisie journalière** — grille par rubrique, brouillon / soumission
-- **Historique** — filtres, modification avec motif, suppression logique
-- **Validation** — valider ou refuser les journées soumises (directeur / admin)
-- **Saisie mensuelle** — cumul journalier vs mensuel, écarts, verrouillage du mois
+| Variable | Effet |
+|----------|--------|
+| `VITE_AUTO_LOGIN=true` | Connexion admin automatique côté UI (dev uniquement) |
+| `HMP_DEV_AUTO_ADMIN=1` | Session IPC admin sans login (main process) |
+| `HMP_DEV_AUTO_ADMIN=0` | Désactive le bypass IPC même en dev |
 
-## Objectifs & dashboards (Phase 5)
+---
 
-- **Dashboard global** — KPIs (CA jour/mois, taux objectifs, alertes validation), courbe journalière, barres par hôtel et par catégorie (Recharts)
-- **Objectifs** — liste, filtres, saisie / modification des budgets mensuels et indicateurs (chambres, restaurant, etc.)
-- Filtres année / mois / hôtel selon le profil (PDG et admin : vue multi-hôtels)
+## Modules métier (~30)
 
-## PortMaster (Phase 6 — fondations sérieuses)
+| Domaine | Exemples |
+|---------|----------|
+| **Pilotage** | Dashboard global, objectifs, rapports, modules hub |
+| **Finance** | Recettes, trésorerie, facturation, clients, tarifs |
+| **Exploitation** | Hébergement/PMS, stocks, achats, maintenance, parking, plage |
+| **Qualité** | Anomalies, réclamations, décisions, audit |
+| **RH** | Employés, paie DZ, planning, conformité, registres légaux |
+| **PortMaster** | Marina : bateaux, contrats, factures, mouvements, recouvrement |
+| **Système** | Utilisateurs, hôtels, sync, sauvegarde, paramètres |
 
-Menu **PortMaster** (rôle `RESPONSABLE_PORT` ou administrateur) :
+Catalogue complet : `/modules` ou `src/modules/moduleCatalog.ts`.
 
-| Écran | Contenu |
-|--------|---------|
-| **Dashboard port** | KPIs complets (occupation, contrats, bateaux, CA, créances, validations), alertes, plan d'amarrage |
-| **Référentiel port** | Bassins → quais → emplacements, recherche globale |
-| **Clients port** | Dossiers physique / morale, statut dossier, créances |
-| **Bateaux** | Fiche navire (lien client à venir en profondeur) |
-| **Contrats** | Occupation, encaissements, reste à recouvrer |
-| **Emplacements** | Vue par zone |
+Les modules peuvent être **activés/désactivés** (`modules_config`). Les routes métier vérifient l'activation avant accès.
 
-### Feuille de route PortMaster (cahier des charges)
+---
 
-| Blocs | Statut |
-|-------|--------|
-| 1 Dashboard général | **En place** (KPIs + alertes de base) |
-| 2 Référentiel portuaire | **En place** (bassins/quais/emplacements, recherche) |
-| 3 Clients | **En place** (CRUD dossier) |
-| 4 Bateaux + documents | Partiel (fiche bateau ; documents/alertes expiry : schéma prêt) |
-| 5–6 Contrats + workflow validation | Partiel (contrats actifs ; workflow brouillon/validation : schéma prêt) |
-| 7 Tarification | Schéma + tarif démo ; UI Phase 7 |
-| 8–9 Facturation + paiements liés facture | Schéma ; UI Phase 7 |
-| 10 Créances / recouvrement | **En place** (ancienneté, relances) |
-| 11 Mouvements bateaux | **En place** (arrivée, départ, changement) |
-| 12 Situations irrégulières | Alertes automatiques |
-| 13 Module validations | Schéma + compteur dashboard |
-| 14–20 Documents, reporting PDF/Excel, sécurité | Phases 7–9 |
+## Module RH
+
+Navigation hub : `/rh/:hub/:sub`
+
+| Hub | Contenu |
+|-----|---------|
+| Pilotage | Dashboard, IA, prévisions |
+| Collaborateurs | Annuaire, wizard employé, fiche 360, contrats |
+| Temps | Planning, pointages, absences |
+| Paie & légal DZ | Pré-paie, registres, conformité |
+| Talents | Recrutement, formations |
+| Validations | Workflow N+1 |
+| Mon espace | Self-service employé |
+
+Compte démo RH : voir seed ou documentation admin.
+
+---
+
+## PortMaster
+
+Menu `/portmaster/*` — dashboard, référentiel portuaire, clients, bateaux, contrats, factures, tarifs, validations, mouvements, recouvrement.
 
 Compte démo : `port@hotelmetrics.local` / `Port@2026!`
 
-## Phase 7 — Facturation & rapports
+---
 
-### PortMaster
-- **Factures** — création hors contrat, génération depuis contrat, soumission / validation, paiements liés
-- **Tarifs** — grilles par longueur, simulation avant contrat
-- **Validations** — file d’attente contrats + factures
-- **Export PDF** facture (après validation uniquement)
+## Import base legacy (MySQL / phpMyAdmin)
 
-### Rapports
-- **Rapports & exports** — Excel : recettes, factures port, créances, contrats
+```bat
+import.bat "C:\chemin\vers\dump.sql"
+```
 
-## Phase 8 — Sync & PortMaster avancé
+ou `npm run import:legacy`
 
-### Synchronisation (admin)
-- **Synchronisation** — file d'attente offline, push/pull vers API centrale
-- API stub locale : `npm run server:dev` → `http://127.0.0.1:3847`
+---
 
-### PortMaster
-- **Mouvements** — arrivée, départ, changement d'emplacement (mise à jour contrat actif)
-- **Recouvrement** — créances par ancienneté (0–30 / 31–60 / 60+ j), relances
+## Scripts npm
 
-## Prochaine étape — Phase 9
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Développement Electron + Vite |
+| `npm test` | Tests Vitest |
+| `npm run test:smoke` | Smoke test des routes |
+| `npm run build` | Build production |
+| `npm run dist` | Installateur Windows (NSIS) |
+| `npm run seed:demo` | Seed démo tous modules |
+| `npm run server:dev` | API NestJS optionnelle (:3001) |
+| `npm run test:rh-paie` | Test moteur paie algérienne |
 
-- Installateur Windows (`npm run dist`), licence
-- Documents bateaux (GED), reporting PDF étendu
+---
+
+## Architecture
+
+```
+electron/          Process principal, IPC (~38 domaines), services (~73), SQLite
+src/               Interface React (HashRouter, TanStack Query, Zustand)
+server/            API NestJS + PostgreSQL (sync partielle : clients, facturation, trésorerie)
+docs/              Guides utilisateurs (11 profils), procédures prod
+```
+
+- **Offline-first** : SQLite = source de vérité locale
+- **RBAC** multi-hôtel avec permissions granulaires
+- **Dual-write** optionnel vers API centrale (retry automatique)
+- **Sync** file d'attente (`sync_queue`) + page `/system/sync`
+
+---
+
+## Tests et CI
+
+- **Vitest** : routes smoke, sidebar, validation IPC, géo Algérie, modules
+- **GitHub Actions** (`.github/workflows/ci.yml`) : Windows, `npm test` + `npm run build` sur chaque push `main`
+
+---
+
+## Documentation
+
+| Fichier | Contenu |
+|---------|---------|
+| `docs/guides-utilisateurs/` | Guide par profil (super-admin, PDG, RH, réception…) |
+| `docs/STABILISATION_PRODUCTION.md` | Checklist mise en production |
+| `docs/PROCEDURE_SAUVEGARDE_RESTAURATION.md` | Backup / restore |
+| `README_ADMIN_MODULE_V1.md` | Module administration |
+
+---
+
+## Packaging Windows (Phase 10)
+
+```bash
+npm run dist
+```
+
+Sortie : dossier `release/` (installateur NSIS x64). Configuration : `electron-builder.yml`.
+
+---
+
+## Feuille de route
+
+| Phase | Statut |
+|-------|--------|
+| 1–5 Auth, admin, recettes, dashboards | ✅ |
+| 6–8 PortMaster, facturation, sync | ✅ |
+| 9 Stabilisation prod, GED, docs | 🔄 En cours |
+| 10 Installateur, licence | 📋 Prévu |
+
+---
 
 ## Licence
 

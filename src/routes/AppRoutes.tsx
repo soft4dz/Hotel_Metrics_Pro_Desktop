@@ -26,6 +26,7 @@ import { SaisieMensuellePage } from '@/pages/recettes/SaisieMensuellePage';
 import { ObjectifsPage } from '@/pages/objectifs/ObjectifsPage';
 import { ObjectifFormPage } from '@/pages/objectifs/ObjectifFormPage';
 import { RequireObjectifsView } from '@/routes/RequireObjectifsView';
+import { RequireModuleEnabled } from '@/routes/RequireModuleEnabled';
 import { RequirePortmaster } from '@/routes/RequirePortmaster';
 import PortDashboardPage from '@/pages/portmaster/PortDashboardPage';
 import { BateauxPage } from '@/pages/portmaster/BateauxPage';
@@ -119,6 +120,7 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           >
+            <Route element={<RequireModuleEnabled />}>
             <Route path="/dashboard" element={<Suspense fallback={dashboardFallback}><DashboardGlobalPage /></Suspense>} />
             <Route path="/modules" element={<ModulesIndexPage />} />
             <Route path="/modules/:moduleId" element={<ModulePlaceholderPage />} />
@@ -212,6 +214,7 @@ export function AppRoutes() {
             <Route path="/settings/database" element={<RequireSystemAdmin><DatabasePage /></RequireSystemAdmin>} />
             <Route path="/settings/backup" element={<RequireSystemAdmin><BackupPage /></RequireSystemAdmin>} />
             <Route path="/audit/logs" element={<RequirePermission permission={PERMISSIONS.AUDIT_READ}><AuditLogPage /></RequirePermission>} />
+            </Route>
           </Route>
         </Route>
       </Route>

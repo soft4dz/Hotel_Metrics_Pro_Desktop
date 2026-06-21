@@ -41,7 +41,9 @@ function toIpcError(err: unknown): IpcErrorResult {
   return { ok: false, error: 'Erreur inconnue.', errorCode: 'SERVER_ERROR' };
 }
 
-const DEV_AUTO_ADMIN_ACTOR = process.env.NODE_ENV !== 'production';
+const DEV_AUTO_ADMIN_ACTOR =
+  process.env.HMP_DEV_AUTO_ADMIN === '1' ||
+  (process.env.NODE_ENV !== 'production' && process.env.HMP_DEV_AUTO_ADMIN !== '0');
 
 const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
 

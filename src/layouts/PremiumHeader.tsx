@@ -1,3 +1,4 @@
+import { SyncStatusBadge } from '@/components/common/SyncStatusBadge';
 import { CalendarDays, LogOut, Menu, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,8 @@ export function PremiumHeader({ title, subtitle }: PremiumHeaderProps) {
             <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{subtitle}</p>
           ) : null}
         </div>
+
+        <SyncStatusBadge />
 
         <div className="hidden shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm md:flex xl:px-3">
           <CalendarDays className="h-4 w-4 text-primary" />
