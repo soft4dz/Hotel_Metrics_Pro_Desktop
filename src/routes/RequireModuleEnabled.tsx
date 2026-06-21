@@ -4,10 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { getModuleById } from '@/modules/moduleCatalog';
-import {
-  isConfiguredModule,
-  resolveModuleIdForPath,
-} from '@/routes/routeModuleAccess';
+import { resolveModuleIdForPath } from '@/routes/routeModuleAccess';
+import { isConfiguredModule } from '@/shared/constants/configuredModules';
 
 export function RequireModuleEnabled() {
   const { pathname } = useLocation();

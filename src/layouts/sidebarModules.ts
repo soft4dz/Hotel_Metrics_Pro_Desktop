@@ -164,6 +164,7 @@ export function buildSidebarModules(
         { label: 'Synchronisation', to: '/system/sync', visible: canManageSync(role) },
         { label: "Journal d'audit", to: '/audit/logs', visible: canReadAudit(role) },
         { label: 'Paramètres', to: '/settings' },
+        { label: 'Modules activés', to: '/settings/modules', visible: canManageUsers(role) },
         { label: 'Interface & thème', to: '/settings/interface' },
         { label: 'Notifications', to: '/settings/notifications' },
         { label: 'Sécurité & accès', to: '/settings/securite' },

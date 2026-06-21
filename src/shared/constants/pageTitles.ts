@@ -93,6 +93,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Paramètres',
     subtitle: 'Compte et préférences',
   },
+  '/settings/modules': {
+    title: 'Modules activés',
+    subtitle: 'Activation des modules métier pour cette installation',
+  },
   '/settings/interface': {
     title: 'Interface & Thème',
     subtitle: 'Apparence et personnalisation',

@@ -411,6 +411,7 @@ export const ipcClient: IpcApi = {
   },
   modules: {
     listEnabled: () => api().modules.listEnabled(),
+    listConfig: () => api().modules.listConfig(),
     setEnabled: (moduleId, enabled) => api().modules.setEnabled(moduleId, enabled),
   },
   anomalies: {

@@ -27,6 +27,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { notify } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   canAccessPortmaster,

@@ -74,6 +74,7 @@ import { HebergementPage } from '@/pages/hebergement/HebergementPage';
 import { TarifsPage as HotelTarifsPage } from '@/pages/tarifs/TarifsPage';
 import { RhPage } from '@/pages/rh/RhPage';
 import { RhReferentielPage } from '@/pages/system/RhReferentielPage';
+import { ModulesAdminPage } from '@/pages/system/ModulesAdminPage';
 import { RequireRh } from '@/routes/RequireRh';
 import { PERMISSIONS } from '@/shared/permissions';
 import AnomaliesPage from '@/pages/anomalies/AnomaliesPage';
@@ -205,6 +206,7 @@ export function AppRoutes() {
             <Route path="/rapports" element={<RequireReportsExport><RapportsPage /></RequireReportsExport>} />
             <Route path="/system/sync" element={<RequireSync><SyncPage /></RequireSync>} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/modules" element={<RequireSystemAdmin><ModulesAdminPage /></RequireSystemAdmin>} />
             <Route element={<RequireRh />}>
               <Route path="/settings/rh-referentiel" element={<RhReferentielPage />} />
             </Route>

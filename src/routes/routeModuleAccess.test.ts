@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isConfiguredModule, resolveModuleIdForPath } from '@/routes/routeModuleAccess';
+import { isConfiguredModuleId, resolveModuleIdForPath } from '@/routes/routeModuleAccess';
 
 describe('routeModuleAccess', () => {
   it('résout RH et PortMaster', () => {
@@ -19,7 +19,7 @@ describe('routeModuleAccess', () => {
   });
 
   it('identifie les modules configurables', () => {
-    expect(isConfiguredModule('rh-productivite')).toBe(true);
-    expect(isConfiguredModule('inconnu')).toBe(false);
+    expect(isConfiguredModuleId('rh-productivite')).toBe(true);
+    expect(isConfiguredModuleId('inconnu')).toBe(false);
   });
 });

@@ -477,6 +477,7 @@ const api: IpcApi = {
   },
   modules: {
     listEnabled: () => ipcRenderer.invoke('modules:listEnabled'),
+    listConfig: () => ipcRenderer.invoke('modules:listConfig'),
     setEnabled: (moduleId: string, enabled: boolean) =>
       ipcRenderer.invoke('modules:setEnabled', moduleId, enabled),
   },

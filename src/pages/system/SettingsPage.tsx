@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cloud, Database, ImagePlus, Loader2, Save, Trash2, User, UserCog } from 'lucide-react';
+import { Cloud, Database, ImagePlus, LayoutGrid, Loader2, Save, Trash2, User, UserCog } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,6 +247,14 @@ export function SettingsPage() {
               <span className="text-muted-foreground">Chemin de la base locale :</span>{' '}
               {info?.databaseFile ?? '—'}
             </p>
+            {isAdmin && (
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link to="/settings/modules">
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  Modules activés
+                </Link>
+              </Button>
+            )}
             {canManageSync(user?.role) && (
               <Button variant="outline" size="sm" className="mt-2" asChild>
                 <Link to="/system/sync">

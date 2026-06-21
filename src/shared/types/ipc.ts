@@ -723,6 +723,7 @@ export interface IpcApi {
   };
   modules: {
     listEnabled: () => Promise<IpcResult<string[]>>;
+    listConfig: () => Promise<IpcResult<import('./modules').ModuleConfigItem[]>>;
     setEnabled: (moduleId: string, enabled: boolean) => Promise<IpcResult<boolean>>;
   };
   anomalies: {

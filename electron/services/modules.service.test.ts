@@ -9,8 +9,22 @@ vi.mock('../database/sqlite', () => ({
   getDatabase: () => ({ prepare: mockPrepare }),
 }));
 
-// import AFTER mock is set up
-const { listEnabledModuleIds, setModuleEnabled } = await import('./modules.service');
+vi.mock('./permissions.service', () => ({
+  assertPermission: vi.fn(),
+}));
+
+vi.mock('./audit.service', () => ({
+  writeAuditLog: vi.fn(),
+}));
+
+const { assertPermission } = await import('./permissions.service');
+const { writeAuditLog } = await import('./audit.service');
+const {
+  listEnabledModuleIds,
+  listModulesConfig,
+  setModuleEnabled,
+  setModuleEnabledForUser,
+} = await import('./modules.service');
 
 describe('listEnabledModuleIds', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -27,14 +41,16 @@ describe('listEnabledModuleIds', () => {
     mockAll.mockReturnValue([]);
     expect(listEnabledModuleIds()).toEqual([]);
   });
+});
 
-  it('interroge uniquement les modules is_enabled=1', () => {
-    mockAll.mockReturnValue([]);
-    listEnabledModuleIds();
-    expect(mockPrepare).toHaveBeenCalled();
-    const calls = mockPrepare.mock.calls as unknown[][];
-    const sql = String(calls[0]?.[0] ?? '');
-    expect(sql).toContain('is_enabled = 1');
+describe('listModulesConfig', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retourne tous les modules configurables avec défaut activé si absent en base', () => {
+    mockAll.mockReturnValue([{ module_id: 'portmaster', is_enabled: 0, updated_at: '2026-01-01' }]);
+    const rows = listModulesConfig();
+    expect(rows.some((row) => row.moduleId === 'portmaster' && !row.isEnabled)).toBe(true);
+    expect(rows.some((row) => row.moduleId === 'rh-productivite' && row.isEnabled)).toBe(true);
   });
 });
 
@@ -50,12 +66,21 @@ describe('setModuleEnabled', () => {
     setModuleEnabled('rh-productivite', false);
     expect(mockRun).toHaveBeenCalledWith('rh-productivite', 0);
   });
+});
 
-  it('utilise un UPSERT (INSERT … ON CONFLICT)', () => {
-    setModuleEnabled('portmaster', true);
-    expect(mockPrepare).toHaveBeenCalled();
-    const calls = mockPrepare.mock.calls as unknown[][];
-    const sql = String(calls[0]?.[0] ?? '');
-    expect(sql.toUpperCase()).toContain('ON CONFLICT');
+describe('setModuleEnabledForUser', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('exige users.manage et journalise', () => {
+    setModuleEnabledForUser(1, 'portmaster', false);
+    expect(assertPermission).toHaveBeenCalledWith(1, 'users.manage');
+    expect(writeAuditLog).toHaveBeenCalled();
+    expect(mockRun).toHaveBeenCalledWith('portmaster', 0);
+  });
+
+  it('refuse de désactiver un module socle', () => {
+    expect(() => setModuleEnabledForUser(1, 'administration-utilisateurs', false)).toThrow(
+      /socle/i,
+    );
   });
 });

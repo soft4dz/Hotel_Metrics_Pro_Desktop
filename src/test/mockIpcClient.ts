@@ -137,7 +137,11 @@ export function createMockIpcClient(): IpcApi {
       listRecrutements: list(),
       referentiel: ok({ departements: [], postes: [] }),
     }),
-    modules: namespace({ listEnabled: ok(mockEnabledModuleIds) }),
+    modules: namespace({
+      listEnabled: ok(mockEnabledModuleIds),
+      listConfig: ok(mockEnabledModuleIds.map((moduleId) => ({ moduleId, isEnabled: true, updatedAt: null }))),
+      setEnabled: ok(true),
+    }),
     anomalies: namespace({ list: list() }),
     decisions: namespace({ list: list() }),
     reclamations: namespace({ list: list() }),

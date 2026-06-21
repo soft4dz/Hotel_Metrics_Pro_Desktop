@@ -66,7 +66,7 @@ Verrouillage après 5 échecs (15 min). Connexions journalisées.
 
 Catalogue complet : `/modules` ou `src/modules/moduleCatalog.ts`.
 
-Les modules peuvent être **activés/désactivés** (`modules_config`). Les routes métier vérifient l'activation avant accès.
+Les modules peuvent être **activés/désactivés** via **Paramètres → Modules activés** (`/settings/modules`, admin). Les routes métier vérifient l'activation avant accès.
 
 ---
 

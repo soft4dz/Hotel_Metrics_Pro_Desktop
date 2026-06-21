@@ -1,40 +1,5 @@
+import { isConfiguredModule } from '@/shared/constants/configuredModules';
 import { MODULES } from '@/modules/moduleCatalog';
-
-/** Modules présents dans modules_config (configurables). */
-export const CONFIGURED_MODULE_IDS = new Set([
-  'administration-utilisateurs',
-  'parametrage-global',
-  'unites-hotelieres',
-  'recettes-journalieres',
-  'encaissements-tresorerie',
-  'budget-previsions',
-  'hebergement-occupation',
-  'facturation',
-  'creances-recouvrement',
-  'contrats-conventions',
-  'stocks-consommations',
-  'achats-approvisionnements',
-  'maintenance-interventions',
-  'rh-productivite',
-  'tarifs-conventions',
-  'audit-controle-interne',
-  'journal-anomalies',
-  'decisions-instructions',
-  'qualite-reclamations',
-  'plage-piscine',
-  'parking',
-  'portmaster',
-  'clients',
-  'commercial-partenariats',
-  'tableaux-bord-directionnels',
-  'rapports-automatiques',
-  'alertes-notifications',
-  'comparatif-inter-unites',
-  'gestion-documentaire',
-  'sauvegarde-restauration',
-  'synchronisation-multi-postes',
-  'journalisation-tracabilite',
-]);
 
 const ROUTE_MODULE_PAIRS = MODULES.filter((m) => m.existingRoute)
   .map((m) => ({ route: m.existingRoute!, moduleId: m.id }))
@@ -50,6 +15,6 @@ export function resolveModuleIdForPath(pathname: string): string | null {
   return null;
 }
 
-export function isConfiguredModule(moduleId: string): boolean {
-  return CONFIGURED_MODULE_IDS.has(moduleId);
+export function isConfiguredModuleId(moduleId: string): boolean {
+  return isConfiguredModule(moduleId);
 }

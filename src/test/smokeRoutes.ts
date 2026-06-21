@@ -42,6 +42,7 @@ export const SMOKE_ROUTES: string[] = [
   '/ged',
   '/rapports',
   '/settings',
+  '/settings/modules',
   '/settings/interface',
   '/settings/notifications',
   '/settings/backup',
