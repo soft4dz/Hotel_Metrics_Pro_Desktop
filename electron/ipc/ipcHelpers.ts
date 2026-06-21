@@ -7,8 +7,9 @@ import {
   requireSessionUserId,
   SessionError,
 } from '../services/session.service';
+import { IpcValidationError } from './validation';
 
-export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'SERVER_ERROR';
+export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'SERVER_ERROR';
 
 export interface IpcErrorResult {
   ok: false;
@@ -21,11 +22,19 @@ export type IpcResult<T> = { ok: true; data: T } | IpcErrorResult;
 function classifyError(err: Error): IpcErrorCode {
   if (err instanceof PermissionError) return 'FORBIDDEN';
   if (err instanceof SessionError) return 'SESSION_EXPIRED';
+  if (err instanceof IpcValidationError) return 'VALIDATION_ERROR';
   if (err.message.toLowerCase().includes('introuvable')) return 'NOT_FOUND';
   return 'SERVER_ERROR';
 }
 
 function toIpcError(err: unknown): IpcErrorResult {
+  if (err instanceof IpcValidationError) {
+    return {
+      ok: false,
+      error: err.issues.length > 0 ? err.issues.join(' ; ') : err.message,
+      errorCode: 'VALIDATION_ERROR',
+    };
+  }
   if (err instanceof Error) {
     return { ok: false, error: err.message, errorCode: classifyError(err) };
   }

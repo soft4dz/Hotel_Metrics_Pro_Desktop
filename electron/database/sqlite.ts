@@ -16,7 +16,11 @@ import { ensureAdminRolesHaveAllPermissions } from './adminPermissions';
 
 const DB_FILE_NAME = 'hotel_metrics_local.db';
 
-
+/** Anciens noms de fichiers migrés (évite une double exécution après renommage). */
+const MIGRATION_LEGACY_NAMES: Record<string, string[]> = {
+  '049_rh_etat_civil.sql': ['036_rh_etat_civil.sql'],
+  '050_rh_etat_civil_suite.sql': ['037_rh_etat_civil_suite.sql'],
+};
 
 let db: SqliteDatabase | null = null;
 
@@ -111,9 +115,17 @@ function runMigrations(database: SqliteDatabase): void {
 
 
 
+  const migrationAlreadyApplied = (name: string): boolean => {
+    if (hasMigration.get(name)) return true;
+    for (const legacy of MIGRATION_LEGACY_NAMES[name] ?? []) {
+      if (hasMigration.get(legacy)) return true;
+    }
+    return false;
+  };
+
   for (const file of files) {
 
-    if (hasMigration.get(file)) continue;
+    if (migrationAlreadyApplied(file)) continue;
 
 
 
