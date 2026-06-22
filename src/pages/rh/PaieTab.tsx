@@ -308,7 +308,7 @@ export function PaieTab({ initialSub = 'prepaie', compactNav = false }: PaieTabP
           <div className="rounded-lg border p-4 space-y-4">
             <h3 className="font-semibold">Configuration DLG PC PAIE</h3>
             <p className="text-sm text-muted-foreground">
-              Échange bidirectionnel : export salariés + variables vers DLG, import bulletins calculés depuis DLG.
+              Échange bidirectionnel avec DLG PC PAIE : export ZIP (salariés + variables), import bulletins depuis ZIP ou CSV.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -373,15 +373,33 @@ export function PaieTab({ initialSub = 'prepaie', compactNav = false }: PaieTabP
                 })}
               >
                 <ArrowDownToLine className="mr-2 h-4 w-4" />
-                Importer depuis DLG
+                Importer depuis dossier
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!!busy}
+                onClick={() => void run('import-file', async () => {
+                  const file = unwrapIpc(await ipcClient.rh.pickDlgImportFile());
+                  if (!file) return;
+                  const res = unwrapIpc(await ipcClient.rh.importDepuisDlg(periode, file));
+                  alert(res.message);
+                  void load();
+                })}
+              >
+                <ArrowDownToLine className="mr-2 h-4 w-4" />
+                Choisir fichier ZIP/CSV
               </Button>
             </div>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Dernier export : {config.lastExportAt ?? '—'}</p>
               <p>Dernier import : {config.lastImportAt ?? '—'}</p>
               <p>
-                Fichier attendu en import : <code>BULLETINS_{periode.replace('-', '')}.csv</code>
-                {' '}(colonnes MATRICULE;BRUT;NET;CHARGES;HEURES)
+                Export vers DLG : archive <code>DLG_EXPORT_… .zip</code> + dossier CSV (décompresser puis
+                Fichier → Importer données depuis un dossier dans PC PAIE).
+              </p>
+              <p>
+                Import depuis DLG : <code>BULLETINS_{periode.replace('-', '')}.zip</code> ou <code>.csv</code>
+                {' '}(colonnes MATRICULE;BRUT;NET;CHARGES;HEURES).
               </p>
             </div>
           </div>

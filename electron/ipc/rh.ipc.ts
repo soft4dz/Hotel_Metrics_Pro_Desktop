@@ -219,8 +219,10 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhPaie.pickDlgFolder(uid, kind)));
   Electron.ipcMain.handle('rh:dlg:export', (event, periode: string) =>
     wrapIpcAsync(event, (uid) => rhPaie.exportVersDlg(uid, periode)));
-  Electron.ipcMain.handle('rh:dlg:import', (event, periode: string) =>
-    wrapIpcAsync(event, (uid) => rhPaie.importDepuisDlg(uid, periode)));
+  Electron.ipcMain.handle('rh:dlg:import', (event, periode: string, sourceFile?: string | null) =>
+    wrapIpcAsync(event, (uid) => rhPaie.importDepuisDlg(uid, periode, sourceFile)));
+  Electron.ipcMain.handle('rh:dlg:pickImportFile', (event) =>
+    wrapIpcAsync(event, (uid) => rhPaie.pickDlgImportFile(uid)));
   Electron.ipcMain.handle('rh:dlg:journal', (event, limit?: number) =>
     wrapIpc(event, (uid) => rhPaie.listDlgJournal(uid, limit)));
 

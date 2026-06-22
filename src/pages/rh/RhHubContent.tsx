@@ -56,7 +56,7 @@ export function RhHubContent({ hub, sub, canManage, canTeam, canSelf }: Props) {
       if (!canManage) return null;
       if (sub === 'conformite') return <ConformiteTab />;
       if (sub === 'registres') return <RegistresLegauxTab />;
-      return <PaieTab initialSub="prepaie" />;
+      return <PaieTab initialSub={paieSub(sub)} compactNav />;
 
     case 'talents':
       if (!canManage) return null;
@@ -92,4 +92,9 @@ function validationFilter(sub: RhSubSection): 'all' | 'absence' | 'pointage' | '
   if (sub === 'pointages') return 'pointage';
   if (sub === 'documents') return 'document';
   return 'all';
+}
+
+function paieSub(sub: RhSubSection): 'prepaie' | 'primes' | 'dlg' | 'declarations' {
+  if (sub === 'primes' || sub === 'dlg' || sub === 'declarations') return sub;
+  return 'prepaie';
 }

@@ -14,6 +14,7 @@ import {
   getModulesByGroup,
 } from '@/modules/moduleCatalog';
 import { PROTECTED_MODULE_IDS } from '@/shared/constants/configuredModules';
+import type { ConfiguredModuleId } from '@/shared/constants/configuredModules';
 
 type FilterMode = 'all' | 'enabled' | 'disabled';
 
@@ -160,7 +161,7 @@ export function ModulesAdminPage() {
             <CardContent className="divide-y divide-border rounded-lg border border-border">
               {modules.map((module) => {
                 const row = configById.get(module.id)!;
-                const protectedModule = PROTECTED_MODULE_IDS.has(module.id);
+                const protectedModule = PROTECTED_MODULE_IDS.has(module.id as ConfiguredModuleId);
                 const busy = setEnabled.isPending && setEnabled.variables?.moduleId === module.id;
 
                 return (
@@ -171,11 +172,11 @@ export function ModulesAdminPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium text-foreground">{module.name}</p>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="muted" className="text-[10px]">
                           {MODULE_STATUS_LABELS[module.status]}
                         </Badge>
                         {protectedModule && (
-                          <Badge variant="secondary" className="gap-1 text-[10px]">
+                          <Badge variant="accent" className="gap-1 text-[10px]">
                             <Shield className="h-3 w-3" />
                             Socle
                           </Badge>

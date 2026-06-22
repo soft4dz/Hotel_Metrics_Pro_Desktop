@@ -1,4 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import AdmZip from 'adm-zip';
 import path from '../lib/nodePath';
 import Electron from '../lib/electronApi';
 import { getDatabase } from '../database/sqlite';
@@ -156,6 +158,105 @@ export async function pickDlgFolder(actorUserId: number, kind: 'export' | 'impor
   if (kind === 'export') setDlgConfig(actorUserId, { exportPath: folder });
   else setDlgConfig(actorUserId, { importPath: folder });
   return folder;
+}
+
+/** Sélection directe d'un export DLG (.zip ou .csv) — typique après calcul paie dans PC PAIE. */
+export async function pickDlgImportFile(actorUserId: number): Promise<string | null> {
+  assertRhPaie(actorUserId);
+  const { canceled, filePaths } = await Electron.dialog.showOpenDialog({
+    properties: ['openFile'],
+    title: 'Fichier export DLG PC PAIE (ZIP ou CSV)',
+    filters: [
+      { name: 'DLG PC PAIE', extensions: ['zip', 'csv'] },
+      { name: 'Tous les fichiers', extensions: ['*'] },
+    ],
+  });
+  if (canceled || !filePaths[0]) return null;
+  return filePaths[0];
+}
+
+function periodeSuffix(periode: string): string {
+  return periode.replace('-', '');
+}
+
+function listFilesRecursive(dir: string, acc: string[] = []): string[] {
+  if (!existsSync(dir)) return acc;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) listFilesRecursive(full, acc);
+    else acc.push(full);
+  }
+  return acc;
+}
+
+function resolveBulletinCsvPath(searchRoot: string, periode: string): string | null {
+  const suffix = periodeSuffix(periode);
+  const preferredNames = [
+    `BULLETINS_${suffix}.csv`,
+    `RESULTAT_PAIE_${suffix}.csv`,
+    `PAIE_${suffix}.csv`,
+    `BULLETINS.csv`,
+    `RESULTAT_PAIE.csv`,
+  ];
+
+  const allFiles = listFilesRecursive(searchRoot);
+  for (const name of preferredNames) {
+    const hit = allFiles.find((f) => path.basename(f).toUpperCase() === name.toUpperCase());
+    if (hit) return hit;
+  }
+
+  const bulletinCsvs = allFiles.filter((f) => {
+    const base = path.basename(f).toUpperCase();
+    return f.endsWith('.csv') && (base.includes('BULLETIN') || base.includes('PAIE') || base.includes('RESULTAT'));
+  });
+  if (bulletinCsvs.length === 1) return bulletinCsvs[0];
+  if (bulletinCsvs.length > 1) {
+    const withPeriod = bulletinCsvs.find((f) => path.basename(f).includes(suffix));
+    if (withPeriod) return withPeriod;
+    return bulletinCsvs[0];
+  }
+  return null;
+}
+
+function resolveImportArchive(importPath: string, periode: string): { kind: 'csv' | 'zip'; path: string } | null {
+  const suffix = periodeSuffix(periode);
+  const zipCandidates = [
+    `BULLETINS_${suffix}.zip`,
+    `RESULTAT_PAIE_${suffix}.zip`,
+    `PAIE_${suffix}.zip`,
+    `EXPORT_PAIE_${suffix}.zip`,
+  ];
+
+  for (const name of zipCandidates) {
+    const p = path.join(importPath, name);
+    if (existsSync(p)) return { kind: 'zip', path: p };
+  }
+
+  const zips = readdirSync(importPath).filter((f) => f.toLowerCase().endsWith('.zip'));
+  const matchingZip = zips.find((f) => {
+    const u = f.toUpperCase();
+    return u.includes('BULLETIN') || u.includes('PAIE') || u.includes('RESULTAT');
+  });
+  if (matchingZip) return { kind: 'zip', path: path.join(importPath, matchingZip) };
+  if (zips.length === 1) return { kind: 'zip', path: path.join(importPath, zips[0]) };
+
+  const csvPath = resolveBulletinCsvPath(importPath, periode);
+  if (csvPath) return { kind: 'csv', path: csvPath };
+  return null;
+}
+
+function extractZipArchive(zipPath: string): string {
+  const extractDir = path.join(tmpdir(), `hmp-dlg-import-${Date.now()}`);
+  mkdirSync(extractDir, { recursive: true });
+  const zip = new AdmZip(zipPath);
+  zip.extractAllTo(extractDir, true);
+  return extractDir;
+}
+
+function createZipFromDirectory(sourceDir: string, zipPath: string): void {
+  const zip = new AdmZip();
+  zip.addLocalFolder(sourceDir);
+  zip.writeZip(zipPath);
 }
 
 export function listBulletins(actorUserId: number, periode?: string): RhBulletin[] {
@@ -428,9 +529,13 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
       'Fichiers :',
       '- SALARIES.csv : fiches salariés',
       `- VARIABLES_${periode.replace('-', '')}.csv : variables mensuelles`,
+      `- DLG_EXPORT_${periode}_${stamp}.zip : archive à décompresser ou à importer dans DLG`,
       '',
-      'Après calcul paie dans DLG, déposer BULLETINS_' + periode.replace('-', '') + '.csv',
-      'dans le dossier import configuré dans Hotel Metrics Pro, puis lancer Import.',
+      'Dans DLG PC PAIE : menu Fichier → Importer données depuis un dossier',
+      '(sélectionner le dossier décompressé ou le dossier contenant les CSV).',
+      '',
+      'Après calcul paie dans DLG, exporter les bulletins (souvent en .zip)',
+      'dans le dossier import configuré ici, puis lancer Import.',
     ].join('\n'),
     'utf8',
   );
@@ -450,6 +555,9 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
     ),
     'utf8',
   );
+
+  const zipFile = path.join(config.exportPath, `DLG_EXPORT_${periode}_${stamp}.zip`);
+  createZipFromDirectory(outDir, zipFile);
 
   const db2 = getDatabase();
   for (const b of bulletins) {
@@ -472,44 +580,57 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
   return {
     ok: true,
     periode,
-    fichiers: [salariesFile, variablesFile, readmeFile, manifestFile],
+    fichiers: [salariesFile, variablesFile, readmeFile, manifestFile, zipFile],
     nbLignes: bulletins.length,
-    message: `${bulletins.length} bulletin(s) exporté(s) vers ${outDir}`,
+    message: `${bulletins.length} bulletin(s) exporté(s). Archive ZIP : ${zipFile}`,
   };
 }
 
-export function importDepuisDlg(actorUserId: number, periode: string): RhDlgExchangeResult {
+export function importDepuisDlg(
+  actorUserId: number,
+  periode: string,
+  sourceFile?: string | null,
+): RhDlgExchangeResult {
   assertRhPaie(actorUserId);
   const config = getDlgConfig(actorUserId);
-  if (!config.importPath) throw new Error('Configurez le dossier import DLG PC PAIE.');
-  if (!existsSync(config.importPath)) throw new Error('Dossier import introuvable.');
 
-  const suffix = periode.replace('-', '');
-  const candidates = [
-    `BULLETINS_${suffix}.csv`,
-    `RESULTAT_PAIE_${suffix}.csv`,
-    `PAIE_${suffix}.csv`,
-  ];
-  let filePath: string | null = null;
-  for (const name of candidates) {
-    const p = path.join(config.importPath, name);
-    if (existsSync(p)) {
-      filePath = p;
-      break;
+  let archivePath: string | null = sourceFile?.trim() || null;
+  let extractDir: string | null = null;
+
+  if (!archivePath) {
+    if (!config.importPath) throw new Error('Configurez le dossier import DLG PC PAIE.');
+    if (!existsSync(config.importPath)) throw new Error('Dossier import introuvable.');
+    const resolved = resolveImportArchive(config.importPath, periode);
+    if (!resolved) {
+      throw new Error(
+        `Aucun export DLG trouvé pour ${periode}. Attendu : BULLETINS_${periodeSuffix(periode)}.zip ou .csv dans le dossier import.`,
+      );
     }
-  }
-  if (!filePath) {
-    const files = readdirSync(config.importPath).filter((f) =>
-      f.toUpperCase().includes('BULLETIN') && f.endsWith('.csv'),
-    );
-    if (files.length === 1) filePath = path.join(config.importPath, files[0]);
-  }
-  if (!filePath) {
-    throw new Error(
-      `Fichier BULLETINS_${suffix}.csv introuvable dans le dossier import. Exportez les bulletins depuis DLG PC PAIE.`,
-    );
+    archivePath = resolved.path;
+    if (resolved.kind === 'zip') {
+      extractDir = extractZipArchive(archivePath);
+      archivePath = resolveBulletinCsvPath(extractDir, periode);
+      if (!archivePath) {
+        rmSync(extractDir, { recursive: true, force: true });
+        throw new Error(
+          'Archive ZIP importée mais aucun fichier bulletins CSV à l\'intérieur. Vérifiez l\'export DLG PC PAIE.',
+        );
+      }
+    }
+  } else if (archivePath.toLowerCase().endsWith('.zip')) {
+    extractDir = extractZipArchive(archivePath);
+    archivePath = resolveBulletinCsvPath(extractDir, periode);
+    if (!archivePath) {
+      rmSync(extractDir, { recursive: true, force: true });
+      throw new Error('Archive ZIP sans fichier bulletins CSV reconnu.');
+    }
+  } else if (!archivePath.toLowerCase().endsWith('.csv')) {
+    throw new Error('Format non supporté. Utilisez un export DLG PC PAIE (.zip ou .csv).');
   }
 
+  const filePath = archivePath;
+
+  try {
   const rows = parseCsvSemicolon(readFileSync(filePath, 'utf8'));
   if (rows.length < 2) throw new Error('Fichier import vide ou invalide.');
 
@@ -589,6 +710,15 @@ export function importDepuisDlg(actorUserId: number, periode: string): RhDlgExch
         ? `${ok} bulletin(s) importé(s)${errors > 0 ? `, ${errors} ignoré(s)` : ''}.`
         : 'Aucune ligne importée — vérifiez les matricules DLG.',
   };
+  } finally {
+    if (extractDir) {
+      try {
+        rmSync(extractDir, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 }
 
 export function validerBulletin(actorUserId: number, bulletinId: number): RhBulletin {

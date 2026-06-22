@@ -649,8 +649,9 @@ export interface IpcApi {
     getDlgConfig: () => Promise<IpcResult<RhDlgConfig>>;
     setDlgConfig: (input: UpdateDlgConfigInput) => Promise<IpcResult<RhDlgConfig>>;
     pickDlgFolder: (kind: 'export' | 'import') => Promise<IpcResult<string | null>>;
+    pickDlgImportFile: () => Promise<IpcResult<string | null>>;
     exportVersDlg: (periode: string) => Promise<IpcResult<RhDlgExchangeResult>>;
-    importDepuisDlg: (periode: string) => Promise<IpcResult<RhDlgExchangeResult>>;
+    importDepuisDlg: (periode: string, sourceFile?: string | null) => Promise<IpcResult<RhDlgExchangeResult>>;
     listDlgJournal: (limit?: number) => Promise<IpcResult<RhDlgJournalEntry[]>>;
     listFormationsCatalog: (actifOnly?: boolean) => Promise<IpcResult<RhFormationCatalog[]>>;
     createFormationCatalog: (input: CreateFormationCatalogInput) => Promise<IpcResult<RhFormationCatalog>>;

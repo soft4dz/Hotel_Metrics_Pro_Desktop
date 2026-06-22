@@ -84,7 +84,10 @@ export const RH_HUBS: RhHub[] = [
     visible: (role) => canManageRh(role),
     defaultSub: 'prepaie',
     subs: [
-      { id: 'prepaie', label: 'Pré-paie & DLG' },
+      { id: 'prepaie', label: 'Pré-paie' },
+      { id: 'primes', label: 'Primes variables' },
+      { id: 'dlg', label: 'Passerelle DLG PC PAIE' },
+      { id: 'declarations', label: 'Déclarations DZ' },
       { id: 'registres', label: 'Registres légaux' },
       { id: 'conformite', label: 'Conformité DZ' },
     ],

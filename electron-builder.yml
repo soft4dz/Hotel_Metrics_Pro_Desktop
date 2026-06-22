@@ -1,8 +1,10 @@
 appId: com.hotelmetricspro.desktop
 productName: Hotel Metrics Pro Desktop
 copyright: Copyright © Hotel Metrics Pro
+# better-sqlite3 est déjà précompilé via npm run rebuild:native (postinstall)
+npmRebuild: false
 directories:
-  output: release
+  output: installers
   buildResources: assets
 files:
   - dist/**/*
@@ -22,7 +24,8 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: assets/icon.ico
+  signAndEditExecutable: false
+  # icon: assets/icon.ico  # ajouter icon.ico pour une icône personnalisée (voir assets/README.md)
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
