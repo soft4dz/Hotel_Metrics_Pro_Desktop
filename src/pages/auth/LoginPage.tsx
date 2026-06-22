@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate(DEFAULT_HOME_PATH, { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -45,7 +46,7 @@ export function LoginPage() {
         if (user?.mustChangePassword) {
           navigate('/change-password-required', { replace: true });
         } else {
-          navigate('/dashboard', { replace: true });
+          navigate(DEFAULT_HOME_PATH, { replace: true });
         }
       } else {
         setError(result.error ?? 'Identifiants incorrects.');

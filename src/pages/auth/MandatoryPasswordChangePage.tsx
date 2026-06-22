@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ipcClient } from '@/lib/ipcClient';
 import { useAuthStore } from '@/stores/auth.store';
+import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 
 function PasswordStrength({ password }: { password: string }) {
   const score = [
@@ -82,7 +83,7 @@ export function MandatoryPasswordChangePage() {
         useAuthStore.setState({ user: fresh, isAuthenticated: true });
       }
 
-      navigate('/dashboard', { replace: true });
+      navigate(DEFAULT_HOME_PATH, { replace: true });
     } catch {
       setError('Erreur de communication avec l\'application.');
     } finally {

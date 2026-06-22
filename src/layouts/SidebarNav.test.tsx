@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { SidebarNav } from '@/layouts/SidebarNav';
 import { MobileNavDrawer } from '@/layouts/MobileNavDrawer';
-import { PremiumSidebar } from '@/layouts/PremiumSidebar';
+import { TopNavbar } from '@/layouts/TopNavbar';
 import { useUiStore } from '@/stores/ui.store';
 
 vi.mock('@/lib/ipcClient', () => ({
@@ -38,6 +38,10 @@ vi.mock('@/stores/auth.store', () => ({
 
 vi.mock('@/hooks/useEnabledModules', () => ({
   useEnabledModules: () => new Set<string>(),
+}));
+
+vi.mock('@/components/common/SyncStatusBadge', () => ({
+  SyncStatusBadge: () => null,
 }));
 
 function renderWithRouter(ui: React.ReactElement, route = '/dashboard') {
@@ -188,33 +192,28 @@ describe('MobileNavDrawer', () => {
   });
 });
 
-describe('PremiumSidebar', () => {
+describe('TopNavbar', () => {
   beforeEach(() => {
-    useUiStore.setState({ sidebarCollapsed: false });
+    useUiStore.setState({ mobileNavOpen: false });
   });
 
-  it('utilise le shell thématique et la largeur étendue', async () => {
-    const { container } = renderWithRouter(<PremiumSidebar />);
+  it('utilise le shell navbar et affiche le branding', async () => {
+    const { container } = renderWithRouter(<TopNavbar />);
 
     await waitFor(() => {
       expect(screen.getByText('Hotel Metrics')).toBeInTheDocument();
     });
 
-    const aside = container.querySelector('aside');
-    expect(aside).toHaveClass('sidebar-shell');
-    expect(aside).toHaveClass('w-[260px]');
-    expect(aside).toHaveClass('lg:flex');
+    const header = container.querySelector('header');
+    expect(header).toHaveClass('navbar-shell');
+    expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeInTheDocument();
   });
 
-  it('réduit la largeur en mode replié', async () => {
-    useUiStore.setState({ sidebarCollapsed: true });
-    const { container } = renderWithRouter(<PremiumSidebar />);
+  it('affiche le bouton menu sur mobile', async () => {
+    renderWithRouter(<TopNavbar />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Déplier le menu' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
     });
-
-    const aside = container.querySelector('aside');
-    expect(aside).toHaveClass('w-[72px]');
   });
 });

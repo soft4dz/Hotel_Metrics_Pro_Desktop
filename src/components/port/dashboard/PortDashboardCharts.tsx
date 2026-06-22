@@ -36,16 +36,15 @@ export function PortDashboardCharts({ data }: Props) {
     : 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-7 lg:gap-5 2xl:gap-6">
 
-      {/* Fusion : Area dégradé + Bars encaissements + Line CA + ReferenceLine moyenne */}
       <Card className="lg:col-span-4">
-        <CardHeader>
-          <CardTitle>Évolution des Revenus</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base sm:text-lg">Évolution des Revenus</CardTitle>
           <p className="text-xs text-muted-foreground">CA facturé (ligne) · Encaissements (barres)</p>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[240px] sm:h-[280px] lg:h-[300px] 2xl:h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.revenueChart} margin={{ top: 12, right: 16, left: 8, bottom: 0 }}>
                 <defs>
@@ -113,13 +112,12 @@ export function PortDashboardCharts({ data }: Props) {
         </CardContent>
       </Card>
 
-      {/* Donut types de navires avec légende inline */}
       <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle>Types de Navires</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base sm:text-lg">Types de Navires</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[240px] sm:h-[280px] lg:h-[300px] 2xl:h-[340px]">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

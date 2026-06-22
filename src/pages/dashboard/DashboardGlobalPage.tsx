@@ -39,7 +39,7 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
   );
 
   return (
-    <div className="space-y-8">
+    <div className="page-stack">
       {/* Hero principal Premium */}
       <DashboardHero
         periodeLabel={data.kpis.periodeLabel}
@@ -64,7 +64,7 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
       </Suspense>
 
       {/* Répartition et Alertes (Côte à côte) */}
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-3 xl:gap-4">
         <div className="xl:col-span-2">
           <SectionBlock
             title="Performance par unité"
@@ -73,7 +73,7 @@ function DashboardBody({ data, annee, onExportExcel, onExportPdf }: DashboardBod
             <HotelAnalyseGrid hotels={data.parHotel} />
           </SectionBlock>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           <SectionBlock
             title="Alertes intelligentes"
             description="Détection d'anomalies sur la période"
@@ -128,8 +128,8 @@ export function DashboardGlobalPage() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="dashboard-print mx-auto max-w-[1600px] space-y-6 pb-10">
-        <div className="flex w-full flex-col gap-3 print:hidden sm:flex-row sm:justify-end">
+      <div className="dashboard-print w-full space-y-3 pb-4 sm:space-y-4 sm:pb-6">
+        <div className="w-full print:hidden">
           <DashboardFiltersBar
             filters={draftFilters}
             onChange={setDraftFilters}

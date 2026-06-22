@@ -311,7 +311,7 @@ export function SidebarNav({
     toggleFlyout,
     closeFlyout,
     closeOpenModule,
-  } = useSidebarNav();
+  } = useSidebarNav({ autoExpandOnNavigate: true });
 
   const prevCollapsed = useRef(collapsed);
   useEffect(() => {

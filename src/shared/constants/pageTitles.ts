@@ -2,8 +2,8 @@ import { RH_HUBS, rhPageTitle, type RhHubId } from '@/pages/rh/rhNavigation';
 
 export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   '/modules': {
-    title: 'Modules de pilotage',
-    subtitle: 'Accédez aux modules disponibles selon votre profil',
+    title: 'Applications',
+    subtitle: 'Lanceur de modules — style pilotage centralisé',
   },
   '/rh': {
     title: 'RH & productivité',
@@ -22,6 +22,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     subtitle: 'Objectifs et indicateurs',
   },
   '/portmaster': {
+    title: 'PortMaster',
+    subtitle: 'Applications portuaires',
+  },
+  '/portmaster/dashboard': {
     title: 'Tableau de bord Capitainerie',
     subtitle: 'Aperçu de l\'activité du port',
   },

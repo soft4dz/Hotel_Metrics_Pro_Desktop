@@ -42,21 +42,23 @@ export function PortDashboardKpis({ data }: Props) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 xs:grid-cols-2 lg:grid-cols-4 lg:gap-4 2xl:gap-5">
       {kpis.map((kpi, index) => {
         const Icon = kpi.icon;
         return (
           <Card key={index} className="border-l-4" style={{ borderLeftColor: 'var(--primary)' }}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
-              <div className={cn('p-2 rounded-full', kpi.bgColor)}>
-                <Icon className={cn('h-4 w-4', kpi.color)} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">{kpi.title}</CardTitle>
+              <div className={cn('rounded-full p-1.5 sm:p-2', kpi.bgColor)}>
+                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', kpi.color)} />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
+            <CardContent className="pb-4">
+              <div className="text-xl font-bold sm:text-2xl 2xl:text-[1.75rem]">{kpi.value}</div>
               {kpi.subtext && (
-                <p className="text-xs text-muted-foreground mt-1">Taux d'occupation : {kpi.subtext}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
+                  Taux d&apos;occupation : {kpi.subtext}
+                </p>
               )}
             </CardContent>
           </Card>

@@ -55,13 +55,13 @@ function KpiCardComponent({
 
   return (
     <div className={cn('metric-card group relative flex flex-col justify-between', borderTone[accent])}>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-2.5 sm:gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] transition-transform duration-200 group-hover:scale-105 motion-reduce:scale-100',
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] transition-transform duration-200 group-hover:scale-105 motion-reduce:scale-100 sm:h-10 sm:w-10',
             iconTone[accent],
           )}>
-            <Icon className="h-5 w-5" strokeWidth={2} />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
           </div>
           {trend !== undefined && (
             <div
@@ -83,10 +83,10 @@ function KpiCardComponent({
         </div>
 
         <div>
-          <p className="font-mono text-3xl font-bold tabular-nums tracking-tight text-foreground">
+          <p className="font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]">
             {value}
           </p>
-          <p className="mt-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:text-xs">
             {title}
           </p>
           {subtitle && (

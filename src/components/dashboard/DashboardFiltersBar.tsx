@@ -46,7 +46,7 @@ export function DashboardFiltersBar({
   }, []);
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border border-border/60 bg-card px-3 py-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:px-4 sm:py-2.5">
+    <div className="flex w-full flex-col gap-2 rounded-lg border border-border/60 bg-card px-2.5 py-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:px-3 sm:py-2">
       <div className="flex flex-wrap items-center gap-2">
         <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">

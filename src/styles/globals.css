@@ -4,6 +4,11 @@
 
 @layer base {
   :root {
+    --layout-max-w: 100%;
+    --layout-navbar-max-w: 100%;
+    --layout-px: 0.625rem;
+    --layout-py: 0.5rem;
+    --section-gap: 0.75rem;
     --background: 220 20% 97%;
     --foreground: 222 47% 10%;
     --card: 0 0% 100%;
@@ -59,9 +64,9 @@
   .accent-cyan { --primary: 192 82% 35%; --primary-foreground: 0 0% 100%; --ring: 192 82% 35%; --sidebar: 192 82% 15%; --sidebar-from: 192 82% 8%; --sidebar-via: 192 82% 30%; --sidebar-to: 192 82% 15%; }
   .accent-slate { --primary: 217 19% 35%; --primary-foreground: 0 0% 100%; --ring: 217 19% 35%; --sidebar: 217 19% 14%; --sidebar-from: 217 19% 8%; --sidebar-via: 217 19% 28%; --sidebar-to: 217 19% 14%; }
 
-  .density-compact { --radius: 0.45rem; --density-gap: 0.75rem; --density-pad: 0.875rem; }
-  .density-comfortable { --radius: 0.95rem; --density-gap: 1rem; --density-pad: 1.25rem; }
-  .density-spacious { --radius: 1.15rem; --density-gap: 1.25rem; --density-pad: 1.5rem; }
+  .density-compact { --radius: 0.45rem; --density-gap: 0.5rem; --density-pad: 0.625rem; --layout-px: 0.5rem; --layout-py: 0.375rem; --section-gap: 0.5rem; }
+  .density-comfortable { --radius: 0.75rem; --density-gap: 0.75rem; --density-pad: 0.875rem; --layout-px: 0.625rem; --layout-py: 0.5rem; --section-gap: 0.75rem; }
+  .density-spacious { --radius: 0.95rem; --density-gap: 1rem; --density-pad: 1rem; --layout-px: 0.875rem; --layout-py: 0.75rem; --section-gap: 1rem; }
 
   * { @apply border-border; }
 
@@ -88,6 +93,114 @@
       hsl(var(--sidebar-to)) 100%
     );
     box-shadow: var(--tw-shadow, 0 0 #0000), 4px 0 24px -4px rgb(15 23 42 / 0.18);
+  }
+
+  .navbar-shell {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--sidebar-from)) 0%,
+      hsl(var(--sidebar-via)) 55%,
+      hsl(var(--sidebar-to)) 100%
+    );
+  }
+
+  .navbar-nav-active {
+    @apply bg-white/15 font-semibold text-white shadow-sm;
+  }
+
+  .navbar-nav-idle {
+    @apply text-white/75 hover:bg-white/10 hover:text-white;
+  }
+
+  .navbar-dropdown {
+    background: linear-gradient(
+      165deg,
+      hsl(var(--sidebar-from)) 0%,
+      hsl(var(--sidebar-via)) 55%,
+      hsl(var(--sidebar-to)) 100%
+    );
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .navbar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+  }
+
+  .layout-navbar {
+    width: 100%;
+    max-width: var(--layout-navbar-max-w);
+    padding-left: max(var(--layout-px), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--layout-px), env(safe-area-inset-right, 0px));
+  }
+
+  .layout-content-shell {
+    width: 100%;
+    max-width: var(--layout-max-w);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: max(var(--layout-px), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--layout-px), env(safe-area-inset-right, 0px));
+    padding-top: var(--layout-py);
+    padding-bottom: var(--layout-py);
+  }
+
+  .layout-title-shell {
+    width: 100%;
+    max-width: var(--layout-navbar-max-w);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: max(var(--layout-px), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--layout-px), env(safe-area-inset-right, 0px));
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .layout-title-shell {
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --layout-px: 0.75rem;
+      --layout-py: 0.625rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --layout-px: 0.875rem;
+      --layout-py: 0.75rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    :root {
+      --layout-px: 1rem;
+      --layout-py: 0.875rem;
+    }
+  }
+
+  @media (min-width: 2560px) {
+    :root {
+      --layout-px: 1.125rem;
+      --layout-py: 1rem;
+    }
   }
 
   .sidebar-nav-active {
@@ -154,8 +267,9 @@
 
   .section-label { @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground; }
   .section-block { @apply app-surface overflow-hidden dashboard-print; }
-  .page-content { @apply min-h-0; }
-  .page-shell { @apply space-y-6; }
+  .page-content { @apply min-w-0 w-full; }
+  .page-shell { @apply space-y-3 sm:space-y-4; }
+  .page-stack { @apply space-y-3 sm:space-y-4; }
 
   .page-mesh {
     background-color: hsl(var(--background));
@@ -182,25 +296,129 @@
   .hero-panel > * { @apply relative; }
 
   .metric-card {
-    @apply rounded-lg border border-border/70 bg-card/95 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0;
+    @apply rounded-lg border border-border/70 bg-card/95 p-3 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0 sm:p-3.5;
   }
 
   .module-card {
     @apply rounded-lg border border-border/70 bg-card/95 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-white hover:shadow-elevated motion-reduce:translate-y-0;
   }
 
+  /* ── Lanceur d'applications (style Odoo) ───────────────────────────── */
+  .odoo-apps-page {
+    margin-left: calc(-1 * max(var(--layout-px), env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(var(--layout-px), env(safe-area-inset-right, 0px)));
+    margin-top: calc(-1 * var(--layout-py));
+    min-height: calc(100% + var(--layout-py));
+    background: linear-gradient(180deg, #f0eeee 0%, #e8e8e8 100%);
+    padding: 0.875rem max(var(--layout-px), env(safe-area-inset-left, 0px)) 1.25rem;
+  }
+
+  .odoo-apps-toolbar {
+    @apply mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between;
+  }
+
+  .odoo-apps-title {
+    @apply font-heading text-xl font-semibold tracking-tight text-[#212529] sm:text-2xl 2xl:text-[1.75rem];
+  }
+
+  .odoo-apps-subtitle {
+    @apply mt-0.5 text-xs text-[#6c757d] sm:text-sm;
+  }
+
+  .odoo-apps-search-wrap {
+    @apply relative w-full sm:max-w-md lg:max-w-lg;
+  }
+
+  .odoo-apps-search {
+    @apply h-10 w-full rounded-md border border-[#dee2e6] bg-white py-2 pl-10 pr-9 text-sm text-[#212529] shadow-sm outline-none transition-shadow;
+    @apply placeholder:text-[#adb5bd] focus:border-[#714B67]/40 focus:ring-2 focus:ring-[#714B67]/15;
+  }
+
+  .odoo-apps-filters {
+    @apply mb-4 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none sm:mb-5 sm:gap-2;
+  }
+
+  .odoo-apps-filter {
+    @apply shrink-0 rounded-full border border-transparent bg-white/70 px-3.5 py-1.5 text-xs font-medium text-[#495057] shadow-sm transition-colors;
+    @apply hover:bg-white hover:text-[#714B67];
+  }
+
+  .odoo-apps-filter--active {
+    @apply border-[#714B67]/25 bg-[#714B67] text-white shadow-sm hover:bg-[#714B67] hover:text-white;
+  }
+
+  .odoo-apps-section-title {
+    @apply mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#868e96];
+  }
+
+  .odoo-apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.25rem 0.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .odoo-apps-grid {
+      grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+      gap: 0.5rem 0.75rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .odoo-apps-grid {
+      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+      gap: 0.75rem 1rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .odoo-apps-grid {
+      grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    }
+  }
+
+  .odoo-app-tile {
+    @apply flex flex-col items-center rounded-md px-2 py-3 text-center no-underline transition-all duration-150 motion-reduce:transition-none;
+    @apply hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#714B67]/30;
+  }
+
+  .odoo-app-tile--disabled {
+    @apply cursor-not-allowed opacity-55 hover:bg-transparent;
+  }
+
+  .odoo-app-icon {
+    @apply flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.14)] transition-transform duration-150;
+    @apply group-hover:scale-[1.04] motion-reduce:transform-none sm:h-[4.5rem] sm:w-[4.5rem];
+  }
+
+  .odoo-app-label {
+    @apply mt-2.5 line-clamp-2 text-[12px] font-medium leading-snug text-[#212529] sm:text-[13px];
+  }
+
+  .odoo-app-desc {
+    @apply mt-0.5 line-clamp-1 text-[10px] text-[#868e96] sm:text-[11px];
+  }
+
+  .odoo-apps-empty {
+    @apply rounded-lg border border-dashed border-[#ced4da] bg-white/50 px-6 py-16 text-center;
+  }
+
+  .port-dashboard-page {
+    @apply min-w-0 w-full;
+  }
+
   .pill-soft {
     @apply rounded-full border border-border/70 bg-muted/70 px-3 py-1 text-xs font-medium text-muted-foreground;
   }
 
-  .form-card { @apply app-surface p-6; }
-  .status-banner { @apply rounded-xl border px-4 py-3 text-sm; }
+  .form-card { @apply app-surface p-4 sm:p-5; }
+  .status-banner { @apply rounded-xl border px-3 py-2 text-sm sm:px-4 sm:py-2.5; }
   .status-banner-error { @apply status-banner border-destructive/25 bg-destructive/5 text-destructive; }
   .status-banner-success { @apply status-banner border-emerald-200 bg-emerald-50 text-emerald-800; }
   .status-banner-info { @apply status-banner border-primary/20 bg-primary/5 text-primary; }
-  .dashboard-page { @apply space-y-5; }
-  .kpi-grid-primary { @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5; }
-  .kpi-grid-secondary { @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-5; }
+  .dashboard-page { @apply space-y-3 sm:space-y-4; }
+  .kpi-grid-primary { @apply grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5; }
+  .kpi-grid-secondary { @apply grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5; }
 }
 
 @layer utilities {

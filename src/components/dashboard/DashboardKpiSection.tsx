@@ -21,13 +21,12 @@ interface DashboardKpiSectionProps {
 
 function DashboardKpiSectionComponent({ kpis }: DashboardKpiSectionProps) {
   return (
-    <div className="space-y-6">
-      {/* 1. Performance Financière */}
+    <div className="space-y-3 sm:space-y-4">
       <section aria-labelledby="kpi-financier-heading">
-        <h3 id="kpi-financier-heading" className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <Wallet className="h-4 w-4" /> Performance Financière
+        <h3 id="kpi-financier-heading" className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+          <Wallet className="h-3.5 w-3.5" /> Performance Financière
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="kpi-grid-primary">
           <KpiCard title="CA du jour"         value={formatMoney(kpis.caJour)}              icon={Euro}       accent="primary" />
           <KpiCard title="CA du mois"         value={formatMoney(kpis.caMois)}              icon={TrendingUp} accent="accent"  trend={kpis.variationCaPct} />
           <KpiCard title="CA annuel"          value={formatMoney(kpis.caAnnuel)}            icon={TrendingUp} accent="neutral" />
@@ -36,12 +35,11 @@ function DashboardKpiSectionComponent({ kpis }: DashboardKpiSectionProps) {
         </div>
       </section>
 
-      {/* 2. Indicateurs Hôteliers (Nouveau) */}
       <section aria-labelledby="kpi-hotelier-heading">
-        <h3 id="kpi-hotelier-heading" className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <BedDouble className="h-4 w-4" /> Indicateurs Métiers (Hébergement & F&B)
+        <h3 id="kpi-hotelier-heading" className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+          <BedDouble className="h-3.5 w-3.5" /> Indicateurs Métiers (Hébergement & F&B)
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
           <KpiCard title="Taux d'occupation"  value={formatPercent(kpis.tauxOccupation)}    icon={KeyRound}   accent="primary" />
           <KpiCard title="RevPAR"             value={formatMoney(kpis.revPAR)}              icon={BarChart4}  accent="gold" />
           <KpiCard title="Prix Moyen Chambre" value={formatMoney(kpis.adr)}                 icon={BedDouble}  accent="accent" />
@@ -49,12 +47,11 @@ function DashboardKpiSectionComponent({ kpis }: DashboardKpiSectionProps) {
         </div>
       </section>
 
-      {/* 3. Opérations & Trésorerie */}
       <section aria-labelledby="kpi-operations-heading">
-        <h3 id="kpi-operations-heading" className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <Building2 className="h-4 w-4" /> Opérations & Trésorerie
+        <h3 id="kpi-operations-heading" className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+          <Building2 className="h-3.5 w-3.5" /> Opérations & Trésorerie
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="kpi-grid-secondary">
           <KpiCard title="Encaissements"      value={formatMoney(kpis.totalEncaissements)}  icon={Wallet}       accent="accent"  />
           <KpiCard title="Taux encaissement"  value={formatPercent(kpis.tauxEncaissement)}  icon={Wallet}       accent="neutral" />
           <KpiCard title="Écart obj. / réalisé" value={formatMoney(kpis.ecartObjectif)}    icon={Target}       accent={kpis.ecartObjectif < 0 ? 'warning' : 'success'} />

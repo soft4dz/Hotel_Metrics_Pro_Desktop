@@ -42,14 +42,6 @@ L'app démarre :
 **Base SQLite :** `%AppData%\hotel-metrics-pro-desktop\data\hotel_metrics_local.db`  
 Verrouillage après 5 échecs (15 min). Connexions journalisées.
 
-### Auto-login développement (optionnel)
-
-| Variable | Effet |
-|----------|--------|
-| `VITE_AUTO_LOGIN=true` | Connexion admin automatique côté UI (dev uniquement) |
-| `HMP_DEV_AUTO_ADMIN=1` | Session IPC admin sans login (main process) |
-| `HMP_DEV_AUTO_ADMIN=0` | Désactive le bypass IPC même en dev |
-
 ---
 
 ## Modules métier (~30)

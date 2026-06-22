@@ -11,6 +11,15 @@ function generateDemoPassword(): string {
 
 export function runPortSeedIfNeeded(): void {
   const db = getDatabase();
+
+  const disabled = db
+    .prepare(`SELECT value FROM app_settings WHERE key = 'demo_seeds_disabled'`)
+    .get() as { value: string } | undefined;
+  if (disabled?.value === '1') {
+    logger.debug('Seed PortMaster ignoré : données démo désactivées.');
+    return;
+  }
+
   const row = db.prepare(`SELECT COUNT(*) AS c FROM port_bateaux`).get() as { c: number };
   if (row.c > 0) {
     logger.debug('Seed PortMaster ignoré : données déjà présentes.');

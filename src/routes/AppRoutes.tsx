@@ -28,6 +28,7 @@ import { ObjectifFormPage } from '@/pages/objectifs/ObjectifFormPage';
 import { RequireObjectifsView } from '@/routes/RequireObjectifsView';
 import { RequireModuleEnabled } from '@/routes/RequireModuleEnabled';
 import { RequirePortmaster } from '@/routes/RequirePortmaster';
+import { PortMasterHubPage } from '@/pages/portmaster/PortMasterHubPage';
 import PortDashboardPage from '@/pages/portmaster/PortDashboardPage';
 import { BateauxPage } from '@/pages/portmaster/BateauxPage';
 import { BateauFormPage } from '@/pages/portmaster/BateauFormPage';
@@ -143,7 +144,8 @@ export function AppRoutes() {
             <Route path="/recettes/validation" element={<RequirePermission permission={PERMISSIONS.RECETTES_VALIDATE}><ValidationRecettesPage /></RequirePermission>} />
             <Route path="/recettes/mensuelles" element={<RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}><SaisieMensuellePage /></RequirePermission>} />
 
-            <Route path="/portmaster" element={<RequirePortmaster><PortDashboardPage /></RequirePortmaster>} />
+            <Route path="/portmaster" element={<RequirePortmaster><PortMasterHubPage /></RequirePortmaster>} />
+            <Route path="/portmaster/dashboard" element={<RequirePortmaster><PortDashboardPage /></RequirePortmaster>} />
             <Route path="/portmaster/bateaux" element={<RequirePortmaster><BateauxPage /></RequirePortmaster>} />
             <Route path="/portmaster/bateaux/new" element={<RequirePortmaster><BateauFormPage /></RequirePortmaster>} />
             <Route path="/portmaster/bateaux/:id" element={<RequirePortmaster><BateauFormPage /></RequirePortmaster>} />

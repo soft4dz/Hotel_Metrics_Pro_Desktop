@@ -20,7 +20,7 @@ export function SectionBlock({
 }: SectionBlockProps) {
   return (
     <section className={cn('section-block', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2 sm:px-4 sm:py-2.5">
         <div>
           <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
           {description && (
@@ -29,7 +29,7 @@ export function SectionBlock({
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
-      <div className={cn(!noPadding && 'p-5')}>{children}</div>
+      <div className={cn(!noPadding && 'p-3 sm:p-4')}>{children}</div>
     </section>
   );
 }

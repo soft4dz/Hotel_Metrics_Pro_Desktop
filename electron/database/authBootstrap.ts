@@ -15,14 +15,8 @@ const BOOTSTRAP_ACCOUNTS: Array<{
   {
     email: 'admin@hotelmetrics.local',
     password: DEFAULT_ADMIN_PASSWORD,
-    fullName: 'Administrateur système',
-    roleCode: 'ADMIN_DEC',
-  },
-  {
-    email: 'dec@egt-sidifredj.dz',
-    password: DEFAULT_ADMIN_PASSWORD,
-    fullName: 'MESSAOUDENE Abdelkader',
-    roleCode: 'ADMIN_DEC',
+    fullName: 'Super Administrateur',
+    roleCode: 'SUPERADMIN',
   },
 ];
 

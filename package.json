@@ -30,7 +30,8 @@
     "test:rh-paie": "node scripts/test-rh-paie-dz.mjs",
     "verify:phase3": "electron scripts/verify-phase3.mjs",
     "seed:pms": "electron scripts/seed-pms-demo.mjs",
-    "seed:demo": "electron scripts/seed-demo-full.mjs"
+    "seed:demo": "electron scripts/seed-demo-full.mjs",
+    "reset:db": "electron scripts/reset-db-superadmin.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.5",

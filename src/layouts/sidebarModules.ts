@@ -127,7 +127,8 @@ export function buildSidebarModules(
       moduleId: 'portmaster',
       visible: canAccessPortmaster(role),
       items: [
-        { label: 'Dashboard port', to: '/portmaster' },
+        { label: 'Applications port', to: '/portmaster' },
+        { label: 'Dashboard port', to: '/portmaster/dashboard' },
         { label: 'Référentiel', to: '/portmaster/referentiel' },
         { label: 'Clients port', to: '/portmaster/clients' },
         { label: 'Bateaux', to: '/portmaster/bateaux' },

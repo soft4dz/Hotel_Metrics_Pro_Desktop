@@ -5,11 +5,6 @@ import type { AuthUserDto } from '@/shared/types/auth';
 
 export type AuthUser = AuthUserDto;
 
-const DEV_AUTO_ADMIN_LOGIN = import.meta.env.DEV && import.meta.env.VITE_AUTO_LOGIN === 'true';
-
-const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
-const DEV_ADMIN_PASSWORD = 'Admin@2026!';
-
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -68,19 +63,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       restoreSession: async () => {
-        if (DEV_AUTO_ADMIN_LOGIN) {
-          if (!get().isAuthenticated) {
-            try {
-              await get().login(DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD, false);
-            } catch {
-              set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
-              return;
-            }
-          }
-          set({ sessionChecked: true });
-          return;
-        }
-
         const { sessionToken, rememberMe } = get();
         if (!rememberMe || !sessionToken) {
           set({ sessionChecked: true });

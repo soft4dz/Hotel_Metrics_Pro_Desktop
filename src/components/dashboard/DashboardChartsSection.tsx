@@ -25,7 +25,7 @@ function DashboardChartsSectionComponent({ data, annee }: DashboardChartsSection
 
   return (
     <>
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
         <SectionBlock title="Évolution mensuelle du CA" description={`Année ${annee}`}>
           <EvolutionMensuelleChart data={charts.evolutionMensuelle} />
         </SectionBlock>
@@ -34,7 +34,7 @@ function DashboardChartsSectionComponent({ data, annee }: DashboardChartsSection
         </SectionBlock>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         <SectionBlock title="CA par hôtel">
           <CaParHotelChart data={charts.caParHotel} />
         </SectionBlock>
@@ -43,7 +43,7 @@ function DashboardChartsSectionComponent({ data, annee }: DashboardChartsSection
         </SectionBlock>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         <SectionBlock title="Objectif vs réalisé (unités)">
           <CaParHotelChart data={charts.objectifVsRealiseHotels} />
         </SectionBlock>
@@ -52,7 +52,7 @@ function DashboardChartsSectionComponent({ data, annee }: DashboardChartsSection
         </SectionBlock>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         <SectionBlock title="Réalisation mensuelle vs objectif">
           <ObjectifsCategorieChart data={charts.realisationCategories} />
         </SectionBlock>

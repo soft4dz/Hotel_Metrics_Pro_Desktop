@@ -18,7 +18,7 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
   return (
     <div
       className={cn(
-        'dashboard-hero relative overflow-hidden rounded-[var(--radius)] p-6 shadow-elevated lg:p-8',
+        'dashboard-hero relative overflow-hidden rounded-[var(--radius)] p-4 shadow-elevated sm:p-5 lg:p-6',
         className,
       )}
       role="region"
@@ -28,7 +28,7 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
       <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" aria-hidden />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+      <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center md:gap-5">
         <div className="flex-1">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 backdrop-blur-md">
             <Sparkles className="h-3.5 w-3.5 text-white/80" />

@@ -40,8 +40,9 @@ export function MobileNavDrawer() {
 
       <aside
         className={cn(
-          'sidebar-shell absolute inset-y-0 left-0 flex w-[min(88vw,280px)] flex-col border-r border-white/10 shadow-sidebar',
+          'sidebar-shell absolute inset-y-0 left-0 flex w-[min(92vw,300px)] flex-col border-r border-white/10 shadow-sidebar sm:w-[min(88vw,320px)]',
           'animate-in slide-in-from-left duration-200 motion-reduce:animate-none',
+          'pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)]',
         )}
       >
         <button

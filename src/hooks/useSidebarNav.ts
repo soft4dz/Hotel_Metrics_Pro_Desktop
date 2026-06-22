@@ -12,7 +12,8 @@ import {
   type SidebarModule,
 } from '@/layouts/sidebarModules';
 
-export function useSidebarNav() {
+export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
+  const autoExpandOnNavigate = options?.autoExpandOnNavigate ?? false;
   const role = useAuthStore((state) => state.user?.role);
   const enabledModules = useEnabledModules();
   const { pathname } = useLocation();
@@ -51,14 +52,23 @@ export function useSidebarNav() {
 
   useEffect(() => {
     if (modules.length === 0) return;
-    const activeId = findActiveModuleId(modules, pathname);
     const routeChanged = prevPathname.current !== pathname;
     const firstLoad = prevPathname.current === null;
+
+    if (!autoExpandOnNavigate) {
+      if (routeChanged || firstLoad) {
+        setOpenModuleId(null);
+        prevPathname.current = pathname;
+      }
+      return;
+    }
+
+    const activeId = findActiveModuleId(modules, pathname);
     if (activeId && (routeChanged || firstLoad)) {
       setOpenModuleId(activeId);
       prevPathname.current = pathname;
     }
-  }, [pathname, modules]);
+  }, [pathname, modules, autoExpandOnNavigate]);
 
   useEffect(() => {
     setFlyoutModuleId(null);

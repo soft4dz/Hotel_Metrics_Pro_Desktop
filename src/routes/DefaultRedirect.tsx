@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
+import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 
 /** Redirection intelligente selon l'état de session. */
 export function DefaultRedirect() {
@@ -12,5 +13,5 @@ export function DefaultRedirect() {
   if (mustChangePassword) {
     return <Navigate to="/change-password-required" replace />;
   }
-  return <Navigate to="/modules" replace />;
+  return <Navigate to={DEFAULT_HOME_PATH} replace />;
 }

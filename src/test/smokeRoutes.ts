@@ -14,6 +14,7 @@ export const SMOKE_ROUTES: string[] = [
   '/recettes/mensuelles',
   '/objectifs',
   '/portmaster',
+  '/portmaster/dashboard',
   '/portmaster/bateaux',
   '/portmaster/contrats',
   '/portmaster/clients',

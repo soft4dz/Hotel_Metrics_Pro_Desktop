@@ -5,6 +5,16 @@ const config: Config = {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
+    screens: {
+      xs: '480px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+      '4xl': '2560px',
+    },
     extend: {
       fontFamily: {
         sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
@@ -68,6 +78,10 @@ const config: Config = {
         elevated: '0 12px 40px -8px rgb(30 58 138 / 0.15), 0 4px 12px -4px rgb(15 23 42 / 0.08)',
         sidebar: '4px 0 24px -4px rgb(15 23 42 / 0.12)',
         inset: 'inset 0 1px 0 0 rgb(255 255 255 / 0.7)',
+      },
+      maxWidth: {
+        'layout-content': 'var(--layout-max-w)',
+        'layout-navbar': 'var(--layout-navbar-max-w)',
       },
     },
   },

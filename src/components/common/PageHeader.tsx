@@ -14,13 +14,13 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, backTo, action, className }: PageHeaderProps) {
   return (
-    <div className={cn('mb-6 flex flex-wrap items-start justify-between gap-4', className)}>
-      <div className="flex min-w-0 items-start gap-3">
+    <div className={cn('page-header mb-3 flex flex-wrap items-start justify-between gap-2 sm:mb-4 sm:gap-3', className)}>
+      <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-2.5">
         {backTo && (
           <Button
             variant="outline"
             size="icon"
-            className="shrink-0 cursor-pointer"
+            className="h-8 w-8 shrink-0 cursor-pointer sm:h-9 sm:w-9"
             asChild
           >
             <Link to={backTo} aria-label="Retour">
@@ -28,12 +28,12 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
             </Link>
           </Button>
         )}
-        <div className="border-l-[3px] border-primary pl-4">
-          <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+        <div className="min-w-0 border-l-[3px] border-primary pl-2.5 sm:pl-3">
+          <h2 className="truncate font-heading text-base font-semibold tracking-tight text-foreground sm:text-lg">
             {title}
           </h2>
           {description && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground sm:text-sm">
               {description}
             </p>
           )}
