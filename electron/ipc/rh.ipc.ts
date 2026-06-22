@@ -17,6 +17,7 @@ import type {
   CreateAffectationInput,
   CreateContratInput,
   CreateDepartementInput,
+  CreateDirectionInput,
   CreateEmployeInput,
   CreateEmployeWizardInput,
   CreatePosteInput,
@@ -40,6 +41,7 @@ import type {
   UpdateEmployeTypeActiviteInput,
   UpdateDlgConfigInput,
   UpdateDepartementInput,
+  UpdateDirectionInput,
   UpdateEmployeInput,
   UpdatePosteInput,
   UpsertOrganisationInput,
@@ -63,8 +65,18 @@ export function registerRhIpc(): void {
   Electron.ipcMain.handle('rh:monEspace', (event) =>
     wrapIpc(event, (uid) => rh.getMonEspace(uid)));
 
-  Electron.ipcMain.handle('rh:departements:list', (event) =>
-    wrapIpc(event, (uid) => rh.listDepartements(uid)));
+  Electron.ipcMain.handle('rh:directions:list', (event) =>
+    wrapIpc(event, (uid) => rh.listDirections(uid)));
+  Electron.ipcMain.handle('rh:directions:create', (event, input: CreateDirectionInput) =>
+    wrapIpc(event, (uid) => rh.createDirection(uid, input)));
+  Electron.ipcMain.handle(
+    'rh:directions:update',
+    (event, id: number, input: UpdateDirectionInput) =>
+      wrapIpc(event, (uid) => rh.updateDirection(uid, id, input)),
+  );
+
+  Electron.ipcMain.handle('rh:departements:list', (event, directionId?: number) =>
+    wrapIpc(event, (uid) => rh.listDepartements(uid, directionId)));
   Electron.ipcMain.handle('rh:departements:create', (event, input: CreateDepartementInput) =>
     wrapIpc(event, (uid) => rh.createDepartement(uid, input)));
   Electron.ipcMain.handle(
@@ -73,8 +85,8 @@ export function registerRhIpc(): void {
       wrapIpc(event, (uid) => rh.updateDepartement(uid, id, input)),
   );
 
-  Electron.ipcMain.handle('rh:postes:list', (event) =>
-    wrapIpc(event, (uid) => rh.listPostes(uid)));
+  Electron.ipcMain.handle('rh:postes:list', (event, departementId?: number) =>
+    wrapIpc(event, (uid) => rh.listPostes(uid, departementId)));
   Electron.ipcMain.handle('rh:postes:create', (event, input: CreatePosteInput) =>
     wrapIpc(event, (uid) => rh.createPoste(uid, input)));
   Electron.ipcMain.handle('rh:postes:update', (event, id: number, input: UpdatePosteInput) =>

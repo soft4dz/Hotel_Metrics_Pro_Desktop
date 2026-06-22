@@ -15,6 +15,7 @@ import { ConformiteTab } from './ConformiteTab';
 import { RegistresLegauxTab } from './RegistresLegauxTab';
 import { ValidationsTab } from './ValidationsTab';
 import { OrganisationTab } from './OrganisationTab';
+import { ReferentielRhTab } from './ReferentielRhTab';
 import type { RhHub, RhHubId, RhSubSection } from './rhNavigation';
 
 interface Props {
@@ -41,6 +42,9 @@ export function RhHubContent({ hub, sub, canManage, canTeam, canSelf }: Props) {
       if (sub === 'organigramme') return <OrganisationTab />;
       if (sub === 'affectations') return <AffectationsTab />;
       return <EmployesTab />;
+
+    case 'referentiel':
+      return canManage ? <ReferentielRhTab /> : null;
 
     case 'temps':
       if (sub === 'planning') return canManage || canTeam ? <PlanningTab /> : null;

@@ -9,9 +9,19 @@ export type TypeAffectation = 'principale' | 'temporaire' | 'renfort';
 export type StatutAffectation = 'active' | 'terminee';
 export type TypeActiviteEmploye = 'hotel' | 'port' | 'mixte';
 
+export interface RhDirection {
+  id: number;
+  nom: string;
+  code: string | null;
+  description: string | null;
+  actif: boolean;
+}
+
 export interface RhDepartement {
   id: number;
   nom: string;
+  directionId: number | null;
+  directionNom: string | null;
   description: string | null;
   actif: boolean;
 }
@@ -21,6 +31,8 @@ export interface RhPoste {
   nom: string;
   departementId: number;
   departementNom: string;
+  directionId: number | null;
+  directionNom: string | null;
   salaireMin: number | null;
   salaireMax: number | null;
   roleSystemAssocie: string | null;
@@ -224,13 +236,28 @@ export interface RhMonEspace {
   mesDocuments: RhDocument[];
 }
 
+export interface CreateDirectionInput {
+  nom: string;
+  code?: string | null;
+  description?: string | null;
+}
+
+export interface UpdateDirectionInput {
+  nom?: string;
+  code?: string | null;
+  description?: string | null;
+  actif?: boolean;
+}
+
 export interface CreateDepartementInput {
   nom: string;
+  directionId: number;
   description?: string | null;
 }
 
 export interface UpdateDepartementInput {
   nom?: string;
+  directionId?: number;
   description?: string | null;
   actif?: boolean;
 }

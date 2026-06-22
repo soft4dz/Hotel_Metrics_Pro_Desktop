@@ -265,7 +265,7 @@ export function SettingsPage() {
             )}
             {canManageRh(user?.role) && (
               <Button variant="outline" size="sm" className="mt-2" asChild>
-                <Link to="/settings/rh-referentiel">
+                <Link to="/rh/referentiel">
                   <UserCog className="mr-2 h-4 w-4" />
                   Référentiel RH
                 </Link>

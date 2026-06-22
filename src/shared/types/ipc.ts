@@ -6,6 +6,7 @@ import type {
   CreatePlanningInput,
   CreateContratInput,
   CreateDepartementInput,
+  CreateDirectionInput,
   CreateEmployeInput,
   CreateEmployeWizardInput,
   CreatePosteInput,
@@ -51,6 +52,7 @@ import type {
   RhContratListe,
   RhDashboard,
   RhDepartement,
+  RhDirection,
   RhEmploye,
   RhMonEspace,
   RhEquipeMembre,
@@ -77,6 +79,7 @@ import type {
   StatutAffectation,
   StatutRecrutement,
   UpdateDepartementInput,
+  UpdateDirectionInput,
   UpdateEmployeInput,
   UpdatePosteInput,
   UpsertOrganisationInput,
@@ -581,10 +584,13 @@ export interface IpcApi {
     getDashboard: (dateDebut?: string, dateFin?: string, hotelId?: number) => Promise<IpcResult<RhDashboard>>;
     pendingAccountsCount: () => Promise<IpcResult<number>>;
     getMonEspace: () => Promise<IpcResult<RhMonEspace>>;
-    listDepartements: () => Promise<IpcResult<RhDepartement[]>>;
+    listDirections: () => Promise<IpcResult<RhDirection[]>>;
+    createDirection: (input: CreateDirectionInput) => Promise<IpcResult<RhDirection>>;
+    updateDirection: (id: number, input: UpdateDirectionInput) => Promise<IpcResult<RhDirection>>;
+    listDepartements: (directionId?: number) => Promise<IpcResult<RhDepartement[]>>;
     createDepartement: (input: CreateDepartementInput) => Promise<IpcResult<RhDepartement>>;
     updateDepartement: (id: number, input: UpdateDepartementInput) => Promise<IpcResult<RhDepartement>>;
-    listPostes: () => Promise<IpcResult<RhPoste[]>>;
+    listPostes: (departementId?: number) => Promise<IpcResult<RhPoste[]>>;
     createPoste: (input: CreatePosteInput) => Promise<IpcResult<RhPoste>>;
     updatePoste: (id: number, input: UpdatePosteInput) => Promise<IpcResult<RhPoste>>;
     listEmployes: (search?: string) => Promise<IpcResult<RhEmploye[]>>;

@@ -7,6 +7,7 @@ import {
 export type RhHubId =
   | 'pilotage'
   | 'collaborateurs'
+  | 'referentiel'
   | 'temps'
   | 'paie'
   | 'talents'
@@ -62,6 +63,15 @@ export const RH_HUBS: RhHub[] = [
       { id: 'organigramme', label: 'Organigramme' },
       { id: 'affectations', label: 'Affectations' },
     ],
+  },
+  {
+    id: 'referentiel',
+    label: 'Référentiel',
+    description: 'Directions, départements, postes et structure organisationnelle',
+    path: '/rh/referentiel',
+    visible: (role) => canManageRh(role),
+    defaultSub: '',
+    subs: [],
   },
   {
     id: 'temps',
@@ -148,7 +158,7 @@ export const RH_LEGACY_REDIRECTS: Record<string, string> = {
   formations: '/rh/talents/formations',
   recrutements: '/rh/talents/recrutements',
   validations: '/rh/validations/absences',
-  referentiel: '/settings/rh-referentiel',
+  referentiel: '/rh/referentiel',
   'mon-espace': '/rh/mon-espace',
 };
 
