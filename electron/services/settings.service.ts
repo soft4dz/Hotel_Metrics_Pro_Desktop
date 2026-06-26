@@ -89,8 +89,8 @@ function readAppSettings(): AppSettingsDto {
   const reportFooterImageFile = readOptionalSetting('report_footer_image_file');
 
   return {
-    companyName: readSetting('company_name', 'EGT Sidi Fredj'),
-    companyLegalName: readSetting('company_legal_name', 'Entreprise de Gestion Touristique de Sidi Fredj'),
+    companyName: readSetting('company_name', 'Raqmi System'),
+    companyLegalName: readSetting('company_legal_name', 'Raqmi System'),
     companyAddress: readSetting('company_address', 'Sidi Fredj, Staoueli, Alger'),
     companyPhone: readSetting('company_phone', ''),
     companyEmail: readSetting('company_email', ''),
@@ -104,7 +104,7 @@ function readAppSettings(): AppSettingsDto {
     autoBackupTime: readSetting('auto_backup_time', '18:00'),
     backupRetentionCount: parseInt(readSetting('backup_retention_count', '30'), 10),
     auditEnabled: readBoolSetting('audit_enabled', true),
-    reportHeader: readSetting('report_header', 'Hotel Metrics Pro - Rapport interne'),
+    reportHeader: readSetting('report_header', 'Raqmi System - Rapport interne'),
     reportFooter: readSetting('report_footer', 'Document généré automatiquement'),
     companyLogoFile,
     companyLogoUrl: resolveCompanyBrandUrl(companyLogoFile),
@@ -143,7 +143,7 @@ export function getCompanyBranding(): {
 } {
   const companyLogoFile = readOptionalSetting('company_logo_file');
   return {
-    companyName: readSetting('company_name', 'EGT Sidi Fredj'),
+    companyName: readSetting('company_name', 'Raqmi System'),
     companyLogoUrl: resolveCompanyBrandUrl(companyLogoFile),
   };
 }
