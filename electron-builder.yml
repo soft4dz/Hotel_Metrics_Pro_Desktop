@@ -1,6 +1,6 @@
-appId: com.hotelmetricspro.desktop
-productName: Hotel Metrics Pro Desktop
-copyright: Copyright © Hotel Metrics Pro
+appId: dz.raqmisystem.desktop
+productName: Raqmi System
+copyright: Copyright © Raqmi System
 # better-sqlite3 est déjà précompilé via npm run rebuild:native (postinstall)
 npmRebuild: false
 directories:
@@ -31,4 +31,4 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Hotel Metrics Pro
+  shortcutName: Raqmi System
