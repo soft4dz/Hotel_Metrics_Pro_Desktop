@@ -60,10 +60,10 @@ export function TopNavbar() {
           />
           <div className="hidden min-w-0 sm:block">
             <p className="truncate text-sm font-bold leading-tight text-white lg:text-[15px] 2xl:text-base">
-              Hotel Metrics
+              Raqmi System
             </p>
             <p className="hidden text-[10px] leading-tight text-white/50 sm:block 2xl:text-[11px]">
-              Pro Desktop
+              ERP Desktop
             </p>
           </div>
         </Link>
