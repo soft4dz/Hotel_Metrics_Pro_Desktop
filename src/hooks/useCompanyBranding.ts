@@ -5,7 +5,7 @@ import { ipcClient } from '@/lib/ipcClient';
 
 export function useCompanyBranding() {
   const [logoUrl, setLogoUrl] = useState(APP_LOGO_URL);
-  const [companyName, setCompanyName] = useState('Hotel Metrics Pro');
+  const [companyName, setCompanyName] = useState('Raqmi System');
 
   const loadBranding = useCallback(() => {
     void ipcClient.settings
