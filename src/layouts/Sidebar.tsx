@@ -54,6 +54,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
+import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 
 interface NavItem {
   label: string;
@@ -74,6 +75,7 @@ export function Sidebar() {
   const role = useAuthStore((s) => s.user?.role);
   const { pathname } = useLocation();
   const [pendingUsers, setPendingUsers] = useState(0);
+  const { logoUrl, companyName } = useCompanyBranding();
 
   useEffect(() => {
     if (!canManageUsers(role)) return;
@@ -311,20 +313,20 @@ export function Sidebar() {
       <div className="flex h-[4.25rem] items-center justify-between border-b border-white/[0.08] px-3">
         {sidebarCollapsed ? (
           <img
-            src={APP_LOGO_URL}
-            alt="Hotel Metrics Pro"
+            src={logoUrl || APP_LOGO_URL}
+            alt={companyName}
             className="mx-auto h-9 w-9 rounded-lg object-contain"
           />
         ) : (
           <div className="flex items-center gap-3 px-1">
             <img
-              src={APP_LOGO_URL}
-              alt="Hotel Metrics Pro"
+              src={logoUrl || APP_LOGO_URL}
+              alt={companyName}
               className="h-10 w-10 rounded-xl object-contain shadow-lg"
             />
             <div className="leading-tight">
-              <p className="font-heading text-sm font-semibold tracking-tight">Hotel Metrics</p>
-              <p className="text-[10px] font-medium text-white/50">Pro Desktop</p>
+              <p className="font-heading text-sm font-semibold tracking-tight">Raqmi System</p>
+              <p className="text-[10px] font-medium text-white/50">ERP Desktop</p>
             </div>
           </div>
         )}
