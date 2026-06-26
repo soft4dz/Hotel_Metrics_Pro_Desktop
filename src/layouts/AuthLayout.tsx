@@ -27,11 +27,11 @@ export function AuthLayout() {
 
         <div className="relative z-10 space-y-6">
           <h1 className="max-w-md text-balance text-3xl font-semibold leading-tight tracking-tight">
-            Pilotage hôtelier
+            ERP de pilotage hôtelier
             <span className="mt-2 block text-brand-gold"> &amp; port de plaisance</span>
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-white/75">
-            Recettes, objectifs, tableaux de bord, facturation et module PortMaster — une plateforme
+            Recettes, objectifs, tableaux de bord, facturation, RH et module PortMaster — une plateforme
             unifiée pour la direction et le contrôle d&apos;exploitation.
           </p>
           <ul className="flex flex-wrap gap-4 text-sm text-white/60">
@@ -51,7 +51,7 @@ export function AuthLayout() {
         </div>
 
         <p className="relative z-10 text-xs text-white/40">
-          © {new Date().getFullYear()} Hotel Metrics Pro
+          © {new Date().getFullYear()} Raqmi System
         </p>
 
         <div
