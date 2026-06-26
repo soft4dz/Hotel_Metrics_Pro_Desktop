@@ -52,8 +52,17 @@ import {
 } from './services/logo.service';
 
 const APP_DISPLAY_NAME = 'Raqmi System';
+const LEGACY_USER_DATA_DIR_NAME = 'hotel-metrics-pro-desktop';
 
 Electron.app.setName(APP_DISPLAY_NAME);
+
+function preserveExistingUserDataPath(): void {
+  if (process.platform !== 'win32') return;
+  const appData = Electron.app.getPath('appData');
+  Electron.app.setPath('userData', path.join(appData, LEGACY_USER_DATA_DIR_NAME));
+}
+
+preserveExistingUserDataPath();
 
 Electron.protocol.registerSchemesAsPrivileged([
   {
