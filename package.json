@@ -1,8 +1,8 @@
 {
   "name": "hotel-metrics-pro-desktop",
   "version": "0.8.0",
-  "description": "Hotel Metrics Pro Desktop — pilotage hôtelier et module PortMaster",
-  "author": "Hotel Metrics Pro",
+  "description": "Raqmi System — ERP de pilotage hôtelier, portuaire et RH",
+  "author": "Raqmi System",
   "license": "UNLICENSED",
   "private": true,
   "type": "module",
