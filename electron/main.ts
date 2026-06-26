@@ -51,6 +51,10 @@ import {
   resolveLogoAbsolutePath,
 } from './services/logo.service';
 
+const APP_DISPLAY_NAME = 'Raqmi System';
+
+Electron.app.setName(APP_DISPLAY_NAME);
+
 Electron.protocol.registerSchemesAsPrivileged([
   {
     scheme: 'hmp-logo',
@@ -85,7 +89,7 @@ function createWindow(): void {
     minHeight: 700,
     show: false,
     autoHideMenuBar: true,
-    title: 'Hotel Metrics Pro Desktop',
+    title: APP_DISPLAY_NAME,
     webPreferences: {
       preload: resolvePreloadPath(),
       contextIsolation: true,
