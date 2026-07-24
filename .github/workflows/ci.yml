@@ -15,10 +15,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Le postinstall reconstruit déjà better-sqlite3. En CI, on l'isole
-      # dans l'étape suivante afin d'obtenir un diagnostic clair et d'éviter
-      # une double reconstruction pendant npm ci.
+      # Les scripts d'installation sont isolés afin de rendre chaque échec
+      # explicite : dépendances JS, binaire Electron, puis module SQLite natif.
       - run: npm ci --ignore-scripts
+      - name: Installer le binaire Electron
+        run: node node_modules/electron/install.js
       - run: npm run rebuild:native
       - name: Tests
         run: npm test -- --reporter=json --outputFile=vitest-results.json
