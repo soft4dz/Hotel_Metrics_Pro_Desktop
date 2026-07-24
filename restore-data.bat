@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Hotel Metrics Pro — Restauration des données
+title Raqmi System — Restauration des donnees
 
 cd /d "%~dp0"
 
@@ -21,7 +21,7 @@ if not exist "%BACKUP%" (
 
 echo.
 echo  ============================================
-echo   Restauration Hotel Metrics Pro
+echo   Restauration Raqmi System
 echo  ============================================
 echo.
 echo  Sauvegarde : %BACKUP%
@@ -42,6 +42,7 @@ if errorlevel 1 (
 
 echo.
 echo  Restauration terminee.
-echo  Relancez dev.bat puis connectez-vous avec dec@egt-sidifredj.dz / Admin@2026!
+echo  Relancez l'application et utilisez les identifiants propres a la base restauree.
+echo  Aucun mot de passe universel n'est disponible.
 echo.
 pause
