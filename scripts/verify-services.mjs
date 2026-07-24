@@ -1,52 +1,71 @@
 /**
- * Tests métier via SQLite + bcrypt (runtime Electron requis).
- * Usage: npx electron scripts/verify-services.mjs
+ * Vérifications métier via SQLite (runtime Electron requis).
+ * Usage: npx electron scripts/verify-services.mjs [--db "C:\\chemin\\base.db"]
  */
 import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
-import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, statSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 
-const DB_PATH = 'C:\\ProgramData\\HotelMetricsPro\\data\\hotel_metrics_local.db';
-const BACKUPS_DIR = path.join(path.dirname(DB_PATH), 'backups');
+const defaultPaths = [
+  path.join(process.env.APPDATA ?? '', 'hotel-metrics-pro-desktop', 'data', 'hotel_metrics_local.db'),
+  'C:\\ProgramData\\HotelMetricsPro\\data\\hotel_metrics_local.db',
+];
+const dbArgIndex = process.argv.indexOf('--db');
+const requestedPath = dbArgIndex >= 0 ? process.argv[dbArgIndex + 1] : undefined;
+const DB_PATH = requestedPath
+  ? path.resolve(requestedPath)
+  : defaultPaths.find((candidate) => existsSync(candidate));
 
-const results = [];
-function ok(name, detail = '') {
-  results.push({ ok: true, name, detail });
-}
-function fail(name, detail = '') {
-  results.push({ ok: false, name, detail });
-}
-
-if (!existsSync(DB_PATH)) {
-  console.error('Base introuvable:', DB_PATH);
+if (!DB_PATH || !existsSync(DB_PATH)) {
+  console.error('Base introuvable. Utilisez --db "C:\\chemin\\hotel_metrics_local.db".');
   process.exit(1);
 }
 
+const BACKUPS_DIR = path.join(path.dirname(DB_PATH), 'backups');
+const results = [];
+const ok = (name, detail = '') => results.push({ ok: true, name, detail });
+const fail = (name, detail = '') => results.push({ ok: false, name, detail });
+
 const db = new Database(DB_PATH);
 
-// --- Auth ---
+// --- Authentification et sécurité ---
 const admin = db
   .prepare(
     `
-    SELECT u.id, u.email, u.password_hash, u.is_active, r.code AS role
-    FROM users u JOIN roles r ON r.id = u.role_id
+    SELECT u.id, u.email, u.password_hash, u.is_active, u.must_change_password,
+           r.code AS role
+    FROM users u
+    JOIN roles r ON r.id = u.role_id
     WHERE u.email = ? AND u.deleted_at IS NULL
   `,
   )
   .get('admin@hotelmetrics.local');
 
-if (admin && admin.is_active && bcrypt.compareSync('Admin@2026!', admin.password_hash)) {
-  ok('auth.admin_password', admin.email);
+if (admin && admin.is_active && admin.role === 'SUPERADMIN') {
+  ok('auth.active_superadmin', admin.email);
 } else {
-  fail('auth.admin_password');
+  fail('auth.active_superadmin');
 }
 
-const badHash = admin ? bcrypt.compareSync('wrong-password', admin.password_hash) : true;
-(!badHash ? ok : fail)('auth.reject_wrong_password');
+if (admin?.password_hash?.startsWith('$2')) {
+  ok('auth.password_is_bcrypt');
+} else {
+  fail('auth.password_is_bcrypt');
+}
+
+const wrongPasswordAccepted = admin
+  ? bcrypt.compareSync(`invalid-${Date.now()}-${Math.random()}`, admin.password_hash)
+  : true;
+(!wrongPasswordAccepted ? ok : fail)('auth.reject_random_password');
+
+const legacyPasswordAccepted = admin
+  ? bcrypt.compareSync('Admin@2026!', admin.password_hash)
+  : false;
+(!legacyPasswordAccepted ? ok : fail)('auth.reject_legacy_universal_password');
 
 // --- Permissions admin ---
-const perm = db
+const permission = db
   .prepare(
     `
     SELECT 1 FROM role_permissions rp
@@ -57,23 +76,26 @@ const perm = db
   `,
   )
   .get('admin@hotelmetrics.local');
-(perm ? ok : fail)('permissions.admin_users_manage');
+(permission ? ok : fail)('permissions.admin_users_manage');
 
 // --- Rubriques hiérarchie ---
-const rubList = db
+const rubriques = db
   .prepare(`SELECT id, parent_id FROM rubriques WHERE deleted_at IS NULL`)
   .all();
-const leaves = rubList.filter((r) => {
-  const children = rubList.filter((c) => c.parent_id === r.id);
-  return children.length === 0;
-});
-const rootsWithChildren = rubList.filter(
-  (r) => r.parent_id === null && rubList.some((c) => c.parent_id === r.id),
+const leaves = rubriques.filter(
+  (rubrique) => !rubriques.some((candidate) => candidate.parent_id === rubrique.id),
+);
+const rootsWithChildren = rubriques.filter(
+  (rubrique) =>
+    rubrique.parent_id === null &&
+    rubriques.some((candidate) => candidate.parent_id === rubrique.id),
 );
 (leaves.length > 0 ? ok : fail)('rubriques.leaves', `${leaves.length} feuilles`);
-(rootsWithChildren.length > 0 ? ok : fail)('rubriques.roots_with_children', `${rootsWithChildren.length}`);
+(rootsWithChildren.length > 0 ? ok : fail)(
+  'rubriques.roots_with_children',
+  `${rootsWithChildren.length}`,
+);
 
-// Feuilles utilisables pour recettes (actives, sans enfants actifs)
 const leafForRecettes = db
   .prepare(
     `
@@ -86,51 +108,56 @@ const leafForRecettes = db
   `,
   )
   .get().c;
-(leafForRecettes > 0 ? ok : fail)('recettes.leaf_rubriques', `${leafForRecettes} feuilles actives`);
+(leafForRecettes > 0 ? ok : fail)(
+  'recettes.leaf_rubriques',
+  `${leafForRecettes} feuilles actives`,
+);
 
-// --- Hotel rubriques junction ---
-const hasHotelRubriques = db
-  .prepare(`SELECT COUNT(*) AS c FROM sqlite_master WHERE name = 'hotel_rubriques'`)
-  .get().c;
-(hasHotelRubriques ? ok : fail)('schema.hotel_rubriques');
-
-// --- PortMaster tables ---
-const portTables = ['port_bateaux', 'port_contrats', 'port_factures', 'sync_queue'];
-for (const t of portTables) {
-  const exists = db.prepare(`SELECT COUNT(*) AS c FROM sqlite_master WHERE name = ?`).get(t).c;
-  (exists ? ok : fail)(`schema.${t}`);
+// --- Schéma ---
+for (const table of [
+  'hotel_rubriques',
+  'port_bateaux',
+  'port_contrats',
+  'port_factures',
+  'sync_queue',
+  'facture_sequences',
+]) {
+  const exists = db
+    .prepare(`SELECT COUNT(*) AS c FROM sqlite_master WHERE type = 'table' AND name = ?`)
+    .get(table).c;
+  (exists ? ok : fail)(`schema.${table}`);
 }
 
-// --- Backup simulation (copy via better-sqlite3 backup API) ---
+// --- Sauvegarde ---
 if (!existsSync(BACKUPS_DIR)) {
   fail('backup.dir_exists');
 } else {
   ok('backup.dir_exists', BACKUPS_DIR);
-  const testName = `_verify_test_${Date.now()}.db`;
-  const testPath = path.join(BACKUPS_DIR, testName);
+  const testPath = path.join(BACKUPS_DIR, `_verify_test_${Date.now()}.db`);
   try {
     db.pragma('wal_checkpoint(FULL)');
     await db.backup(testPath);
     const size = statSync(testPath).size;
-    (size > 1000 ? ok : fail)('backup.create_api', `${size} octets`);
+    (size > 1_000 ? ok : fail)('backup.create_api', `${size} octets`);
     unlinkSync(testPath);
     ok('backup.cleanup_test');
-  } catch (e) {
-    fail('backup.create_api', e.message);
+  } catch (error) {
+    fail('backup.create_api', error instanceof Error ? error.message : String(error));
   }
 }
 
-// --- Audit log writable ---
-const auditCountBefore = db.prepare(`SELECT COUNT(*) AS c FROM audit_log`).get().c;
-ok('audit_log.count', String(auditCountBefore));
+const auditCount = db.prepare(`SELECT COUNT(*) AS c FROM audit_log`).get().c;
+ok('audit_log.count', String(auditCount));
 
 db.close();
 
 console.log('\n--- Tests métier ---');
 let failed = 0;
-for (const r of results) {
-  console.log(`${r.ok ? 'OK' : 'FAIL'}  ${r.name}${r.detail ? ` — ${r.detail}` : ''}`);
-  if (!r.ok) failed++;
+for (const result of results) {
+  console.log(
+    `${result.ok ? 'OK' : 'FAIL'}  ${result.name}${result.detail ? ` — ${result.detail}` : ''}`,
+  );
+  if (!result.ok) failed++;
 }
 console.log(`\n${results.length - failed}/${results.length} tests réussis`);
 process.exit(failed > 0 ? 1 : 0);
