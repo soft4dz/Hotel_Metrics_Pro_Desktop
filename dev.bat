@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
-title Hotel Metrics Pro - Mode developpement
+title Raqmi System - Mode developpement
 
 cd /d "%~dp0"
 if errorlevel 1 (
@@ -36,13 +36,13 @@ if not errorlevel 1 (
 
 echo.
 echo  ============================================
-echo   Hotel Metrics Pro Desktop — TEST DEV
+echo   Raqmi System — TEST DEV SECURISE
 echo  ============================================
 echo.
 
 where node >nul 2>&1
 if errorlevel 1 (
-    echo [ERREUR] Node.js n'est pas installé ou pas dans le PATH.
+    echo [ERREUR] Node.js n'est pas installe ou pas dans le PATH.
     echo          Installez Node.js 20 LTS : https://nodejs.org
     pause
     exit /b 1
@@ -81,6 +81,10 @@ if defined ELECTRON_RUN_AS_NODE (
     set ELECTRON_RUN_AS_NODE=
 )
 
+REM Neutralise explicitement les anciens drapeaux d'auto-authentification.
+set VITE_AUTO_LOGIN=
+set HMP_DEV_AUTO_ADMIN=
+
 echo [INFO] Liberation du port Vite 5173 si necessaire...
 node scripts/free-dev-port.mjs
 if errorlevel 1 (
@@ -91,20 +95,16 @@ if errorlevel 1 (
 )
 echo.
 
-set VITE_AUTO_LOGIN=true
-set HMP_DEV_AUTO_ADMIN=1
-
 echo [INFO] Demarrage Electron + Vite ^(npm run dev^)...
 echo.
 echo  - Fenetre Electron : application complete
 echo  - Ne pas utiliser seulement le navigateur Chrome
-echo  - Auto-connexion dev : admin@hotelmetrics.local ^(desactiver : set VITE_AUTO_LOGIN=false^)
-echo  - Connexion manuelle : dec@egt-sidifredj.dz  ou  admin@hotelmetrics.local / Admin@2026!
-echo  - Si echec connexion : fermez l'app puis lancez fix-auth.bat
+echo  - Authentification obligatoire, y compris en developpement
+echo  - Utilisez un compte cree dans la base locale
+echo  - Sur une base neuve, consultez INITIAL_ADMIN_CREDENTIALS.txt puis changez le mot de passe
 echo.
 echo  Arret : fermez la fenetre Electron ou Ctrl+C ici
 echo  DevTools (optionnel) : set HMP_DEVTOOLS=1 puis relancer dev.bat
-echo  Les messages "Autofill" / "language-mismatch" = bruit Chromium, sans impact.
 echo.
 
 call npm run dev
@@ -119,6 +119,6 @@ exit /b 0
 :dev_failed
 echo.
 echo [ERREUR] Le mode dev s'est arrete avec une erreur.
-echo          Si "Port 5173 is already in use" : relancez dev.bat ^(libere le port automatiquement^).
+echo          Si "Port 5173 is already in use" : relancez dev.bat.
 pause
 exit /b 1
