@@ -3,10 +3,7 @@ import * as authService from '../services/auth.service';
 import {
   bindSession,
   clearWebContentsSession,
-  createRememberToken,
   getSessionUserId,
-  restoreRememberToken,
-  revokeRememberToken,
 } from '../services/session.service';
 
 export interface LoginIpcResult extends authService.LoginResult {
@@ -23,43 +20,25 @@ export function registerAuthIpc(): void {
       }
 
       bindSession(event.sender.id, result.user.id);
-      let sessionToken: string | undefined;
-      if (payload.rememberMe) {
-        sessionToken = createRememberToken(result.user.id);
-      }
 
-      return { ...result, sessionToken };
+      // La persistance de session reste volontairement désactivée tant qu'un
+      // stockage chiffré lié au poste (DPAPI/safeStorage) n'est pas déployé.
+      return result;
     },
   );
 
-  Electron.ipcMain.handle(
-    'auth:restore',
-    (event, sessionToken: string): LoginIpcResult => {
-      if (!sessionToken?.trim()) {
-        return { success: false, error: 'Session invalide.' };
-      }
-      const userId = restoreRememberToken(event.sender.id, sessionToken.trim());
-      if (!userId) {
-        return { success: false, error: 'Session expirée. Veuillez vous reconnecter.' };
-      }
-      const user = authService.getUserById(userId);
-      if (!user) {
-        revokeRememberToken(sessionToken.trim());
-        clearWebContentsSession(event.sender.id);
-        return { success: false, error: 'Compte introuvable ou inactif.' };
-      }
-      return { success: true, user, sessionToken: sessionToken.trim() };
-    },
-  );
+  Electron.ipcMain.handle('auth:restore', (): LoginIpcResult => ({
+    success: false,
+    error: 'La restauration automatique de session est désactivée pour des raisons de sécurité.',
+  }));
 
-  Electron.ipcMain.handle('auth:logout', (event, sessionToken?: string): { ok: boolean } => {
+  Electron.ipcMain.handle('auth:logout', (event): { ok: boolean } => {
     const userId = getSessionUserId(event.sender.id);
     if (userId) {
       const user = authService.getUserById(userId);
       if (user) authService.logout(user);
     }
     clearWebContentsSession(event.sender.id);
-    if (sessionToken) revokeRememberToken(sessionToken);
     return { ok: true };
   });
 
