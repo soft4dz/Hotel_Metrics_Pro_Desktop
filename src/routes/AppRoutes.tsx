@@ -73,6 +73,7 @@ import { ClientDetailPage } from '@/pages/clients/ClientDetailPage';
 import { NouveauClientPage } from '@/pages/clients/NouveauClientPage';
 import { HebergementPage } from '@/pages/hebergement/HebergementPage';
 import { TarifsPage as HotelTarifsPage } from '@/pages/tarifs/TarifsPage';
+import { RhHubPage } from '@/pages/rh/RhHubPage';
 import { RhPage } from '@/pages/rh/RhPage';
 import { RhReferentielPage } from '@/pages/system/RhReferentielPage';
 import { ModulesAdminPage } from '@/pages/system/ModulesAdminPage';
@@ -189,7 +190,7 @@ export function AppRoutes() {
             <Route path="/tarifs" element={<HotelTarifsPage />} />
 
             <Route element={<RequireRh />}>
-              <Route path="/rh" element={<RhPage />} />
+              <Route path="/rh" element={<RhHubPage />} />
               <Route path="/rh/:hub" element={<RhPage />} />
               <Route path="/rh/:hub/:sub" element={<RhPage />} />
             </Route>

@@ -114,11 +114,14 @@ export function buildSidebarModules(
       icon: UserCog,
       moduleId: 'rh-productivite',
       visible: canManageRh(role) || canValidateRhTeam(role) || canAccessRhSelf(role),
-      items: getRhSidebarItemsForRole(role, pendingValidationsN1).map((item) => ({
-        label: item.label,
-        to: item.path,
-        badge: item.badge,
-      })),
+      items: [
+        { label: 'Applications RH', to: '/rh' },
+        ...getRhSidebarItemsForRole(role, pendingValidationsN1).map((item) => ({
+          label: item.label,
+          to: item.path,
+          badge: item.badge,
+        })),
+      ],
     },
     {
       id: 'portmaster',

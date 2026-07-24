@@ -91,12 +91,15 @@ if errorlevel 1 (
 )
 echo.
 
+set VITE_AUTO_LOGIN=true
+set HMP_DEV_AUTO_ADMIN=1
+
 echo [INFO] Demarrage Electron + Vite ^(npm run dev^)...
 echo.
 echo  - Fenetre Electron : application complete
 echo  - Ne pas utiliser seulement le navigateur Chrome
-echo  - E-mail           : dec@egt-sidifredj.dz  ou  admin@hotelmetrics.local
-echo  - Mot de passe     : Admin@2026!
+echo  - Auto-connexion dev : admin@hotelmetrics.local ^(desactiver : set VITE_AUTO_LOGIN=false^)
+echo  - Connexion manuelle : dec@egt-sidifredj.dz  ou  admin@hotelmetrics.local / Admin@2026!
 echo  - Si echec connexion : fermez l'app puis lancez fix-auth.bat
 echo.
 echo  Arret : fermez la fenetre Electron ou Ctrl+C ici

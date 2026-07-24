@@ -7,7 +7,7 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
   },
   '/rh': {
     title: 'RH & productivité',
-    subtitle: 'Effectifs, recrutement, présences et indicateurs',
+    subtitle: 'Applications RH — pilotage, collaborateurs, paie et talents',
   },
   '/dashboard': {
     title: 'Pilotage Global',
@@ -231,7 +231,7 @@ export function getPageTitle(pathname: string): { title: string; subtitle?: stri
     }
   }
   if (pathname === '/rh') {
-    return { title: 'RH & productivité', subtitle: 'Effectifs, recrutement, présences et indicateurs' };
+    return { title: 'RH & productivité', subtitle: 'Applications RH — pilotage, collaborateurs, paie et talents' };
   }
   if (pathname === '/settings/rh-referentiel') {
     return { title: 'Référentiel RH', subtitle: 'Postes, départements et modèles de dossier' };
