@@ -12,7 +12,7 @@ import {
   assertPositiveNumber,
   assertText,
 } from './validation';
-import * as svc from '../services/facturation.service';
+import * as svc from '../services/facturation-secure.service';
 import * as pdfSvc from '../services/facturation-pdf.service';
 
 const FACTURE_STATUTS = ['brouillon', 'soumise', 'validee', 'payee', 'annulee'] as const;
