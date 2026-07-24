@@ -3,6 +3,7 @@ productName: Raqmi System
 copyright: Copyright © Raqmi System
 # better-sqlite3 est déjà précompilé via npm run rebuild:native (postinstall)
 npmRebuild: false
+forceCodeSigning: true
 directories:
   output: installers
   buildResources: assets
@@ -24,7 +25,9 @@ win:
     - target: nsis
       arch:
         - x64
-  signAndEditExecutable: false
+  # La signature est injectée par WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD
+  # (ou CSC_LINK / CSC_KEY_PASSWORD) dans l'environnement de build.
+  signAndEditExecutable: true
   # icon: assets/icon.ico  # ajouter icon.ico pour une icône personnalisée (voir assets/README.md)
 nsis:
   oneClick: false
