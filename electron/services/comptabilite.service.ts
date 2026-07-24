@@ -115,6 +115,8 @@ export const COMPTES_SCF = {
   FOURNISSEURS: '401000',
   TVA_COLLECTEE: '445710',
   TVA_DEDUCTIBLE: '445660',
+  STOCKS: '311000',
+  ACHATS_CONSOMMES: '601000',
   CA_HEBERGEMENT: '707100',
   CA_RESTAURATION: '706100',
   BANQUE: '512000',
@@ -460,4 +462,66 @@ export function genererEcritureEncaissement(actorUserId: number, input: Encaisse
 
 export function hashDocument(payload: string): string {
   return createHash('sha256').update(payload).digest('hex');
+}
+
+export interface StockVariationEcritureInput {
+  mouvementId: number;
+  hotelId: number;
+  typeMouvement: string;
+  montant: number;
+  reference: string | null;
+  motif: string | null;
+  dateMouvement: string;
+}
+
+/** Écriture auto variation stock SCF — OD consommation ou entrée achat. */
+export function genererEcritureVariationStock(actorUserId: number, input: StockVariationEcritureInput): EcritureDetail | null {
+  if (input.montant <= 0) return null;
+  try {
+    const isEntree = input.typeMouvement === 'entree';
+    const fromReception = (input.motif ?? '').includes('Réception BC');
+    const montant = Math.round(input.montant * 100) / 100;
+    const piece = input.reference ?? `MVT-${input.mouvementId}`;
+    const libelle = input.motif ?? `Mouvement stock ${input.typeMouvement}`;
+
+    let journalCode = 'OD';
+    let lignes: LigneEcritureInput[];
+
+    if (isEntree && fromReception) {
+      journalCode = 'AC';
+      lignes = [
+        { compteNumero: COMPTES_SCF.STOCKS, debit: montant, credit: 0, hotelId: input.hotelId },
+        { compteNumero: COMPTES_SCF.FOURNISSEURS, debit: 0, credit: montant, hotelId: input.hotelId },
+      ];
+    } else if (isEntree) {
+      lignes = [
+        { compteNumero: COMPTES_SCF.STOCKS, debit: montant, credit: 0, hotelId: input.hotelId },
+        { compteNumero: COMPTES_SCF.ACHATS_CONSOMMES, debit: 0, credit: montant, hotelId: input.hotelId },
+      ];
+    } else {
+      lignes = [
+        { compteNumero: COMPTES_SCF.ACHATS_CONSOMMES, debit: montant, credit: 0, hotelId: input.hotelId },
+        { compteNumero: COMPTES_SCF.STOCKS, debit: 0, credit: montant, hotelId: input.hotelId },
+      ];
+    }
+
+    return creerEcriture(actorUserId, {
+      journalCode,
+      dateEcriture: input.dateMouvement,
+      libelle,
+      piece,
+      hotelId: input.hotelId,
+      sourceModule: 'stocks',
+      sourceRef: String(input.mouvementId),
+      lignes,
+    }, true);
+  } catch (err) {
+    writeAuditLog({
+      userId: actorUserId,
+      action: 'ERROR',
+      module: 'comptabilite',
+      description: `Échec écriture stock #${input.mouvementId}: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    return null;
+  }
 }

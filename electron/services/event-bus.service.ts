@@ -5,7 +5,10 @@ export type ErpEventType =
   | 'RECIPE_VALIDATED'
   | 'PRODUCTION_EXECUTED'
   | 'POINTEUSE_IMPORTED'
-  | 'POINTAGES_GENERATED';
+  | 'POINTAGES_GENERATED'
+  | 'POS_SALE_RECORDED'
+  | 'STOCK_COMPTA_POSTED'
+  | 'POINTEUSE_SYNCED';
 
 export interface ErpEventPayload {
   type: ErpEventType;

@@ -61,7 +61,7 @@ import { registerNotificationsIpc } from './ipc/notifications.ipc';
 import { registerContratsHotelIpc } from './ipc/contrats-hotel.ipc';
 import { registerCuisineIpc } from './ipc/cuisine.ipc';
 import { ensureLicenseBootstrap } from './services/license.service';
-import { startPhase5Scheduler } from './services/phase5-scheduler.service';
+import { startPhase6BisScheduler } from './services/phase6-bis-scheduler.service';
 import { runPortSeedIfNeeded } from './database/portSeed';
 import { runPortMigrateV2 } from './database/portMigrateV2';
 import { logger } from './utils/logger';
@@ -284,7 +284,7 @@ function bootstrap(): void {
     registerNotificationsIpc();
     registerContratsHotelIpc();
     registerCuisineIpc();
-    startPhase5Scheduler();
+    startPhase6BisScheduler();
     createWindow();
   } catch (err) {
     logger.error('Échec initialisation application', err);

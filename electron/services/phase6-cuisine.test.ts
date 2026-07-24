@@ -71,6 +71,12 @@ describe('Phase 6 — fiche technique → production', () => {
           recette_portions: 4, recette_nom: 'Couscous',
         });
       }
+      if (sql.includes('FROM cuisine_recettes WHERE id = ?')) {
+        return chain({
+          id: 1, statut: 'valide', nom: 'Couscous', portions: 4, hotel_id: 1, code: 'X',
+          uuid: 'u', prix_vente: 100, cout_revient: 50, marge_pct: 50, valide_par: 1, valide_at: null, created_at: '',
+        });
+      }
       if (sql.includes('FROM cuisine_recette_lignes')) {
         return chain([{
           id: 10, recette_id: 1, produit_id: 5, quantite: 0.5, unite: 'kg', taux_perte: 0,

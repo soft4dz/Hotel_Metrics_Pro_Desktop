@@ -79,15 +79,17 @@ Types : `RECIPE_VALIDATED`, `PRODUCTION_EXECUTED`, `POINTEUSE_IMPORTED`, `POINTA
 
 ---
 
-## Lot 3 — À venir (Phase 6 bis)
+## Lot 3 — Phase 6 bis (livré)
 
-| Fonctionnalité | Priorité |
-|----------------|----------|
-| Agent sync ZKTeco UDP 4370 (Node local) | P2 |
-| Lien vente POS → décrémentation BOM | P2 |
-| Écriture comptable variation stock SCF | P2 |
-| Alertes absence H+15 | P3 |
-| IoT température frigo | P3 |
+| Fonctionnalité | Statut |
+|----------------|--------|
+| Sync ZKTeco TCP 4370 (`node-zklib`, auto 5 min) | ✅ |
+| Vente POS → décrémentation BOM (`cuisine-pos.service`) | ✅ |
+| Écriture comptable variation stock SCF (`stocks-compta.service`) | ✅ |
+| Alertes absence H+15 | 📋 Phase 7 |
+| IoT température frigo | 📋 Phase 7 |
+
+Voir `docs/erp/phase6-bis-livraison.md`.
 
 ---
 
@@ -95,6 +97,8 @@ Types : `RECIPE_VALIDATED`, `PRODUCTION_EXECUTED`, `POINTEUSE_IMPORTED`, `POINTA
 
 - `electron/services/phase6-cuisine.test.ts`
 - `electron/services/phase6-pointeuse.test.ts`
+- `electron/services/phase6bis-pos.test.ts`
+- `electron/services/phase6bis-compta.test.ts`
 
 ---
 

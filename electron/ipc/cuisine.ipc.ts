@@ -12,11 +12,13 @@ import {
   createOrdreProduction,
   executerOrdreProduction,
 } from '../services/cuisine-production.service';
+import { listVentesPos, enregistrerVentePos } from '../services/cuisine-pos.service';
 import type {
   CreateRecetteInput,
   UpsertRecetteLigneInput,
   CreateOrdreProductionInput,
 } from '../../src/shared/types/cuisine';
+import type { EnregistrerVentePosInput } from '../../src/shared/types/cuisine';
 
 export function registerCuisineIpc(): void {
   Electron.ipcMain.handle('cuisine:recettes:list', (event, hotelId: number) =>
@@ -39,4 +41,8 @@ export function registerCuisineIpc(): void {
     wrapIpc(event, (uid) => createOrdreProduction(uid, input)));
   Electron.ipcMain.handle('cuisine:ordres:executer', (event, id: number) =>
     wrapIpc(event, (uid) => executerOrdreProduction(uid, id)));
+  Electron.ipcMain.handle('cuisine:pos:list', (event, hotelId: number) =>
+    wrapIpc(event, () => listVentesPos(hotelId)));
+  Electron.ipcMain.handle('cuisine:pos:vente', (event, input: EnregistrerVentePosInput) =>
+    wrapIpc(event, (uid) => enregistrerVentePos(uid, input)));
 }

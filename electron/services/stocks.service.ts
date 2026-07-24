@@ -1,10 +1,11 @@
 import { getDatabase } from '../database/sqlite';
+import { postComptaForMouvement } from './stocks-compta.service';
 
 export interface StockProduit { id: number; uuid: string; code: string; designation: string; categorieId: number | null; categorieLabel: string | null; unite: string; prixUnitaire: number; seuilAlerte: number; isActive: boolean }
 export interface StockNiveau { hotelId: number; produitId: number; produitCode: string; produitDesignation: string; unite: string; quantite: number; seuilAlerte: number; enAlerte: boolean; valeur: number }
 export interface StockMouvement { id: number; uuid: string; hotelId: number; produitId: number; produitDesignation: string; typeMouvement: string; quantite: number; prixUnitaire: number | null; montant: number | null; reference: string | null; motif: string | null; dateMouvement: string; createdAt: string }
 export interface CreateProduitInput { code: string; designation: string; categorieId?: number | null; unite?: string; prixUnitaire?: number; seuilAlerte?: number }
-export interface CreateMouvementInput { hotelId: number; produitId: number; typeMouvement: string; quantite: number; prixUnitaire?: number; reference?: string; motif?: string; dateMouvement?: string }
+export interface CreateMouvementInput { hotelId: number; produitId: number; typeMouvement: string; quantite: number; prixUnitaire?: number; reference?: string; motif?: string; dateMouvement?: string; sourceType?: string; sourceId?: number; skipCompta?: boolean }
 
 export function listProduits(): StockProduit[] {
   const db = getDatabase();
@@ -29,12 +30,19 @@ export function createMouvement(actorId: number, input: CreateMouvementInput): S
   const prix = input.prixUnitaire;
   const montant = prix !== undefined ? Math.abs(input.quantite) * prix : null;
   const signe = ['sortie', 'perte'].includes(input.typeMouvement) ? -1 : 1;
-  const res = db.prepare(`INSERT INTO stock_mouvements (hotel_id,produit_id,type_mouvement,quantite,prix_unitaire,montant,reference,motif,date_mouvement,saisi_par) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id`)
-    .get(input.hotelId, input.produitId, input.typeMouvement, input.quantite * signe, prix ?? null, montant, input.reference ?? null, input.motif ?? null, input.dateMouvement ?? new Date().toISOString().slice(0,10), actorId) as { id: number };
+  const res = db.prepare(`INSERT INTO stock_mouvements (hotel_id,produit_id,type_mouvement,quantite,prix_unitaire,montant,reference,motif,date_mouvement,saisi_par,source_type,source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`)
+    .get(input.hotelId, input.produitId, input.typeMouvement, input.quantite * signe, prix ?? null, montant, input.reference ?? null, input.motif ?? null, input.dateMouvement ?? new Date().toISOString().slice(0,10), actorId, input.sourceType ?? null, input.sourceId ?? null) as { id: number };
   // Update niveau
   db.prepare(`INSERT INTO stock_niveaux (hotel_id,produit_id,quantite) VALUES (?,?,?) ON CONFLICT(hotel_id,produit_id) DO UPDATE SET quantite = quantite + excluded.quantite, updated_at = datetime('now')`)
     .run(input.hotelId, input.produitId, input.quantite * signe);
   const row = db.prepare(`SELECT m.*, p.designation FROM stock_mouvements m JOIN stock_produits p ON p.id = m.produit_id WHERE m.id = ?`).get(res.id) as Record<string, unknown>;
+  if (!input.skipCompta) {
+    try {
+      postComptaForMouvement(res.id);
+    } catch {
+      /* compta optionnelle */
+    }
+  }
   return { id: row.id as number, uuid: row.uuid as string, hotelId: row.hotel_id as number, produitId: row.produit_id as number, produitDesignation: row.designation as string, typeMouvement: row.type_mouvement as string, quantite: row.quantite as number, prixUnitaire: row.prix_unitaire as number | null, montant: row.montant as number | null, reference: row.reference as string | null, motif: row.motif as string | null, dateMouvement: row.date_mouvement as string, createdAt: row.created_at as string };
 }
 

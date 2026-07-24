@@ -67,3 +67,25 @@ export interface CuisineOrdreProduction {
   coutTheorique: number | null;
   executeAt: string | null;
 }
+
+export interface EnregistrerVentePosInput {
+  hotelId: number;
+  recetteId: number;
+  quantite: number;
+  montantTtc?: number | null;
+  referenceTicket?: string | null;
+  dateVente?: string;
+}
+
+export interface CuisineVentePos {
+  id: number;
+  uuid: string;
+  hotelId: number;
+  recetteId: number;
+  recetteNom: string;
+  quantite: number;
+  montantTtc: number | null;
+  referenceTicket: string | null;
+  dateVente: string;
+  createdAt: string;
+}

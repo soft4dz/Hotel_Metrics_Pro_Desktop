@@ -208,6 +208,39 @@ export function listOrdresProduction(hotelId: number): CuisineOrdreProduction[] 
   }));
 }
 
+export function consommerStockRecette(
+  actorUserId: number,
+  hotelId: number,
+  recetteId: number,
+  portionsVendues: number,
+  reference: string,
+  motif: string,
+  sourceType: string,
+  sourceId: number,
+): number[] {
+  const recette = getRecette(recetteId);
+  if (!recette || recette.statut !== 'valide') throw new Error('Recette validée requise.');
+  const ratio = portionsVendues / (recette.portions || 1);
+  const mouvementIds: number[] = [];
+  for (const ligne of recette.lignes) {
+    const qty = Math.round(ligne.quantite * (1 + ligne.tauxPerte / 100) * ratio * 1000) / 1000;
+    if (qty <= 0) continue;
+    const mv = createMouvement(actorUserId, {
+      hotelId,
+      produitId: ligne.produitId,
+      typeMouvement: 'sortie',
+      quantite: qty,
+      prixUnitaire: getPmpProduit(ligne.produitId),
+      reference,
+      motif,
+      sourceType,
+      sourceId,
+    });
+    mouvementIds.push(mv.id);
+  }
+  return mouvementIds;
+}
+
 export function createOrdreProduction(actorUserId: number, input: CreateOrdreProductionInput): CuisineOrdreProduction {
   const recette = getRecette(input.recetteId);
   if (!recette || recette.statut !== 'valide') throw new Error('Recette validée requise.');
@@ -235,22 +268,16 @@ export function executerOrdreProduction(actorUserId: number, ordreId: number): C
   const recetteId = ordre.recette_id as number;
   const hotelId = ordre.hotel_id as number;
   const portions = ordre.portions_prevues as number;
-  const recettePortions = (ordre.recette_portions as number) || 1;
-  const ratio = portions / recettePortions;
-  const lignes = loadLignes(recetteId);
-  for (const ligne of lignes) {
-    const qty = Math.round(ligne.quantite * (1 + ligne.tauxPerte / 100) * ratio * 1000) / 1000;
-    if (qty <= 0) continue;
-    createMouvement(actorUserId, {
-      hotelId,
-      produitId: ligne.produitId,
-      typeMouvement: 'sortie',
-      quantite: qty,
-      prixUnitaire: getPmpProduit(ligne.produitId),
-      reference: `OP-${ordreId}`,
-      motif: `Production ${ordre.recette_nom as string} (${portions} portions)`,
-    });
-  }
+  consommerStockRecette(
+    actorUserId,
+    hotelId,
+    recetteId,
+    portions,
+    `OP-${ordreId}`,
+    `Production ${ordre.recette_nom as string} (${portions} portions)`,
+    'cuisine_ordre',
+    ordreId,
+  );
   db.prepare(`
     UPDATE cuisine_ordres_production
     SET statut = 'termine', portions_realisees = ?, execute_par = ?, execute_at = datetime('now')

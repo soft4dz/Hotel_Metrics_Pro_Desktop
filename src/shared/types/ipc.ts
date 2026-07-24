@@ -865,6 +865,9 @@ export interface IpcApi {
     listRawPunches: (hotelId: number, traite?: boolean) => Promise<IpcResult<import('./rh').RhRawPunch[]>>;
     traiterRawPunches: (hotelId: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<import('./rh').TraiterPunchesResult>>;
     setEmployeBadge: (employeId: number, badgeId: string | null) => Promise<IpcResult<boolean>>;
+    syncPointeuseNow: (pointeuseId: number) => Promise<IpcResult<{ imported: number; duplicates: number; ok: boolean; message: string }>>;
+    setPointeuseSyncAuto: (pointeuseId: number, syncAuto: boolean, intervalMin?: number) => Promise<IpcResult<boolean>>;
+    listPointeusesExtended: (hotelId: number) => Promise<IpcResult<(import('./rh').RhPointeuse & { syncAuto: boolean; syncIntervalMin: number; dernierSyncStatut: string | null; dernierSyncMessage: string | null })[]>>;
   };
   modules: {
     listEnabled: () => Promise<IpcResult<string[]>>;
@@ -927,6 +930,8 @@ export interface IpcApi {
     listOrdres: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction[]>>;
     createOrdre: (input: import('./cuisine').CreateOrdreProductionInput) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction>>;
     executerOrdre: (id: number) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction>>;
+    listVentesPos: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineVentePos[]>>;
+    enregistrerVentePos: (input: import('./cuisine').EnregistrerVentePosInput) => Promise<IpcResult<import('./cuisine').CuisineVentePos>>;
   };
   achats: {
     listFournisseurs: () => Promise<IpcResult<unknown[]>>;

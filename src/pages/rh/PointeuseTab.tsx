@@ -8,10 +8,17 @@ import type { RhPointeuse, RhRawPunch, TraiterPunchesResult } from '@/shared/typ
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+type PointeuseExtended = RhPointeuse & {
+  syncAuto?: boolean;
+  syncIntervalMin?: number;
+  dernierSyncStatut?: string | null;
+  dernierSyncMessage?: string | null;
+};
+
 export function PointeuseTab() {
   const { hotels } = useHotelsList();
   const [hotelId, setHotelId] = useState(hotels[0]?.id ?? 1);
-  const [pointeuses, setPointeuses] = useState<RhPointeuse[]>([]);
+  const [pointeuses, setPointeuses] = useState<PointeuseExtended[]>([]);
   const [rawPunches, setRawPunches] = useState<RhRawPunch[]>([]);
   const [csvText, setCsvText] = useState('');
   const [lastResult, setLastResult] = useState<TraiterPunchesResult | null>(null);
@@ -21,7 +28,7 @@ export function PointeuseTab() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setPointeuses(unwrapIpc(await ipcClient.rh.listPointeuses(hotelId)) as RhPointeuse[]);
+      setPointeuses(unwrapIpc(await ipcClient.rh.listPointeusesExtended(hotelId)) as PointeuseExtended[]);
       setRawPunches(unwrapIpc(await ipcClient.rh.listRawPunches(hotelId, false)) as RhRawPunch[]);
     } finally {
       setLoading(false);
@@ -73,6 +80,27 @@ export function PointeuseTab() {
     }
   };
 
+  const handleSyncNow = async (pointeuseId: number) => {
+    try {
+      const res = unwrapIpc(await ipcClient.rh.syncPointeuseNow(pointeuseId)) as { ok: boolean; message: string; imported: number };
+      if (res.ok) notify.success(res.message);
+      else notify.error(res.message);
+      void load();
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : 'Erreur sync');
+    }
+  };
+
+  const toggleSyncAuto = async (p: PointeuseExtended) => {
+    try {
+      unwrapIpc(await ipcClient.rh.setPointeuseSyncAuto(p.id, !p.syncAuto, p.syncIntervalMin ?? 5));
+      void load();
+      notify.success(`Sync auto ${!p.syncAuto ? 'activée' : 'désactivée'} (toutes les 5 min)`);
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
@@ -80,7 +108,7 @@ export function PointeuseTab() {
         <div className="flex-1">
           <h2 className="text-lg font-semibold">Pointeuses & import automatique</h2>
           <p className="text-sm text-muted-foreground">
-            Import CSV (ZKTeco, Hikvision…) → pointages brouillon → validation N+1 inchangée. Les empreintes restent sur la pointeuse (conformité ANPDP).
+            Import CSV ou sync TCP ZKTeco (port 4370) toutes les 5 min si activé. Empreintes sur l&apos;appareil uniquement (ANPDP).
           </p>
         </div>
         <select value={hotelId} onChange={(e) => setHotelId(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-background">
@@ -94,11 +122,28 @@ export function PointeuseTab() {
           {pointeuses.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune pointeuse — ajoutez-en une pour tracer les imports.</p>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3 text-sm">
               {pointeuses.map((p) => (
-                <li key={p.id} className="flex justify-between border-b pb-2">
-                  <span>{p.nom} <span className="text-muted-foreground">({p.marque})</span></span>
-                  <span className="text-xs text-muted-foreground">{p.derniereSync ? `Sync ${p.derniereSync}` : '—'}</span>
+                <li key={p.id} className="border-b pb-3 space-y-2">
+                  <div className="flex justify-between gap-2 flex-wrap">
+                    <span>{p.nom} <span className="text-muted-foreground">({p.marque}) {p.adresseIp ?? 'sans IP'}</span></span>
+                    <span className="text-xs text-muted-foreground">{p.derniereSync ? `Sync ${p.derniereSync}` : '—'}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Button size="sm" variant="outline" disabled={!p.adresseIp} onClick={() => void handleSyncNow(p.id)}>
+                      <RefreshCw className="w-3 h-3 mr-1" /> Sync maintenant
+                    </Button>
+                    <label className="flex items-center gap-1 text-xs">
+                      <input type="checkbox" checked={Boolean(p.syncAuto)} onChange={() => void toggleSyncAuto(p)} disabled={!p.adresseIp} />
+                      Auto 5 min
+                    </label>
+                    {p.dernierSyncStatut === 'erreur' && (
+                      <Badge variant="danger">{p.dernierSyncMessage ?? 'Erreur sync'}</Badge>
+                    )}
+                    {p.syncAuto && p.dernierSyncStatut === 'ok' && (
+                      <Badge variant="success">Sync OK</Badge>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

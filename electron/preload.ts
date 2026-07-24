@@ -583,6 +583,10 @@ const api: IpcApi = {
       ipcRenderer.invoke('rh:pointeuses:traiter', hotelId, dateDebut, dateFin),
     setEmployeBadge: (employeId: number, badgeId: string | null) =>
       ipcRenderer.invoke('rh:pointeuses:setBadge', employeId, badgeId),
+    syncPointeuseNow: (pointeuseId: number) => ipcRenderer.invoke('rh:pointeuses:syncNow', pointeuseId),
+    setPointeuseSyncAuto: (pointeuseId: number, syncAuto: boolean, intervalMin?: number) =>
+      ipcRenderer.invoke('rh:pointeuses:setSyncAuto', pointeuseId, syncAuto, intervalMin),
+    listPointeusesExtended: (hotelId: number) => ipcRenderer.invoke('rh:pointeuses:listExtended', hotelId),
   },
   modules: {
     listEnabled: () => ipcRenderer.invoke('modules:listEnabled'),
@@ -648,6 +652,8 @@ const api: IpcApi = {
     listOrdres: (hotelId: number) => ipcRenderer.invoke('cuisine:ordres:list', hotelId),
     createOrdre: (input: unknown) => ipcRenderer.invoke('cuisine:ordres:create', input),
     executerOrdre: (id: number) => ipcRenderer.invoke('cuisine:ordres:executer', id),
+    listVentesPos: (hotelId: number) => ipcRenderer.invoke('cuisine:pos:list', hotelId),
+    enregistrerVentePos: (input: unknown) => ipcRenderer.invoke('cuisine:pos:vente', input),
   },
   achats: {
     listFournisseurs: () => ipcRenderer.invoke('achats:listFournisseurs'),

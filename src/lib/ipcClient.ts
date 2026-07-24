@@ -512,6 +512,10 @@ export const ipcClient: IpcApi = {
     traiterRawPunches: (hotelId, dateDebut, dateFin) =>
       api().rh.traiterRawPunches(hotelId, dateDebut, dateFin),
     setEmployeBadge: (employeId, badgeId) => api().rh.setEmployeBadge(employeId, badgeId),
+    syncPointeuseNow: (pointeuseId) => api().rh.syncPointeuseNow(pointeuseId),
+    setPointeuseSyncAuto: (pointeuseId, syncAuto, intervalMin) =>
+      api().rh.setPointeuseSyncAuto(pointeuseId, syncAuto, intervalMin),
+    listPointeusesExtended: (hotelId) => api().rh.listPointeusesExtended(hotelId),
   },
   modules: {
     listEnabled: () => api().modules.listEnabled(),
@@ -574,6 +578,8 @@ export const ipcClient: IpcApi = {
     listOrdres: (hotelId) => api().cuisine.listOrdres(hotelId),
     createOrdre: (input) => api().cuisine.createOrdre(input),
     executerOrdre: (id) => api().cuisine.executerOrdre(id),
+    listVentesPos: (hotelId) => api().cuisine.listVentesPos(hotelId),
+    enregistrerVentePos: (input) => api().cuisine.enregistrerVentePos(input),
   },
   achats: {
     listFournisseurs: () => api().achats.listFournisseurs(),

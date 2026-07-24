@@ -15,6 +15,7 @@ import * as rhDeclarations from '../services/rh-declarations-export.service';
 import * as rhPaieCloture from '../services/rh-paie-cloture.service';
 import * as rhEgt from '../services/rh-organisation-egt.service';
 import * as rhPointeuse from '../services/rh-pointeuse.service';
+import * as rhPointeuseSync from '../services/rh-pointeuse-sync.service';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -479,4 +480,13 @@ export function registerRhIpc(): void {
       rhPointeuse.setEmployeBadge(uid, employeId, badgeId);
       return true;
     }));
+  Electron.ipcMain.handle('rh:pointeuses:syncNow', (event, pointeuseId: number) =>
+    wrapIpcAsync(event, (uid) => rhPointeuseSync.syncPointeuseNow(uid, pointeuseId)));
+  Electron.ipcMain.handle('rh:pointeuses:setSyncAuto', (event, pointeuseId: number, syncAuto: boolean, intervalMin?: number) =>
+    wrapIpc(event, (uid) => {
+      rhPointeuseSync.setPointeuseSyncAuto(uid, pointeuseId, syncAuto, intervalMin);
+      return true;
+    }));
+  Electron.ipcMain.handle('rh:pointeuses:listExtended', (event, hotelId: number) =>
+    wrapIpc(event, () => rhPointeuseSync.listPointeusesWithSync(hotelId)));
 }

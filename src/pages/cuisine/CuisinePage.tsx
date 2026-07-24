@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChefHat, Plus, CheckCircle, Play, Trash2 } from 'lucide-react';
+import { ChefHat, Plus, CheckCircle, Play, Trash2, ShoppingCart } from 'lucide-react';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
-import type { CuisineRecette, CuisineOrdreProduction } from '@/shared/types/cuisine';
+import type { CuisineRecette, CuisineOrdreProduction, CuisineVentePos } from '@/shared/types/cuisine';
 import type { StockProduit } from '@/shared/types/stocks';
 
-type Tab = 'fiches' | 'production';
+type Tab = 'fiches' | 'production' | 'pos';
 
 export default function CuisinePage() {
   const qc = useQueryClient();
@@ -20,6 +20,7 @@ export default function CuisinePage() {
   const [newRecette, setNewRecette] = useState({ code: '', nom: '', portions: 1, prixVente: '' });
   const [ligneForm, setLigneForm] = useState({ produitId: 0, quantite: 1, tauxPerte: 0 });
   const [ordreForm, setOrdreForm] = useState({ recetteId: 0, dateProduction: new Date().toISOString().slice(0, 10), portionsPrevues: 1 });
+  const [posForm, setPosForm] = useState({ recetteId: 0, quantite: 1, referenceTicket: '', montantTtc: '' });
 
   const { data: recettes = [] } = useQuery({
     queryKey: ['cuisine-recettes', hotelId],
@@ -29,6 +30,11 @@ export default function CuisinePage() {
     queryKey: ['cuisine-ordres', hotelId],
     queryFn: async () => unwrapIpc(await ipcClient.cuisine.listOrdres(hotelId)) as CuisineOrdreProduction[],
     enabled: tab === 'production',
+  });
+  const { data: ventes = [] } = useQuery({
+    queryKey: ['cuisine-ventes-pos', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.cuisine.listVentesPos(hotelId)) as CuisineVentePos[],
+    enabled: tab === 'pos',
   });
   const { data: produits = [] } = useQuery({
     queryKey: ['stocks-produits'],
@@ -40,6 +46,7 @@ export default function CuisinePage() {
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['cuisine-recettes', hotelId] });
     void qc.invalidateQueries({ queryKey: ['cuisine-ordres', hotelId] });
+    void qc.invalidateQueries({ queryKey: ['cuisine-ventes-pos', hotelId] });
     void qc.invalidateQueries({ queryKey: ['stocks-niveaux', hotelId] });
   };
 
@@ -105,6 +112,22 @@ export default function CuisinePage() {
     onError: (e) => notify.error(e instanceof Error ? e.message : 'Erreur'),
   });
 
+  const ventePos = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.cuisine.enregistrerVentePos({
+      hotelId,
+      recetteId: posForm.recetteId,
+      quantite: posForm.quantite,
+      referenceTicket: posForm.referenceTicket || null,
+      montantTtc: posForm.montantTtc ? Number(posForm.montantTtc) : null,
+    })),
+    onSuccess: () => {
+      invalidate();
+      setPosForm({ recetteId: 0, quantite: 1, referenceTicket: '', montantTtc: '' });
+      notify.success('Vente POS enregistrée — stock décrémenté + compta SCF');
+    },
+    onError: (e) => notify.error(e instanceof Error ? e.message : 'Erreur'),
+  });
+
   const recettesValidees = recettes.filter((r) => r.statut === 'valide');
 
   return (
@@ -123,14 +146,14 @@ export default function CuisinePage() {
       </div>
 
       <div className="flex gap-2 border-b">
-        {(['fiches', 'production'] as Tab[]).map((t) => (
+        {(['fiches', 'production', 'pos'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === t ? 'border-orange-600 text-orange-600' : 'border-transparent text-muted-foreground'}`}
           >
-            {t === 'fiches' ? 'Fiches techniques' : 'Ordres de production'}
+            {t === 'fiches' ? 'Fiches techniques' : t === 'production' ? 'Ordres de production' : 'Ventes POS'}
           </button>
         ))}
       </div>
@@ -248,6 +271,51 @@ export default function CuisinePage() {
                         </button>
                       )}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'pos' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-3 items-end border rounded-xl p-4">
+            <ShoppingCart className="w-5 h-5 text-orange-600 hidden sm:block" />
+            <div>
+              <label className="text-xs text-muted-foreground">Plat vendu</label>
+              <select value={posForm.recetteId} onChange={(e) => setPosForm({ ...posForm, recetteId: Number(e.target.value) })} className="block border rounded px-2 py-1.5 text-sm mt-1 min-w-[180px]">
+                <option value={0}>Choisir…</option>
+                {recettesValidees.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Quantité</label>
+              <input type="number" min={1} value={posForm.quantite} onChange={(e) => setPosForm({ ...posForm, quantite: Number(e.target.value) })} className="block border rounded px-2 py-1.5 text-sm mt-1 w-20" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Ticket</label>
+              <input value={posForm.referenceTicket} onChange={(e) => setPosForm({ ...posForm, referenceTicket: e.target.value })} placeholder="TCK-001" className="block border rounded px-2 py-1.5 text-sm mt-1 w-28" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Montant TTC</label>
+              <input value={posForm.montantTtc} onChange={(e) => setPosForm({ ...posForm, montantTtc: e.target.value })} placeholder="auto" className="block border rounded px-2 py-1.5 text-sm mt-1 w-24" />
+            </div>
+            <button type="button" disabled={!posForm.recetteId} onClick={() => ventePos.mutate()} className="text-sm bg-orange-600 text-white px-4 py-2 rounded-lg">Enregistrer vente</button>
+          </div>
+          <p className="text-xs text-muted-foreground">Déclenche automatiquement : sortie stock BOM → écriture comptable SCF (601/311).</p>
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50"><tr><th className="p-3 text-left">Date</th><th>Plat</th><th>Qté</th><th>Montant</th><th>Ticket</th></tr></thead>
+              <tbody>
+                {ventes.map((v) => (
+                  <tr key={v.id} className="border-t">
+                    <td className="p-3">{v.dateVente}</td>
+                    <td>{v.recetteNom}</td>
+                    <td>{v.quantite}</td>
+                    <td>{v.montantTtc?.toLocaleString() ?? '—'} DA</td>
+                    <td>{v.referenceTicket ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

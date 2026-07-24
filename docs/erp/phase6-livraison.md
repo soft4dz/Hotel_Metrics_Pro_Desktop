@@ -11,7 +11,7 @@
 |-----|---------|--------|
 | Lot 1 | Fiches techniques + ordres production + bus événements | ✅ Livré |
 | Lot 2 | Pointeuses CSV → raw punches → pointages RH | ✅ Livré MVP |
-| Lot 3 | Sync ZKTeco live + POS | 📋 Phase 6 bis |
+| Lot 3 | Sync ZKTeco live + POS + compta stock SCF | ✅ Livré (Phase 6 bis) |
 
 ---
 
