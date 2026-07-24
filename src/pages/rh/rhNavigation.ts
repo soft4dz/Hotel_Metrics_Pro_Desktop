@@ -84,6 +84,7 @@ export const RH_HUBS: RhHub[] = [
       { id: 'planning', label: 'Planning', teamOk: true },
       { id: 'pointages', label: 'Pointages', teamOk: true },
       { id: 'absences', label: 'Absences & congés', teamOk: true },
+      { id: 'pointeuse', label: 'Pointeuses', manageOnly: true },
     ],
   },
   {

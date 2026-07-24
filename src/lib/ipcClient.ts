@@ -504,6 +504,14 @@ export const ipcClient: IpcApi = {
     listFichesPoste: (posteId) => api().rh.listFichesPoste(posteId),
     upsertFichePoste: (input) => api().rh.upsertFichePoste(input),
     exportOrganigrammeCsv: (hotelId) => api().rh.exportOrganigrammeCsv(hotelId),
+    listPointeuses: (hotelId) => api().rh.listPointeuses(hotelId),
+    upsertPointeuse: (input, id) => api().rh.upsertPointeuse(input, id),
+    importPointeuseCsv: (hotelId, csvContent, pointeuseId) =>
+      api().rh.importPointeuseCsv(hotelId, csvContent, pointeuseId),
+    listRawPunches: (hotelId, traite) => api().rh.listRawPunches(hotelId, traite),
+    traiterRawPunches: (hotelId, dateDebut, dateFin) =>
+      api().rh.traiterRawPunches(hotelId, dateDebut, dateFin),
+    setEmployeBadge: (employeId, badgeId) => api().rh.setEmployeBadge(employeId, badgeId),
   },
   modules: {
     listEnabled: () => api().modules.listEnabled(),
@@ -554,6 +562,18 @@ export const ipcClient: IpcApi = {
     getNiveaux: (hotelId) => api().stocks.getNiveaux(hotelId),
     createMouvement: (input) => api().stocks.createMouvement(input),
     listCategories: () => api().stocks.listCategories(),
+  },
+  cuisine: {
+    listRecettes: (hotelId) => api().cuisine.listRecettes(hotelId),
+    getRecette: (id) => api().cuisine.getRecette(id),
+    createRecette: (input) => api().cuisine.createRecette(input),
+    updateRecette: (id, input) => api().cuisine.updateRecette(id, input),
+    upsertRecetteLigne: (recetteId, input, ligneId) => api().cuisine.upsertRecetteLigne(recetteId, input, ligneId),
+    removeRecetteLigne: (recetteId, ligneId) => api().cuisine.removeRecetteLigne(recetteId, ligneId),
+    validerRecette: (id) => api().cuisine.validerRecette(id),
+    listOrdres: (hotelId) => api().cuisine.listOrdres(hotelId),
+    createOrdre: (input) => api().cuisine.createOrdre(input),
+    executerOrdre: (id) => api().cuisine.executerOrdre(id),
   },
   achats: {
     listFournisseurs: () => api().achats.listFournisseurs(),

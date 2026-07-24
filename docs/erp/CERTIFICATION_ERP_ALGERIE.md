@@ -320,6 +320,8 @@ npm run generate:license PRO 2027-12-31
 | `docs/erp/phase4-pilote-egt-homologation.md` | Prompt pilote EGT + homologation |
 | `docs/erp/phase5-completude-modules-mvp.md` | Prompt complétude modules MVP (72 % → 85 %) |
 | `docs/erp/phase5-completude-livraison.md` | Rapport livraison Phase 5 (223 tests, ~85 % exploitation) |
+| `docs/erp/phase6-automatisation-production-rh.md` | Production cuisine + pointeuses RH (événements métier) |
+| `docs/erp/phase6-livraison.md` | Rapport livraison Phase 6 (~88 % exploitation) |
 | `docs/STABILISATION_PRODUCTION.md` | Checklist production |
 | `docs/PROCEDURE_SAUVEGARDE_RESTAURATION.md` | Backup / restore |
 | `docs/guides-utilisateurs/` | Guides par profil |

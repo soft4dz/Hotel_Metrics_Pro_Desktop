@@ -16,6 +16,7 @@ import { RegistresLegauxTab } from './RegistresLegauxTab';
 import { ValidationsTab } from './ValidationsTab';
 import { OrganisationTab } from './OrganisationTab';
 import { ReferentielRhTab } from './ReferentielRhTab';
+import { PointeuseTab } from './PointeuseTab';
 import type { RhHub, RhHubId, RhSubSection } from './rhNavigation';
 
 interface Props {
@@ -54,6 +55,7 @@ export function RhHubContent({ hub, sub, canManage, canTeam, canSelf }: Props) {
         ) : null;
       }
       if (sub === 'absences') return canTeam || canSelf ? <AbsencesTab canValidate={canManage || canTeam} /> : null;
+      if (sub === 'pointeuse') return canManage ? <PointeuseTab /> : null;
       return null;
 
     case 'paie':

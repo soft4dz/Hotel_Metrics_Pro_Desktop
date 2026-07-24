@@ -1089,3 +1089,42 @@ export interface RhRuptureContrat {
   netAPayer: number;
   createdAt: string;
 }
+
+export interface RhPointeuse {
+  id: number;
+  hotelId: number;
+  nom: string;
+  marque: string;
+  adresseIp: string | null;
+  port: number;
+  actif: boolean;
+  derniereSync: string | null;
+}
+
+export interface UpsertPointeuseInput {
+  hotelId: number;
+  nom: string;
+  marque?: string;
+  adresseIp?: string | null;
+  port?: number;
+  actif?: boolean;
+}
+
+export interface RhRawPunch {
+  id: number;
+  pointeuseId: number | null;
+  hotelId: number;
+  badgeId: string;
+  punchAt: string;
+  typePunch: 'entree' | 'sortie' | 'autre' | null;
+  traite: boolean;
+  pointageId: number | null;
+  employeNom?: string;
+}
+
+export interface TraiterPunchesResult {
+  joursTraites: number;
+  pointagesCrees: number;
+  pointagesMisAJour: number;
+  ignorés: number;
+}

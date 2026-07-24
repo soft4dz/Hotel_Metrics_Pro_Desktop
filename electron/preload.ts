@@ -573,6 +573,16 @@ const api: IpcApi = {
     listFichesPoste: (posteId) => ipcRenderer.invoke('rh:fichesPoste:list', posteId),
     upsertFichePoste: (input) => ipcRenderer.invoke('rh:fichesPoste:upsert', input),
     exportOrganigrammeCsv: (hotelId) => ipcRenderer.invoke('rh:egt:exportCsv', hotelId),
+    listPointeuses: (hotelId: number) => ipcRenderer.invoke('rh:pointeuses:list', hotelId),
+    upsertPointeuse: (input: unknown, id?: number) => ipcRenderer.invoke('rh:pointeuses:upsert', input, id),
+    importPointeuseCsv: (hotelId: number, csvContent: string, pointeuseId?: number) =>
+      ipcRenderer.invoke('rh:pointeuses:importCsv', hotelId, csvContent, pointeuseId),
+    listRawPunches: (hotelId: number, traite?: boolean) =>
+      ipcRenderer.invoke('rh:pointeuses:rawPunches', hotelId, traite),
+    traiterRawPunches: (hotelId: number, dateDebut?: string, dateFin?: string) =>
+      ipcRenderer.invoke('rh:pointeuses:traiter', hotelId, dateDebut, dateFin),
+    setEmployeBadge: (employeId: number, badgeId: string | null) =>
+      ipcRenderer.invoke('rh:pointeuses:setBadge', employeId, badgeId),
   },
   modules: {
     listEnabled: () => ipcRenderer.invoke('modules:listEnabled'),
@@ -624,6 +634,20 @@ const api: IpcApi = {
     getNiveaux: (hotelId: number) => ipcRenderer.invoke('stocks:getNiveaux', hotelId),
     createMouvement: (input: unknown) => ipcRenderer.invoke('stocks:createMouvement', input),
     listCategories: () => ipcRenderer.invoke('stocks:listCategories'),
+  },
+  cuisine: {
+    listRecettes: (hotelId: number) => ipcRenderer.invoke('cuisine:recettes:list', hotelId),
+    getRecette: (id: number) => ipcRenderer.invoke('cuisine:recettes:get', id),
+    createRecette: (input: unknown) => ipcRenderer.invoke('cuisine:recettes:create', input),
+    updateRecette: (id: number, input: unknown) => ipcRenderer.invoke('cuisine:recettes:update', id, input),
+    upsertRecetteLigne: (recetteId: number, input: unknown, ligneId?: number) =>
+      ipcRenderer.invoke('cuisine:recettes:ligne:upsert', recetteId, input, ligneId),
+    removeRecetteLigne: (recetteId: number, ligneId: number) =>
+      ipcRenderer.invoke('cuisine:recettes:ligne:remove', recetteId, ligneId),
+    validerRecette: (id: number) => ipcRenderer.invoke('cuisine:recettes:valider', id),
+    listOrdres: (hotelId: number) => ipcRenderer.invoke('cuisine:ordres:list', hotelId),
+    createOrdre: (input: unknown) => ipcRenderer.invoke('cuisine:ordres:create', input),
+    executerOrdre: (id: number) => ipcRenderer.invoke('cuisine:ordres:executer', id),
   },
   achats: {
     listFournisseurs: () => ipcRenderer.invoke('achats:listFournisseurs'),

@@ -14,6 +14,7 @@ import * as rhRupture from '../services/rh-rupture-contrat.service';
 import * as rhDeclarations from '../services/rh-declarations-export.service';
 import * as rhPaieCloture from '../services/rh-paie-cloture.service';
 import * as rhEgt from '../services/rh-organisation-egt.service';
+import * as rhPointeuse from '../services/rh-pointeuse.service';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -459,4 +460,23 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhEgt.upsertFichePoste(uid, input)));
   Electron.ipcMain.handle('rh:egt:exportCsv', (event, hotelId?: number) =>
     wrapIpc(event, (uid) => rhEgt.exportOrganigrammeCsv(uid, hotelId)));
+
+  Electron.ipcMain.handle('rh:pointeuses:list', (event, hotelId: number) =>
+    wrapIpc(event, (uid) => rhPointeuse.listPointeuses(hotelId)));
+  Electron.ipcMain.handle('rh:pointeuses:upsert', (event, input: rhPointeuse.UpsertPointeuseInput, id?: number) =>
+    wrapIpc(event, (uid) => rhPointeuse.upsertPointeuse(uid, input, id)));
+  Electron.ipcMain.handle('rh:pointeuses:importCsv', (event, hotelId: number, csvContent: string, pointeuseId?: number) =>
+    wrapIpc(event, (uid) => {
+      const rows = rhPointeuse.parseCsvPunches(csvContent);
+      return rhPointeuse.importPunches(uid, hotelId, rows, pointeuseId);
+    }));
+  Electron.ipcMain.handle('rh:pointeuses:rawPunches', (event, hotelId: number, traite?: boolean) =>
+    wrapIpc(event, () => rhPointeuse.listRawPunches(hotelId, traite)));
+  Electron.ipcMain.handle('rh:pointeuses:traiter', (event, hotelId: number, dateDebut?: string, dateFin?: string) =>
+    wrapIpc(event, (uid) => rhPointeuse.traiterRawPunches(uid, hotelId, dateDebut, dateFin)));
+  Electron.ipcMain.handle('rh:pointeuses:setBadge', (event, employeId: number, badgeId: string | null) =>
+    wrapIpc(event, (uid) => {
+      rhPointeuse.setEmployeBadge(uid, employeId, badgeId);
+      return true;
+    }));
 }

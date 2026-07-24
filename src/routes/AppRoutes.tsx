@@ -129,6 +129,7 @@ import ReclamationsPage from '@/pages/reclamations/ReclamationsPage';
 import ParkingPage from '@/pages/parking/ParkingPage';
 import PlagePage from '@/pages/plage/PlagePage';
 import StocksPage from '@/pages/stocks/StocksPage';
+import CuisinePage from '@/pages/cuisine/CuisinePage';
 import AchatsPage from '@/pages/achats/AchatsPage';
 import MaintenancePage from '@/pages/maintenance/MaintenancePage';
 import CommercialPage from '@/pages/commercial/CommercialPage';
@@ -298,6 +299,7 @@ export function AppRoutes() {
             <Route path="/parking" element={<ParkingPage />} />
             <Route path="/plage" element={<PlagePage />} />
             <Route path="/stocks" element={<StocksPage />} />
+            <Route path="/cuisine" element={<CuisinePage />} />
             <Route path="/achats" element={<AchatsPage />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
             <Route path="/commercial" element={<CommercialPage />} />

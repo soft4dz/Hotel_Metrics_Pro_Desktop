@@ -859,6 +859,12 @@ export interface IpcApi {
     listFichesPoste: (posteId?: number) => Promise<IpcResult<FichePoste[]>>;
     upsertFichePoste: (input: { posteId: number; missions?: string; responsabilites?: string; competences?: string; kpiJson?: string }) => Promise<IpcResult<FichePoste>>;
     exportOrganigrammeCsv: (hotelId?: number) => Promise<IpcResult<string>>;
+    listPointeuses: (hotelId: number) => Promise<IpcResult<import('./rh').RhPointeuse[]>>;
+    upsertPointeuse: (input: import('./rh').UpsertPointeuseInput, id?: number) => Promise<IpcResult<import('./rh').RhPointeuse>>;
+    importPointeuseCsv: (hotelId: number, csvContent: string, pointeuseId?: number) => Promise<IpcResult<{ imported: number; duplicates: number }>>;
+    listRawPunches: (hotelId: number, traite?: boolean) => Promise<IpcResult<import('./rh').RhRawPunch[]>>;
+    traiterRawPunches: (hotelId: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<import('./rh').TraiterPunchesResult>>;
+    setEmployeBadge: (employeId: number, badgeId: string | null) => Promise<IpcResult<boolean>>;
   };
   modules: {
     listEnabled: () => Promise<IpcResult<string[]>>;
@@ -909,6 +915,18 @@ export interface IpcApi {
     getNiveaux: (hotelId: number) => Promise<IpcResult<unknown[]>>;
     createMouvement: (input: unknown) => Promise<IpcResult<unknown>>;
     listCategories: () => Promise<IpcResult<unknown[]>>;
+  };
+  cuisine: {
+    listRecettes: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineRecette[]>>;
+    getRecette: (id: number) => Promise<IpcResult<import('./cuisine').CuisineRecette | null>>;
+    createRecette: (input: import('./cuisine').CreateRecetteInput) => Promise<IpcResult<import('./cuisine').CuisineRecette>>;
+    updateRecette: (id: number, input: Partial<import('./cuisine').CreateRecetteInput>) => Promise<IpcResult<import('./cuisine').CuisineRecette>>;
+    upsertRecetteLigne: (recetteId: number, input: import('./cuisine').UpsertRecetteLigneInput, ligneId?: number) => Promise<IpcResult<import('./cuisine').CuisineRecette>>;
+    removeRecetteLigne: (recetteId: number, ligneId: number) => Promise<IpcResult<import('./cuisine').CuisineRecette>>;
+    validerRecette: (id: number) => Promise<IpcResult<import('./cuisine').CuisineRecette>>;
+    listOrdres: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction[]>>;
+    createOrdre: (input: import('./cuisine').CreateOrdreProductionInput) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction>>;
+    executerOrdre: (id: number) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction>>;
   };
   achats: {
     listFournisseurs: () => Promise<IpcResult<unknown[]>>;

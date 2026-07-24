@@ -59,6 +59,7 @@ import { registerModulesLegauxIpc } from './ipc/modules-legaux.ipc';
 import { registerLicenseIpc } from './ipc/license.ipc';
 import { registerNotificationsIpc } from './ipc/notifications.ipc';
 import { registerContratsHotelIpc } from './ipc/contrats-hotel.ipc';
+import { registerCuisineIpc } from './ipc/cuisine.ipc';
 import { ensureLicenseBootstrap } from './services/license.service';
 import { startPhase5Scheduler } from './services/phase5-scheduler.service';
 import { runPortSeedIfNeeded } from './database/portSeed';
@@ -282,6 +283,7 @@ function bootstrap(): void {
     registerLicenseIpc();
     registerNotificationsIpc();
     registerContratsHotelIpc();
+    registerCuisineIpc();
     startPhase5Scheduler();
     createWindow();
   } catch (err) {

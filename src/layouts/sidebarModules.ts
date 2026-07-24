@@ -94,6 +94,7 @@ export function buildSidebarModules(
       icon: Wrench,
       items: [
         { label: 'Stocks & consommations', to: '/stocks' },
+        { label: 'Production & fiches techniques', to: '/cuisine' },
         { label: 'Achats & fournisseurs', to: '/achats' },
         { label: 'Maintenance', to: '/maintenance' },
         { label: 'Parking', to: '/parking' },
