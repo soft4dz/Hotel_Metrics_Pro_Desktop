@@ -59,7 +59,7 @@ describe('SidebarNav', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Raqmi System')).toBeInTheDocument();
+      expect(screen.getByText('Hotel Metrics')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();
