@@ -1,12 +1,12 @@
 import { bcrypt } from '../utils/bcrypt';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import path from '../lib/nodePath';
 import { getDatabase, getDataDirectory } from './sqlite';
 import { logger } from '../utils/logger';
+import { validatePasswordStrength } from '../utils/passwordPolicy';
 
-/** Mot de passe du compte admin initial (affiché sur l'écran de connexion). */
-export const DEFAULT_ADMIN_PASSWORD = 'Admin@2026!';
+const INITIAL_ADMIN_EMAIL = 'admin@hotelmetrics.local';
 
 const ROLES = [
   { code: 'SUPERADMIN', label: 'Super Administrateur', description: 'Accès total — priorité absolue' },
@@ -40,6 +40,40 @@ const PERMISSIONS = [
   { code: 'sync.full', label: 'Synchronisation complète', module: 'sync' },
   { code: 'reports.export', label: 'Exporter rapports', module: 'rapports' },
 ] as const;
+
+export function generateInitialAdminPassword(): string {
+  const configured = process.env.HMP_INITIAL_ADMIN_PASSWORD?.trim();
+  if (configured) {
+    const policyError = validatePasswordStrength(configured);
+    if (policyError) {
+      throw new Error(`HMP_INITIAL_ADMIN_PASSWORD invalide : ${policyError}`);
+    }
+    return configured;
+  }
+
+  return `A9!${randomBytes(18).toString('base64url')}`;
+}
+
+export function writeInitialAdminCredentials(password: string): string {
+  const credFile = path.join(getDataDirectory(), 'INITIAL_ADMIN_CREDENTIALS.txt');
+  writeFileSync(
+    credFile,
+    [
+      'Raqmi System — identifiants administrateur initial',
+      '==================================================',
+      '',
+      `E-mail       : ${INITIAL_ADMIN_EMAIL}`,
+      `Mot de passe : ${password}`,
+      '',
+      'Ce mot de passe est unique à cette installation.',
+      'Le changement est obligatoire à la première connexion.',
+      'Supprimez ce fichier après utilisation.',
+      '',
+    ].join('\n'),
+    { encoding: 'utf-8', mode: 0o600 },
+  );
+  return credFile;
+}
 
 export function runSeedIfNeeded(): void {
   const db = getDatabase();
@@ -123,8 +157,9 @@ export function runSeedIfNeeded(): void {
     });
   }
 
-  const passwordHash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 12);
-  const adminRoleIdFinal = roleIds.get('ADMIN_DEC')!;
+  const initialPassword = generateInitialAdminPassword();
+  const passwordHash = bcrypt.hashSync(initialPassword, 12);
+  const adminRoleIdFinal = roleIds.get('SUPERADMIN')!;
 
   db.prepare(`
     INSERT INTO users (
@@ -132,32 +167,17 @@ export function runSeedIfNeeded(): void {
       must_change_password, created_by, updated_by
     ) VALUES (
       @uuid, @email, @password_hash, @full_name, @role_id, NULL, 1,
-      0, NULL, NULL
+      1, NULL, NULL
     )
   `).run({
     uuid: randomUUID(),
-    email: 'admin@hotelmetrics.local',
+    email: INITIAL_ADMIN_EMAIL,
     password_hash: passwordHash,
     full_name: 'Administrateur système',
     role_id: adminRoleIdFinal,
   });
 
-  const credFile = path.join(getDataDirectory(), 'INITIAL_ADMIN_CREDENTIALS.txt');
-  writeFileSync(
-    credFile,
-    [
-      'Hotel Metrics Pro — identifiants administrateur initial',
-      '======================================================',
-      '',
-      'E-mail    : admin@hotelmetrics.local',
-      `Mot de passe : ${DEFAULT_ADMIN_PASSWORD}`,
-      '',
-      'IMPORTANT : changez ce mot de passe à la première connexion.',
-      'Supprimez ce fichier après utilisation.',
-      '',
-    ].join('\n'),
-    { encoding: 'utf-8', mode: 0o600 },
-  );
+  const credFile = writeInitialAdminCredentials(initialPassword);
 
   db.prepare(`
     INSERT OR REPLACE INTO app_settings (key, value) VALUES ('seed_completed', '1')
@@ -171,5 +191,5 @@ export function runSeedIfNeeded(): void {
     INSERT OR REPLACE INTO app_settings (key, value) VALUES ('lockout_minutes', '15')
   `).run();
 
-  logger.info(`Seed terminé — admin@hotelmetrics.local créé. Identifiants : ${credFile}`);
+  logger.info(`Seed terminé — compte administrateur initial créé. Identifiants enregistrés dans : ${credFile}`);
 }
