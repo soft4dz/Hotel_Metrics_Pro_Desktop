@@ -59,7 +59,7 @@ describe('SidebarNav', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Hotel Metrics')).toBeInTheDocument();
+      expect(screen.getByText('Raqmi System')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe('TopNavbar', () => {
     const { container } = renderWithRouter(<TopNavbar />);
 
     await waitFor(() => {
-      expect(screen.getByText('Hotel Metrics')).toBeInTheDocument();
+      expect(screen.getByText('Raqmi System')).toBeInTheDocument();
     });
 
     const header = container.querySelector('header');
