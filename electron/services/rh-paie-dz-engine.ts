@@ -4,6 +4,39 @@ export const CNAS_SALARIE_TAUX = 0.09;
 export const CNAS_PATRON_TAUX = 0.26;
 export const SMIG_DZD = 20_000;
 
+export interface PaieParafiscaleParams {
+  tauxAccidentTravail?: number;
+  tauxAssuranceChomage?: number;
+  tauxFormationPro?: number;
+}
+
+export const DEFAULT_PARAFISCAL_PARAMS: Required<PaieParafiscaleParams> = {
+  tauxAccidentTravail: 0.0125,
+  tauxAssuranceChomage: 0.015,
+  tauxFormationPro: 0.01,
+};
+
+export function calculateParafiscalesPatronales(
+  brut: number,
+  params: PaieParafiscaleParams = {},
+): {
+  accidentTravail: number;
+  assuranceChomage: number;
+  formationPro: number;
+  total: number;
+} {
+  const p = { ...DEFAULT_PARAFISCAL_PARAMS, ...params };
+  const accidentTravail = Math.round(brut * p.tauxAccidentTravail * 100) / 100;
+  const assuranceChomage = Math.round(brut * p.tauxAssuranceChomage * 100) / 100;
+  const formationPro = Math.round(brut * p.tauxFormationPro * 100) / 100;
+  return {
+    accidentTravail,
+    assuranceChomage,
+    formationPro,
+    total: Math.round((accidentTravail + assuranceChomage + formationPro) * 100) / 100,
+  };
+}
+
 export function calculateIrg(imposable: number, enfantsCharge = 0): number {
   if (imposable <= 0) return 0;
   const abattement = 40_000 + enfantsCharge * 1_000;
@@ -13,24 +46,30 @@ export function calculateIrg(imposable: number, enfantsCharge = 0): number {
   return Math.round((31_200 + (base - 120_000) * 0.33) * 100) / 100;
 }
 
-export function calculatePaieDz(brut: number, enfantsCharge = 0): {
+export function calculatePaieDz(brut: number, enfantsCharge = 0, parafiscales: PaieParafiscaleParams = {}): {
   cotisationSalarie: number;
   cotisationPatronale: number;
+  parafiscalesPatronales: ReturnType<typeof calculateParafiscalesPatronales>;
   irg: number;
   net: number;
   chargesSalariales: number;
+  coutEmployeur: number;
 } {
   const cotisationSalarie = Math.round(brut * CNAS_SALARIE_TAUX * 100) / 100;
   const cotisationPatronale = Math.round(brut * CNAS_PATRON_TAUX * 100) / 100;
+  const parafiscalesPatronales = calculateParafiscalesPatronales(brut, parafiscales);
   const imposable = brut - cotisationSalarie;
   const irg = calculateIrg(imposable, enfantsCharge);
   const net = Math.round((brut - cotisationSalarie - irg) * 100) / 100;
+  const coutEmployeur = Math.round((brut + cotisationPatronale + parafiscalesPatronales.total) * 100) / 100;
   return {
     cotisationSalarie,
     cotisationPatronale,
+    parafiscalesPatronales,
     irg,
     net,
     chargesSalariales: Math.round((cotisationSalarie + irg) * 100) / 100,
+    coutEmployeur,
   };
 }
 

@@ -30,6 +30,10 @@
     "rebuild:native": "node scripts/rebuild-native.mjs",
     "test:rh-paie": "node scripts/test-rh-paie-dz.mjs",
     "verify:phase3": "electron scripts/verify-phase3.mjs",
+    "audit:ipc": "node scripts/audit-ipc-security.mjs",
+    "validate:packaging": "node scripts/validate-packaging.mjs",
+    "validate:certification": "npm test && npm run audit:ipc && npm run validate:packaging && tsc --noEmit",
+    "generate:license": "node scripts/generate-license-key.mjs",
     "seed:pms": "electron scripts/seed-pms-demo.mjs",
     "seed:demo": "electron scripts/seed-demo-full.mjs",
     "reset:db": "electron scripts/reset-db-superadmin.mjs"

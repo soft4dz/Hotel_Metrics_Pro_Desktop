@@ -5,6 +5,7 @@ import {
   listChambres, createChambre, updateChambre, updateStatutChambre, deleteChambre,
   listReservations, getReservation, createReservation, updateReservationStatut, deleteReservation,
   getOccupationKpis, estimateReservationPrice, createFactureFromReservation,
+  getFolioByReservation, createFolioFromReservation, addFolioLine, closeFolioToFacture,
 } from '../services/hebergement.service';
 import type { CreateTypeChambreInput, CreateChambreInput, CreateReservationInput, EstimateReservationPriceInput, StatutChambre, StatutReservation } from '../../src/shared/types/hebergement';
 
@@ -46,4 +47,13 @@ export function registerHebergementIpc() {
 
   Electron.ipcMain.handle('hebergement:getOccupationKpis', (event, deb: string, fin: string, hotelId?: number) =>
     wrapIpc(event, (uid) => getOccupationKpis(uid, deb, fin, hotelId)));
+
+  Electron.ipcMain.handle('hebergement:getFolio', (event, reservationId: number) =>
+    wrapIpc(event, (uid) => getFolioByReservation(uid, reservationId)));
+  Electron.ipcMain.handle('hebergement:createFolio', (event, reservationId: number) =>
+    wrapIpc(event, (uid) => createFolioFromReservation(uid, reservationId)));
+  Electron.ipcMain.handle('hebergement:addFolioLine', (event, folioId: number, input: { designation: string; quantite?: number; prixUnitaire: number; tauxTva?: number; categorie?: string }) =>
+    wrapIpc(event, (uid) => addFolioLine(uid, folioId, input)));
+  Electron.ipcMain.handle('hebergement:closeFolioToFacture', (event, reservationId: number) =>
+    wrapIpc(event, (uid) => closeFolioToFacture(uid, reservationId)));
 }

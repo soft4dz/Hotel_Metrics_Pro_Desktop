@@ -2,6 +2,8 @@ import { getDatabase } from '../database/sqlite';
 import Electron from '../lib/electronApi';
 import path from '../lib/nodePath';
 import { existsSync, copyFileSync, mkdirSync, statSync } from 'node:fs';
+import { assertDocumentLegallyProtected } from './ged-archivage.service';
+import { writeAuditLog } from './audit.service';
 
 export interface GedCategorie { id: number; code: string; label: string; parentId: number | null; icone: string }
 export interface GedDocument { id: number; uuid: string; hotelId: number | null; categorieId: number | null; categorieLabel: string | null; titre: string; description: string | null; nomFichier: string; taille: number | null; mimeType: string | null; tags: string[]; version: string; statut: string; confidentiel: boolean; uploadedBy: number | null; uploaderNom: string | null; dateDocument: string | null; dateExpiration: string | null; createdAt: string }
@@ -55,6 +57,17 @@ export async function uploadDocument(actorId: number, input: UploadDocumentInput
 
 export function archiverDocument(id: number): void {
   getDatabase().prepare(`UPDATE ged_documents SET statut = 'archive', updated_at = datetime('now') WHERE id = ?`).run(id);
+}
+
+export function supprimerDocument(actorUserId: number, id: number, motif?: string): void {
+  assertDocumentLegallyProtected(id);
+  getDatabase().prepare(`
+    UPDATE ged_documents SET statut='supprime', updated_at=datetime('now') WHERE id=? AND statut != 'supprime'
+  `).run(id);
+  writeAuditLog({
+    userId: actorUserId, action: 'DELETE', module: 'ged',
+    description: `Suppression logique document GED #${id}${motif ? ` — ${motif}` : ''}`,
+  });
 }
 
 export function ouvrirDocument(id: number): void {

@@ -41,6 +41,60 @@ export function listDecisions(_actorId: number, hotelId?: number): Decision[] {
   return rows.map(mapDecision);
 }
 
+export interface DecisionDestinataireStatut {
+  userId: number;
+  userNom: string;
+  lu: boolean;
+  luAt: string | null;
+}
+
+export function listDecisionsForUser(actorId: number, filters: { unreadOnly?: boolean; hotelId?: number } = {}): Decision[] {
+  const db = getDatabase();
+  const conds = [`d.statut != 'archivee'`];
+  const params: unknown[] = [];
+  if (filters.hotelId) { conds.push('d.hotel_id = ?'); params.push(filters.hotelId); }
+
+  const rows = db.prepare(`
+    SELECT d.*, u.full_name AS auteur_nom,
+      COUNT(DISTINCT dd.user_id) AS nb_dest,
+      COUNT(DISTINCT CASE WHEN dd.lu_at IS NOT NULL THEN dd.user_id END) AS nb_lu
+    FROM decisions d
+    LEFT JOIN users u ON u.id = d.auteur_id
+    LEFT JOIN decisions_destinataires dd ON dd.decision_id = d.id
+    WHERE ${conds.join(' AND ')}
+    GROUP BY d.id ORDER BY d.date_emission DESC
+  `).all(...params) as Record<string, unknown>[];
+
+  const decisions = rows.map(mapDecision);
+  return decisions.filter((d) => {
+    const dests = getDecisionDestinataires(d.id);
+    const isDest = dests.some((x) => x.userId === actorId);
+    const isAuthor = d.auteurId === actorId;
+    if (!isDest && !isAuthor && dests.length > 0) return false;
+    if (filters.unreadOnly && isDest) {
+      const mine = dests.find((x) => x.userId === actorId);
+      return mine ? !mine.lu : false;
+    }
+    return isAuthor || isDest || dests.length === 0;
+  });
+}
+
+export function getDecisionDestinataires(decisionId: number): DecisionDestinataireStatut[] {
+  const rows = getDatabase().prepare(`
+    SELECT dd.user_id, u.full_name AS user_nom, dd.lu_at
+    FROM decisions_destinataires dd
+    INNER JOIN users u ON u.id = dd.user_id
+    WHERE dd.decision_id = ?
+    ORDER BY u.full_name
+  `).all(decisionId) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    userId: Number(r.user_id),
+    userNom: String(r.user_nom),
+    lu: r.lu_at != null,
+    luAt: r.lu_at ? String(r.lu_at) : null,
+  }));
+}
+
 export function createDecision(actorId: number, input: CreateDecisionInput): Decision {
   const db = getDatabase();
   const res = db.prepare(`INSERT INTO decisions (hotel_id,type,titre,contenu,priorite,auteur_id,date_echeance)

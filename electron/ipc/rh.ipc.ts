@@ -12,6 +12,8 @@ import * as rhRegistres from '../services/rh-registres-legaux.service';
 import * as rhBulletinPdf from '../services/rh-bulletin-pdf.service';
 import * as rhRupture from '../services/rh-rupture-contrat.service';
 import * as rhDeclarations from '../services/rh-declarations-export.service';
+import * as rhPaieCloture from '../services/rh-paie-cloture.service';
+import * as rhEgt from '../services/rh-organisation-egt.service';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -207,6 +209,17 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhPaie.generatePrePaie(uid, periode)));
   Electron.ipcMain.handle('rh:paie:bulletins:valider', (event, id: number) =>
     wrapIpc(event, (uid) => rhPaie.validerBulletin(uid, id)));
+
+  Electron.ipcMain.handle('rh:paie:cloture:get', (event, periode: string) =>
+    wrapIpc(event, (uid) => rhPaieCloture.getPaieCloture(uid, periode)));
+  Electron.ipcMain.handle('rh:paie:cloture:list', (event) =>
+    wrapIpc(event, (uid) => rhPaieCloture.listPaieClotures(uid)));
+  Electron.ipcMain.handle('rh:paie:cloture:valider', (event, periode: string) =>
+    wrapIpc(event, (uid) => rhPaieCloture.validerPaieMensuelle(uid, periode)));
+  Electron.ipcMain.handle('rh:paie:cloture:cloturer', (event, periode: string) =>
+    wrapIpc(event, (uid) => rhPaieCloture.cloturerPaieMensuelle(uid, periode)));
+  Electron.ipcMain.handle('rh:paie:params:get', (event) =>
+    wrapIpc(event, () => rhPaieCloture.getPaieParams()));
   Electron.ipcMain.handle(
     'rh:paie:bulletins:comptabiliser',
     (event, id: number, hotelId: number, dateOperation: string) =>
@@ -435,4 +448,15 @@ export function registerRhIpc(): void {
     wrapIpcAsync(event, (uid) => rhDeclarations.exportVirementsPaie(uid, periode)));
   Electron.ipcMain.handle('rh:declarations:exportAnem', (event) =>
     wrapIpcAsync(event, (uid) => rhDeclarations.exportAnemEmbauches(uid)));
+
+  Electron.ipcMain.handle('rh:egt:organigramme', (event, hotelId?: number) =>
+    wrapIpc(event, (uid) => rhEgt.getOrganigrammeEgt(uid, hotelId)));
+  Electron.ipcMain.handle('rh:egt:effectifs', (event, hotelId?: number) =>
+    wrapIpc(event, (uid) => rhEgt.getEffectifsEgtSummary(uid, hotelId)));
+  Electron.ipcMain.handle('rh:fichesPoste:list', (event, posteId?: number) =>
+    wrapIpc(event, (uid) => rhEgt.listFichesPoste(uid, posteId)));
+  Electron.ipcMain.handle('rh:fichesPoste:upsert', (event, input: Parameters<typeof rhEgt.upsertFichePoste>[1]) =>
+    wrapIpc(event, (uid) => rhEgt.upsertFichePoste(uid, input)));
+  Electron.ipcMain.handle('rh:egt:exportCsv', (event, hotelId?: number) =>
+    wrapIpc(event, (uid) => rhEgt.exportOrganigrammeCsv(uid, hotelId)));
 }

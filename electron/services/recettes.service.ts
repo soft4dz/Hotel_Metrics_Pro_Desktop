@@ -12,6 +12,7 @@ import {
   type ActorContext,
 } from './actorContext';
 import { syncEncaissementRecetteJour } from './encaissement-sync.service';
+import { isDateJournalLocked } from './daily-closure.service';
 
 export type RecetteStatut = 'brouillon' | 'soumis' | 'valide' | 'refuse';
 
@@ -288,6 +289,9 @@ export function saveSaisieJournaliere(actorUserId: number, input: SaveSaisieInpu
   const hid = resolveHotelId(actor, input.hotelId);
 
   const db = getDatabase();
+  if (isDateJournalLocked(hid, input.dateJournal)) {
+    throw new Error('Journée clôturée. Modification des recettes impossible.');
+  }
   if (isMonthLocked(db, hid, input.dateJournal)) {
     throw new Error('Ce mois est verrouillé. Saisie impossible.');
   }
@@ -545,6 +549,9 @@ export function updateRecetteLigne(
 
   if (!row) throw new Error('Ligne introuvable.');
   resolveHotelId(actor, row.hotel_id as number);
+  if (isDateJournalLocked(row.hotel_id as number, row.date_journal as string)) {
+    throw new Error('Journée clôturée. Modification des recettes impossible.');
+  }
 
   if (row.statut === 'valide' && !isGlobalAdminRole(actor.roleCode)) {
     throw new Error('Recette validée — modification interdite. Seul un administrateur peut modifier une ligne validée.');
@@ -598,6 +605,9 @@ export function deleteRecetteLigne(actorUserId: number, id: number, motif: strin
 
   if (!row) throw new Error('Ligne introuvable.');
   resolveHotelId(actor, row.hotel_id as number);
+  if (isDateJournalLocked(row.hotel_id as number, row.date_journal as string)) {
+    throw new Error('Journée clôturée. Modification des recettes impossible.');
+  }
 
   if (row.statut === 'valide' && !isGlobalAdminRole(actor.roleCode)) {
     throw new Error('Recette validée — suppression interdite. Seul un administrateur peut supprimer une ligne validée.');
@@ -633,6 +643,9 @@ export function deleteJourneeRecettes(
 
   const hid = resolveHotelId(actor, hotelId);
   const db = getDatabase();
+  if (isDateJournalLocked(hid, dateJournal)) {
+    throw new Error('Journée clôturée. Suppression impossible.');
+  }
 
   const lines = db
     .prepare(

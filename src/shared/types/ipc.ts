@@ -42,6 +42,7 @@ import type {
   UpdateFormationCatalogInput,
   RhAbsence,
   RhBulletin,
+  PaieClotureMensuelle,
   RhDlgConfig,
   RhDlgExchangeResult,
   RhDlgJournalEntry,
@@ -112,13 +113,54 @@ import type {
 import type {
   AddPaiementInput as AddPaiementFactInput,
   ClientFacturation,
+  CreateAvoirInput,
   CreateClientInput as CreateClientFactInput,
   CreateFactureInput as CreateFactureFactInput,
   FacturationDashboard,
   FactureDetail as FactureDetailFact,
   FactureFilters as FactureFiltersFact,
   FactureListItem as FactureListItemFact,
+  FactureRegistreItem,
 } from './facturation';
+import type {
+  BalanceLigne,
+  Compte,
+  CreateEcritureInput,
+  EcritureFilters,
+  EcritureListItem,
+  ExerciceComptable,
+  Journal,
+} from './comptabilite';
+import type {
+  CreateRetenueInput,
+  DeclarationTva,
+  LiasseLigne,
+  RegistreTvaVente,
+  RetenueSource,
+} from './fiscalite';
+import type {
+  WorkflowInstance,
+  WorkflowHistoryEntry,
+  CreateWorkflowInput,
+  WorkflowFilters,
+  WorkflowStatut,
+  DailyClosure,
+  FinanceReconciliation,
+  GlobalCreance,
+  BalanceAgeeLigne,
+  CreanceStatut,
+  DecCockpitDashboard,
+  DecAlert,
+  PdgDashboard,
+  OrganigrammeNode,
+  EffectifEgtSummary,
+  FichePoste,
+  ChecklistTemplate,
+  ChecklistRun,
+  ChecklistResultItem,
+  FichePolice,
+  GedLegalArchive,
+} from './phase2';
 
 import type { AuthUserDto, ChangePasswordPayload, ChangePasswordResult, LoginPayload, LoginResult, UserProfileDto } from './auth';
 import type {
@@ -509,6 +551,82 @@ export interface IpcApi {
     updateClient: (id: number, input: Partial<CreateClientFactInput>) => Promise<IpcResult<ClientFacturation>>;
     deleteClient: (id: number) => Promise<IpcResult<boolean>>;
     exportPdf: (factureId: number) => Promise<IpcResult<RhExportResult>>;
+    createAvoir: (input: CreateAvoirInput) => Promise<IpcResult<FactureDetailFact>>;
+    listRegistre: (filters?: FactureFiltersFact) => Promise<IpcResult<FactureRegistreItem[]>>;
+    exportRegistreCsv: (filters?: FactureFiltersFact) => Promise<IpcResult<string>>;
+  };
+  comptabilite: {
+    listComptes: (classe?: number) => Promise<IpcResult<Compte[]>>;
+    listJournaux: () => Promise<IpcResult<Journal[]>>;
+    listExercices: () => Promise<IpcResult<ExerciceComptable[]>>;
+    createExercice: (input: { code: string; libelle: string; dateDebut: string; dateFin: string }) => Promise<IpcResult<ExerciceComptable>>;
+    cloturerExercice: (exerciceId: number) => Promise<IpcResult<ExerciceComptable>>;
+    listEcritures: (filters?: EcritureFilters) => Promise<IpcResult<EcritureListItem[]>>;
+    getEcriture: (id: number) => Promise<IpcResult<unknown>>;
+    createEcriture: (input: CreateEcritureInput) => Promise<IpcResult<unknown>>;
+    validerEcriture: (id: number) => Promise<IpcResult<unknown>>;
+    getGrandLivre: (compteNumero: string, dateDebut: string, dateFin: string) => Promise<IpcResult<unknown[]>>;
+    getBalance: (exerciceId: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<BalanceLigne[]>>;
+  };
+  fiscalite: {
+    listRegistreTva: (periode: string) => Promise<IpcResult<RegistreTvaVente[]>>;
+    genererRegistreTva: (periode: string) => Promise<IpcResult<RegistreTvaVente[]>>;
+    exportRegistreTvaCsv: (periode: string) => Promise<IpcResult<string>>;
+    calculerDeclarationTva: (periode: string) => Promise<IpcResult<DeclarationTva>>;
+    getDeclarationTva: (periode: string) => Promise<IpcResult<DeclarationTva | null>>;
+    listDeclarationsTva: () => Promise<IpcResult<DeclarationTva[]>>;
+    createRetenue: (input: CreateRetenueInput) => Promise<IpcResult<RetenueSource>>;
+    listRetenues: () => Promise<IpcResult<RetenueSource[]>>;
+    genererLiasse: (exercice: number) => Promise<IpcResult<LiasseLigne[]>>;
+    listLiasse: (exercice: number) => Promise<IpcResult<LiasseLigne[]>>;
+    exportLiasseCsv: (exercice: number) => Promise<IpcResult<string>>;
+    listAchats: (periode?: string) => Promise<IpcResult<import('./fiscalite').RegistreTvaAchat[]>>;
+    createAchat: (input: import('./fiscalite').CreateTvaAchatInput) => Promise<IpcResult<import('./fiscalite').RegistreTvaAchat>>;
+    importAchatsFromBons: (periode: string) => Promise<IpcResult<{ imported: number; skipped: number }>>;
+    exportAchatsCsv: (periode: string) => Promise<IpcResult<string>>;
+    genererLiasseAvancee: (exercice: number) => Promise<IpcResult<LiasseLigne[]>>;
+    exportTeledeclTvaG50: (periode: string) => Promise<IpcResult<string>>;
+    listTeledeclarations: (typeDecl?: string) => Promise<IpcResult<import('./fiscalite').Teledeclaration[]>>;
+    marquerTeledeclDeclaree: (id: number, referenceDgi: string) => Promise<IpcResult<import('./fiscalite').Teledeclaration>>;
+  };
+  sifec: {
+    dashboard: () => Promise<IpcResult<import('./sifec').SifecDashboard>>;
+    getConfig: () => Promise<IpcResult<import('./sifec').SifecConfig>>;
+    updateConfig: (input: import('./sifec').UpdateSifecConfigInput) => Promise<IpcResult<import('./sifec').SifecConfig>>;
+    testConnection: () => Promise<IpcResult<{ ok: boolean; message: string; latencyMs: number }>>;
+    listFactures: (statut?: string) => Promise<IpcResult<import('./sifec').SifecFactureItem[]>>;
+    prepareFacture: (factureId: number) => Promise<IpcResult<import('./sifec').SifecFactureItem>>;
+    submitFacture: (factureId: number) => Promise<IpcResult<import('./sifec').SifecTransmission>>;
+    submitBatch: (factureIds: number[]) => Promise<IpcResult<import('./sifec').SifecTransmission[]>>;
+    listTransmissions: (limit?: number) => Promise<IpcResult<import('./sifec').SifecTransmission[]>>;
+  };
+  modulesLegaux: {
+    dashboard: () => Promise<IpcResult<import('./modules-legaux').ModulesLegauxDashboard>>;
+    immo: {
+      list: (actifOnly?: boolean) => Promise<IpcResult<import('./modules-legaux').Immobilisation[]>>;
+      upsert: (input: Record<string, unknown>, id?: number) => Promise<IpcResult<import('./modules-legaux').Immobilisation>>;
+      genererPlan: (immobilisationId: number) => Promise<IpcResult<import('./modules-legaux').AmortissementLigne[]>>;
+      listAmortissements: (immobilisationId?: number, periode?: string) => Promise<IpcResult<import('./modules-legaux').AmortissementLigne[]>>;
+      comptabiliserMensuel: (periode: string) => Promise<IpcResult<number>>;
+      exportCsv: () => Promise<IpcResult<string>>;
+    };
+    casnos: {
+      listAffilies: (actifOnly?: boolean) => Promise<IpcResult<import('./modules-legaux').CasnosAffilie[]>>;
+      upsertAffilie: (input: Record<string, unknown>, id?: number) => Promise<IpcResult<import('./modules-legaux').CasnosAffilie>>;
+      listDeclarations: (periode?: string) => Promise<IpcResult<import('./modules-legaux').CasnosDeclaration[]>>;
+      calculerDeclaration: (affilieId: number, periode: string, revenu?: number) => Promise<IpcResult<import('./modules-legaux').CasnosDeclaration>>;
+      calculerPeriode: (periode: string) => Promise<IpcResult<import('./modules-legaux').CasnosDeclaration[]>>;
+      marquerDeclaree: (id: number, referenceCasnos: string) => Promise<IpcResult<import('./modules-legaux').CasnosDeclaration>>;
+      exportCsv: (periode: string) => Promise<IpcResult<string>>;
+    };
+    inventaire: {
+      listSessions: (exercice?: number) => Promise<IpcResult<import('./modules-legaux').InventaireSession[]>>;
+      createSession: (input: { exercice: number; hotelId: number; dateInventaire: string; commentaire?: string }) => Promise<IpcResult<import('./modules-legaux').InventaireSession>>;
+      listLignes: (sessionId: number) => Promise<IpcResult<import('./modules-legaux').InventaireLigne[]>>;
+      updateLigne: (ligneId: number, quantitePhysique: number, motifEcart?: string) => Promise<IpcResult<import('./modules-legaux').InventaireLigne>>;
+      cloturerSession: (sessionId: number) => Promise<IpcResult<import('./modules-legaux').InventaireSession>>;
+      exportCsv: (sessionId: number) => Promise<IpcResult<string>>;
+    };
   };
   clients: {
     getDashboard: () => Promise<IpcResult<ClientsDashboard>>;
@@ -556,6 +674,10 @@ export interface IpcApi {
     estimatePrice: (input: EstimateReservationPriceInput) => Promise<IpcResult<number>>;
     createFactureFromReservation: (reservationId: number) => Promise<IpcResult<FactureDetailFact>>;
     getOccupationKpis: (dateDebut: string, dateFin: string, hotelId?: number) => Promise<IpcResult<OccupationPeriode>>;
+    getFolio: (reservationId: number) => Promise<IpcResult<unknown>>;
+    createFolio: (reservationId: number) => Promise<IpcResult<unknown>>;
+    addFolioLine: (folioId: number, input: { designation: string; quantite?: number; prixUnitaire: number; tauxTva?: number; categorie?: string }) => Promise<IpcResult<unknown>>;
+    closeFolioToFacture: (reservationId: number) => Promise<IpcResult<{ folio: unknown; factureId: number }>>;
   };
   tarifs: {
     listComposants:   (hotelId?: number) => Promise<IpcResult<ComposantTarif[]>>;
@@ -648,6 +770,11 @@ export interface IpcApi {
     listBulletins: (periode?: string) => Promise<IpcResult<RhBulletin[]>>;
     generatePrePaie: (periode: string) => Promise<IpcResult<RhBulletin[]>>;
     validerBulletin: (id: number) => Promise<IpcResult<RhBulletin>>;
+    getPaieCloture: (periode: string) => Promise<IpcResult<PaieClotureMensuelle>>;
+    listPaieClotures: () => Promise<IpcResult<PaieClotureMensuelle[]>>;
+    validerPaieMensuelle: (periode: string) => Promise<IpcResult<PaieClotureMensuelle>>;
+    cloturerPaieMensuelle: (periode: string) => Promise<IpcResult<PaieClotureMensuelle>>;
+    getPaieParams: () => Promise<IpcResult<Record<string, number>>>;
     comptabiliserBulletin: (id: number, hotelId: number, dateOperation: string) => Promise<IpcResult<RhBulletin>>;
     listPrimes: (periode?: string, employeId?: number) => Promise<IpcResult<RhPrime[]>>;
     createPrime: (input: CreatePrimeInput) => Promise<IpcResult<RhPrime>>;
@@ -727,6 +854,11 @@ export interface IpcApi {
     exportCnasMensuelle: (periode: string) => Promise<IpcResult<RhExportResult>>;
     exportVirementsPaie: (periode: string) => Promise<IpcResult<RhExportResult>>;
     exportAnemEmbauches: () => Promise<IpcResult<RhExportResult>>;
+    getOrganigrammeEgt: (hotelId?: number) => Promise<IpcResult<OrganigrammeNode[]>>;
+    getEffectifsEgt: (hotelId?: number) => Promise<IpcResult<EffectifEgtSummary[]>>;
+    listFichesPoste: (posteId?: number) => Promise<IpcResult<FichePoste[]>>;
+    upsertFichePoste: (input: { posteId: number; missions?: string; responsabilites?: string; competences?: string; kpiJson?: string }) => Promise<IpcResult<FichePoste>>;
+    exportOrganigrammeCsv: (hotelId?: number) => Promise<IpcResult<string>>;
   };
   modules: {
     listEnabled: () => Promise<IpcResult<string[]>>;
@@ -742,6 +874,8 @@ export interface IpcApi {
   };
   decisions: {
     list: (filters?: unknown) => Promise<IpcResult<unknown[]>>;
+    listForUser: (filters?: { unreadOnly?: boolean; hotelId?: number }) => Promise<IpcResult<unknown[]>>;
+    destinataires: (id: number) => Promise<IpcResult<unknown[]>>;
     get: (id: number) => Promise<IpcResult<unknown>>;
     create: (input: unknown) => Promise<IpcResult<unknown>>;
     update: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
@@ -780,8 +914,11 @@ export interface IpcApi {
     listFournisseurs: () => Promise<IpcResult<unknown[]>>;
     createFournisseur: (input: unknown) => Promise<IpcResult<unknown>>;
     listBons: (hotelId?: number, statut?: string) => Promise<IpcResult<unknown[]>>;
+    getBonLignes: (bonId: number) => Promise<IpcResult<unknown[]>>;
     createBon: (input: unknown) => Promise<IpcResult<unknown>>;
     validerBon: (id: number) => Promise<IpcResult<unknown>>;
+    envoyerBon: (id: number) => Promise<IpcResult<unknown>>;
+    livrerBon: (id: number, input?: unknown) => Promise<IpcResult<unknown>>;
   };
   maintenance: {
     listEquipements: (hotelId: number) => Promise<IpcResult<unknown[]>>;
@@ -804,7 +941,121 @@ export interface IpcApi {
     listDocuments: (hotelId?: number, categorieId?: number, search?: string) => Promise<IpcResult<unknown[]>>;
     upload: (input: unknown) => Promise<IpcResult<unknown>>;
     archiver: (id: number) => Promise<IpcResult<boolean>>;
+    delete: (id: number, motif?: string) => Promise<IpcResult<boolean>>;
     ouvrir: (id: number) => Promise<IpcResult<boolean>>;
+  };
+  workflow: {
+    create: (input: CreateWorkflowInput) => Promise<IpcResult<WorkflowInstance>>;
+    submit: (workflowId: number, commentaire?: string) => Promise<IpcResult<WorkflowInstance>>;
+    approve: (workflowId: number, statut?: WorkflowStatut, commentaire?: string) => Promise<IpcResult<WorkflowInstance>>;
+    reject: (workflowId: number, motif: string) => Promise<IpcResult<WorkflowInstance>>;
+    history: (workflowId: number) => Promise<IpcResult<WorkflowHistoryEntry[]>>;
+    listPending: (filters?: WorkflowFilters) => Promise<IpcResult<WorkflowInstance[]>>;
+    find: (module: string, entityType: string, entityId: number) => Promise<IpcResult<WorkflowInstance | null>>;
+  };
+  cloture: {
+    create: (hotelId: number, dateJournal: string) => Promise<IpcResult<DailyClosure>>;
+    prefill: (closureId: number) => Promise<IpcResult<DailyClosure>>;
+    submit: (closureId: number) => Promise<IpcResult<DailyClosure>>;
+    validateUnit: (closureId: number) => Promise<IpcResult<DailyClosure>>;
+    validateDec: (closureId: number) => Promise<IpcResult<DailyClosure>>;
+    reject: (closureId: number, motif: string) => Promise<IpcResult<DailyClosure>>;
+    close: (closureId: number) => Promise<IpcResult<DailyClosure>>;
+    list: (hotelId?: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<DailyClosure[]>>;
+  };
+  reconciliation: {
+    create: (hotelId: number, dateJournal: string) => Promise<IpcResult<FinanceReconciliation>>;
+    prefill: (id: number) => Promise<IpcResult<FinanceReconciliation>>;
+    justify: (id: number, justification: string) => Promise<IpcResult<FinanceReconciliation>>;
+    validate: (id: number) => Promise<IpcResult<FinanceReconciliation>>;
+    list: (hotelId?: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<FinanceReconciliation[]>>;
+  };
+  creances: {
+    list: (filters?: { hotelId?: number; statut?: CreanceStatut }) => Promise<IpcResult<GlobalCreance[]>>;
+    fromFacture: (factureId: number) => Promise<IpcResult<GlobalCreance>>;
+    relance: (creanceId: number, input: { canal: string; objet?: string; contenu?: string }) => Promise<IpcResult<unknown>>;
+    balanceAgee: (hotelId?: number) => Promise<IpcResult<BalanceAgeeLigne[]>>;
+    updateStatut: (creanceId: number, statut: CreanceStatut) => Promise<IpcResult<GlobalCreance>>;
+    paiement: (creanceId: number, montant: number) => Promise<IpcResult<GlobalCreance>>;
+    runRelancesAuto: () => Promise<IpcResult<{ traitees: number }>>;
+    getRelancesAuto: () => Promise<IpcResult<boolean>>;
+    setRelancesAuto: (actif: boolean) => Promise<IpcResult<boolean>>;
+  };
+  contratsHotel: {
+    list: (hotelId?: number) => Promise<IpcResult<unknown[]>>;
+    get: (id: number) => Promise<IpcResult<unknown>>;
+    create: (input: unknown) => Promise<IpcResult<unknown>>;
+    update: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
+    echeances: (jours?: number) => Promise<IpcResult<unknown[]>>;
+  };
+  decCockpit: {
+    get: (hotelId?: number) => Promise<IpcResult<DecCockpitDashboard>>;
+    listAlerts: (statut?: string) => Promise<IpcResult<DecAlert[]>>;
+    closeAlert: (alertId: number) => Promise<IpcResult<DecAlert>>;
+  };
+  dashboardPdg: {
+    get: () => Promise<IpcResult<PdgDashboard>>;
+    exportCsv: () => Promise<IpcResult<string>>;
+    exportMensuel: (periode?: string) => Promise<IpcResult<{ ok: boolean; filePath?: string; message?: string }>>;
+  };
+  checklist: {
+    templates: () => Promise<IpcResult<ChecklistTemplate[]>>;
+    start: (templateId: number, hotelId?: number) => Promise<IpcResult<ChecklistRun>>;
+    get: (runId: number) => Promise<IpcResult<{ run: ChecklistRun; results: ChecklistResultItem[] }>>;
+    updateResult: (runId: number, itemId: number, input: { statut: string; commentaire?: string; preuvePath?: string }) => Promise<IpcResult<boolean>>;
+    submit: (runId: number) => Promise<IpcResult<ChecklistRun>>;
+    list: (hotelId?: number) => Promise<IpcResult<ChecklistRun[]>>;
+    stats: (hotelId?: number) => Promise<IpcResult<{ total: number; cloturees: number; tauxCloture: number }>>;
+  };
+  hotelLegal: {
+    listFichesPolice: (hotelId?: number, statut?: string) => Promise<IpcResult<FichePolice[]>>;
+    createFichePolice: (input: unknown) => Promise<IpcResult<FichePolice>>;
+    checkoutFichePolice: (ficheId: number, dateSortie: string) => Promise<IpcResult<FichePolice>>;
+    calculerTaxeSejour: (hotelId: number, periode: string, taux?: number) => Promise<IpcResult<unknown>>;
+    genererRapportTourisme: (hotelId: number, periode: string) => Promise<IpcResult<unknown>>;
+    listRapportsTourisme: (hotelId?: number) => Promise<IpcResult<unknown[]>>;
+    exportFichesPoliceCsv: (hotelId: number) => Promise<IpcResult<string>>;
+  };
+  gedArchivage: {
+    listRetentionPolicies: () => Promise<IpcResult<unknown[]>>;
+    archiveLegally: (documentId: number, politiqueCode?: string) => Promise<IpcResult<GedLegalArchive>>;
+    listLegalArchives: () => Promise<IpcResult<GedLegalArchive[]>>;
+    verifyIntegrity: (archiveId: number) => Promise<IpcResult<{ ok: boolean; hashAttendu: string; hashCalcule?: string }>>;
+  };
+  systemHealth: {
+    get: () => Promise<IpcResult<import('./phase2').SystemHealthReport>>;
+    gedIntegrity: (limit?: number) => Promise<IpcResult<{ total: number; ok: number; failed: number; details: string[] }>>;
+  };
+  license: {
+    getStatus: () => Promise<IpcResult<import('./license').LicenseStatusDto>>;
+    getMachineId: () => Promise<IpcResult<string>>;
+    activate: (key: string) => Promise<IpcResult<import('./license').LicenseStatusDto>>;
+    clear: () => Promise<IpcResult<import('./license').LicenseStatusDto>>;
+  };
+  notifications: {
+    list: (unreadOnly?: boolean, limit?: number) => Promise<IpcResult<import('./notifications').NotificationItem[]>>;
+    countUnread: () => Promise<IpcResult<number>>;
+    markRead: (id: number) => Promise<IpcResult<import('./notifications').NotificationItem>>;
+    markAllRead: () => Promise<IpcResult<number>>;
+    getRules: () => Promise<IpcResult<import('./notifications').NotificationRule[]>>;
+    updateRule: (input: { code: string; actif: boolean }) => Promise<IpcResult<import('./notifications').NotificationRule>>;
+    generateSystem: () => Promise<IpcResult<number>>;
+  };
+  rgpd: {
+    dashboard: () => Promise<IpcResult<import('./rgpd').RgpdDashboard>>;
+    listTraitements: (actifOnly?: boolean) => Promise<IpcResult<import('./rgpd').RgpdTraitement[]>>;
+    upsertTraitement: (input: import('./rgpd').UpsertTraitementInput) => Promise<IpcResult<import('./rgpd').RgpdTraitement>>;
+    exportTraitementsCsv: () => Promise<IpcResult<string>>;
+    listConsentements: (statut?: string) => Promise<IpcResult<import('./rgpd').RgpdConsentement[]>>;
+    createConsentement: (input: import('./rgpd').CreateConsentementInput) => Promise<IpcResult<import('./rgpd').RgpdConsentement>>;
+    revokeConsentement: (id: number, dateRetrait: string) => Promise<IpcResult<import('./rgpd').RgpdConsentement>>;
+    listDemandes: (statut?: import('./rgpd').RgpdDemandeStatut) => Promise<IpcResult<import('./rgpd').RgpdDemandeDroit[]>>;
+    createDemande: (input: import('./rgpd').CreateDemandeInput) => Promise<IpcResult<import('./rgpd').RgpdDemandeDroit>>;
+    updateDemande: (id: number, statut: import('./rgpd').RgpdDemandeStatut, reponse?: string) => Promise<IpcResult<import('./rgpd').RgpdDemandeDroit>>;
+    listIncidents: (statut?: import('./rgpd').RgpdIncidentStatut) => Promise<IpcResult<import('./rgpd').RgpdIncident[]>>;
+    createIncident: (input: import('./rgpd').CreateIncidentInput) => Promise<IpcResult<import('./rgpd').RgpdIncident>>;
+    updateIncident: (id: number, input: Partial<{ statut: import('./rgpd').RgpdIncidentStatut; mesuresCorrectives: string; notificationAnpdp: boolean; dateNotificationAnpdp: string }>) => Promise<IpcResult<import('./rgpd').RgpdIncident>>;
+    listConservation: () => Promise<IpcResult<import('./rgpd').RgpdPolitiqueConservation[]>>;
   };
   reports: {
     overview: () => Promise<IpcResult<import('./reports').ReportOverview>>;

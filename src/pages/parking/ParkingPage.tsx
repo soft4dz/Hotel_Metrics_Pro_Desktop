@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
-import { Car, Plus, LogOut, BarChart3 } from 'lucide-react';
+import { Car, Plus, LogOut, BarChart3, Settings } from 'lucide-react';
+
+interface ParkingConfig { capacite: number; tarifHeure: number; tarifJour: number; tarifNuit: number }
 
 interface ParkingTicket { id: number; immatriculation: string; typeVehicule: string; statut: string; dateEntree: string; dateSortie?: string; montantTotal?: number; hotel_id?: number }
 interface ParkingStats {
@@ -20,8 +22,25 @@ export default function ParkingPage() {
   const qc = useQueryClient();
   const { hotels } = useHotelsList();
   const [hotelId, setHotelId] = useState<number>(hotels[0]?.id ?? 1);
+  const [pageTab, setPageTab] = useState<'exploitation' | 'parametrage'>('exploitation');
   const [showEntree, setShowEntree] = useState(false);
   const [form, setForm] = useState({ immatriculation: '', typeVehicule: 'voiture' });
+  const [cfgForm, setCfgForm] = useState<ParkingConfig>({ capacite: 0, tarifHeure: 0, tarifJour: 0, tarifNuit: 0 });
+
+  const { data: config } = useQuery({
+    queryKey: ['parking-config', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.parking.getConfig(hotelId)) as ParkingConfig,
+  });
+
+  useEffect(() => {
+    if (config) setCfgForm(config);
+  }, [config]);
+
+  const saveConfig = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.parking.saveConfig(hotelId, cfgForm)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['parking'] }); notify.success('Paramètres parking enregistrés'); },
+    onError: () => notify.error('Erreur enregistrement'),
+  });
 
   const { data: tickets = [] } = useQuery({
     queryKey: ['parking-tickets', hotelId],
@@ -70,6 +89,29 @@ export default function ParkingPage() {
         </div>
       </div>
 
+      <div className="flex gap-1 border-b">
+        {(['exploitation', 'parametrage'] as const).map((t) => (
+          <button key={t} type="button" onClick={() => setPageTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 capitalize ${pageTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>
+            {t === 'exploitation' ? 'Exploitation' : 'Paramétrage'}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === 'parametrage' && (
+        <div className="bg-card border rounded-xl p-6 space-y-4 max-w-lg">
+          <h2 className="font-semibold flex items-center gap-2"><Settings className="h-4 w-4" /> Tarifs & capacité</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-xs">Capacité max<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.capacite} onChange={(e) => setCfgForm((c) => ({ ...c, capacite: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Tarif / heure (DA)<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifHeure} onChange={(e) => setCfgForm((c) => ({ ...c, tarifHeure: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Tarif journée<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifJour} onChange={(e) => setCfgForm((c) => ({ ...c, tarifJour: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Tarif nuit<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifNuit} onChange={(e) => setCfgForm((c) => ({ ...c, tarifNuit: Number(e.target.value) }))} /></label>
+          </div>
+          <button type="button" onClick={() => saveConfig.mutate()} disabled={saveConfig.isPending} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">Enregistrer</button>
+        </div>
+      )}
+
+      {pageTab === 'exploitation' && (
+      <>
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
@@ -125,6 +167,8 @@ export default function ParkingPage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {showEntree && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -137,8 +181,8 @@ export default function ParkingPage() {
               </select>
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowEntree(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
-              <button onClick={() => entree.mutate()} disabled={!form.immatriculation || entree.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" onClick={() => setShowEntree(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
+              <button type="button" onClick={() => entree.mutate()} disabled={!form.immatriculation || entree.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {entree.isPending ? 'Enregistrement...' : 'Enregistrer entrée'}
               </button>
             </div>

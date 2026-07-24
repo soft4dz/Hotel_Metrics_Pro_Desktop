@@ -14,7 +14,9 @@ export default function CommercialPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<'opportunites' | 'partenaires'>('opportunites');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ titre: '', type: 'groupe', probabilite: 50, montantEstime: 0, dateEcheance: '' });
+  const [form, setForm] = useState({ titre: '', type: 'groupe', probabilite: 50, montantEstime: 0, dateEcheance: '', partenaireId: 0 });
+  const [showPartenaireForm, setShowPartenaireForm] = useState(false);
+  const [partenaireForm, setPartenaireForm] = useState({ code: '', raisonSociale: '', type: 'agence', contactNom: '', email: '', telephone: '', remisePct: 0, notes: '' });
 
   const { data: opportunites = [] } = useQuery({
     queryKey: ['commercial-opportunites'],
@@ -24,9 +26,22 @@ export default function CommercialPage() {
     queryKey: ['commercial-stats'],
     queryFn: async () => unwrapIpc(await ipcClient.commercial.stats()) as CommercialStats,
   });
+  const { data: partenaires = [] } = useQuery({
+    queryKey: ['commercial-partenaires'],
+    queryFn: async () => unwrapIpc(await ipcClient.commercial.listPartenaires()) as { id: number; code: string; raisonSociale: string; type: string; remisePct: number; email: string | null }[],
+  });
+
+  const createPartenaire = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.commercial.createPartenaire(partenaireForm)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['commercial'] }); setShowPartenaireForm(false); notify.success('Partenaire créé'); },
+    onError: () => notify.error('Erreur'),
+  });
 
   const create = useMutation({
-    mutationFn: async () => unwrapIpc(await ipcClient.commercial.createOpportunite(form)),
+    mutationFn: async () => unwrapIpc(await ipcClient.commercial.createOpportunite({
+      ...form,
+      partenaireId: form.partenaireId || undefined,
+    })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['commercial'] }); setShowForm(false); notify.success('Opportunité créée'); },
     onError: () => notify.error('Erreur'),
   });
@@ -114,9 +129,27 @@ export default function CommercialPage() {
       )}
 
       {tab === 'partenaires' && (
-        <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl">
-          <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p>Gestion des partenaires disponible prochainement</p>
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <button type="button" onClick={() => setShowPartenaireForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm">
+              <Plus className="w-4 h-4" /> Nouveau partenaire
+            </button>
+          </div>
+          {partenaires.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl">
+              <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p>Aucun partenaire enregistré</p>
+            </div>
+          ) : (
+            partenaires.map((p) => (
+              <div key={p.id} className="bg-card border rounded-xl p-4 flex justify-between gap-4">
+                <div>
+                  <p className="font-medium text-sm">{p.raisonSociale} <span className="text-xs text-muted-foreground">({p.code})</span></p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{p.type} · Commission {p.remisePct}% · {p.email ?? '—'}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -126,6 +159,10 @@ export default function CommercialPage() {
             <h2 className="text-lg font-bold">Nouvelle opportunité</h2>
             <div className="space-y-3">
               <input placeholder="Titre *" value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <select value={form.partenaireId || ''} onChange={e => setForm(f => ({ ...f, partenaireId: Number(e.target.value) }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">Partenaire (optionnel)</option>
+                {partenaires.map(p => <option key={p.id} value={p.id}>{p.raisonSociale}</option>)}
+              </select>
               <div className="grid grid-cols-2 gap-3">
                 <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background">
                   {['groupe', 'agence', 'entreprise', 'evenement', 'autre'].map(t => <option key={t} value={t}>{t}</option>)}
@@ -140,6 +177,26 @@ export default function CommercialPage() {
               <button onClick={() => create.mutate()} disabled={!form.titre || create.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {create.isPending ? 'Création...' : 'Créer'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPartenaireForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-3">
+            <h2 className="text-lg font-bold">Nouveau partenaire</h2>
+            <input placeholder="Code *" value={partenaireForm.code} onChange={e => setPartenaireForm(f => ({ ...f, code: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            <input placeholder="Raison sociale *" value={partenaireForm.raisonSociale} onChange={e => setPartenaireForm(f => ({ ...f, raisonSociale: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            <select value={partenaireForm.type} onChange={e => setPartenaireForm(f => ({ ...f, type: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+              {['agence', 'groupe', 'entreprise'].map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input placeholder="Contact" value={partenaireForm.contactNom} onChange={e => setPartenaireForm(f => ({ ...f, contactNom: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            <input placeholder="E-mail" value={partenaireForm.email} onChange={e => setPartenaireForm(f => ({ ...f, email: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            <input type="number" placeholder="Commission %" value={partenaireForm.remisePct} onChange={e => setPartenaireForm(f => ({ ...f, remisePct: Number(e.target.value) }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            <div className="flex gap-3 justify-end pt-2">
+              <button type="button" onClick={() => setShowPartenaireForm(false)} className="px-4 py-2 rounded-lg text-sm border">Annuler</button>
+              <button type="button" onClick={() => createPartenaire.mutate()} disabled={!partenaireForm.code || !partenaireForm.raisonSociale} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground">Créer</button>
             </div>
           </div>
         </div>

@@ -9,10 +9,24 @@ import {
   applyActorHotelFilter,
 } from './actorContext';
 import { syncEncaissementFacturePaiement } from './encaissement-sync.service';
+import { genererEcritureFacture, hashDocument, getExerciceOuvert } from './comptabilite.service';
+import { enregistrerTvaVente } from './fiscalite-dz.service';
+import { createWorkflow, submitWorkflow, findWorkflow } from './workflow.service';
+import { createCreanceFromFacture } from './creances.service';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type FactureStatut = 'brouillon' | 'soumise' | 'validee' | 'payee' | 'annulee';
+export type FactureStatut =
+  | 'brouillon'
+  | 'proforma'
+  | 'soumise'
+  | 'validee'
+  | 'envoyee'
+  | 'payee_partielle'
+  | 'payee'
+  | 'annulee'
+  | 'avoir_emis';
+export type TypeDocument = 'facture' | 'avoir' | 'proforma';
 export type TypeClient = 'particulier' | 'entreprise';
 export type ModePaiementFact = 'especes' | 'cheque' | 'virement' | 'carte' | 'effet' | 'autre';
 
@@ -63,6 +77,9 @@ export interface FactureListItem {
   dateEmission: string;
   dateEcheance: string | null;
   statut: FactureStatut;
+  typeDocument: TypeDocument;
+  factureOrigineId: number | null;
+  verrouillee: boolean;
   montantHt: number;
   montantTva: number;
   montantTtc: number;
@@ -127,6 +144,28 @@ export interface AddPaiementInput {
   notes?: string;
 }
 
+export interface FactureRegistreItem {
+  id: number;
+  factureId: number;
+  numero: string;
+  typeDocument: TypeDocument;
+  dateEmission: string;
+  clientNom: string;
+  nifClient: string | null;
+  montantHt: number;
+  montantTva: number;
+  montantTtc: number;
+  statut: FactureStatut;
+  exercice: number | null;
+  hotelId: number | null;
+}
+
+export interface CreateAvoirInput {
+  factureOrigineId: number;
+  lignes?: LigneInput[];
+  notes?: string;
+}
+
 export interface FactureFilters {
   hotelId?: number;
   statut?: FactureStatut;
@@ -134,6 +173,7 @@ export interface FactureFilters {
   dateDebut?: string;
   dateFin?: string;
   search?: string;
+  typeDocument?: TypeDocument;
 }
 
 // ── Permission ────────────────────────────────────────────────────────────────
@@ -164,14 +204,18 @@ function calcLigne(l: LigneInput): Omit<LigneFacture, 'id' | 'factureId' | 'ordr
   };
 }
 
-function generateNumero(hotelId: number): string {
+function generateBrouillonNumero(): string {
+  return `BRO-${Date.now()}`;
+}
+
+function allocateNumeroLegal(serie: string, exercice: number): string {
   const db = getDatabase();
-  const year = new Date().getFullYear();
-  const row = db.prepare(
-    `SELECT COUNT(*) as cnt FROM factures WHERE hotel_id=? AND strftime('%Y', date_emission)=?`
-  ).get(hotelId, String(year)) as { cnt: number };
-  const seq = String(row.cnt + 1).padStart(4, '0');
-  return `FAC-${year}-${seq}`;
+  return db.transaction(() => {
+    db.prepare(`INSERT OR IGNORE INTO factures_numerotation (serie, exercice, dernier_numero) VALUES (?, ?, 0)`).run(serie, exercice);
+    db.prepare(`UPDATE factures_numerotation SET dernier_numero = dernier_numero + 1 WHERE serie = ? AND exercice = ?`).run(serie, exercice);
+    const row = db.prepare(`SELECT dernier_numero FROM factures_numerotation WHERE serie = ? AND exercice = ?`).get(serie, exercice) as { dernier_numero: number };
+    return `${serie}-${exercice}-${String(row.dernier_numero).padStart(5, '0')}`;
+  })();
 }
 
 function mapFactureRow(row: Record<string, unknown>): FactureListItem {
@@ -188,6 +232,9 @@ function mapFactureRow(row: Record<string, unknown>): FactureListItem {
     dateEmission: String(row.date_emission ?? ''),
     dateEcheance: row.date_echeance ? String(row.date_echeance) : null,
     statut: (row.statut as FactureStatut) ?? 'brouillon',
+    typeDocument: (row.type_document as TypeDocument) ?? 'facture',
+    factureOrigineId: row.facture_origine_id ? Number(row.facture_origine_id) : null,
+    verrouillee: Boolean(row.verrouillee),
     montantHt: Number(row.montant_ht ?? 0),
     montantTva: Number(row.montant_tva ?? 0),
     montantTtc: ttc,
@@ -315,6 +362,7 @@ export function listFactures(actorUserId: number, filters: FactureFilters = {}):
   if (filters.dateDebut)  { conds.push('f.date_emission >= ?');       params.push(filters.dateDebut); }
   if (filters.dateFin)    { conds.push('f.date_emission <= ?');       params.push(filters.dateFin); }
   if (filters.search)     { conds.push('(f.numero LIKE ? OR f.client_nom LIKE ?)'); params.push(`%${filters.search}%`, `%${filters.search}%`); }
+  if (filters.typeDocument) { conds.push('f.type_document = ?'); params.push(filters.typeDocument); }
 
   const rows = db.prepare(`
     SELECT f.*, h.name as hotel_name
@@ -397,7 +445,8 @@ export function createFacture(actorUserId: number, input: CreateFactureInput): F
     if (c) clientNom = c.raison_sociale ?? c.nom;
   }
 
-  const numero = generateNumero(input.hotelId);
+  const numero = generateBrouillonNumero();
+  const exercice = new Date().getFullYear();
 
   const calcs = input.lignes.map(calcLigne);
   const totalHt = calcs.reduce((s, l) => s + l.montantHt, 0);
@@ -407,8 +456,8 @@ export function createFacture(actorUserId: number, input: CreateFactureInput): F
   const result = db.prepare(`
     INSERT INTO factures
       (uuid, hotel_id, client_id, client_nom, numero, date_emission, date_echeance, statut,
-       montant_ht, montant_tva, montant_ttc, montant_paye, notes, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'brouillon', ?, ?, ?, 0, ?, ?)
+       type_document, serie, exercice, montant_ht, montant_tva, montant_ttc, montant_paye, notes, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'brouillon', 'facture', 'FAC', ?, ?, ?, ?, 0, ?, ?)
   `).run(
     randomUUID(),
     input.hotelId,
@@ -417,6 +466,7 @@ export function createFacture(actorUserId: number, input: CreateFactureInput): F
     numero,
     input.dateEmission ?? new Date().toISOString().slice(0, 10),
     input.dateEcheance ?? null,
+    exercice,
     Math.round(totalHt * 100) / 100,
     Math.round(totalTva * 100) / 100,
     Math.round(totalTtc * 100) / 100,
@@ -453,11 +503,23 @@ export function createFacture(actorUserId: number, input: CreateFactureInput): F
 export function updateFacture(
   actorUserId: number,
   id: number,
-  input: Partial<CreateFactureInput>,
+  input: Partial<CreateFactureInput> & { motifModification?: string },
 ): FactureDetail {
   assertCanFacturer(actorUserId);
   const existing = getFactureById(id);
-  if (existing.statut !== 'brouillon') throw new Error('Seules les factures brouillon peuvent être modifiées.');
+  if (existing.verrouillee) {
+    const actor = getActorContext(actorUserId);
+    if (!isGlobalAdminRole(actor.roleCode)) {
+      throw new Error('Facture verrouillée. Modification réservée à un administrateur.');
+    }
+    if (!input.motifModification?.trim()) {
+      throw new Error('Motif obligatoire pour modifier une facture verrouillée.');
+    }
+    writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'facturation', description: `Facture ${existing.numero} modifiée (admin) — ${input.motifModification}` });
+    getDatabase().prepare(`UPDATE factures SET motif_modification = ? WHERE id = ?`).run(input.motifModification, id);
+  } else if (existing.statut !== 'brouillon') {
+    throw new Error('Seules les factures brouillon peuvent être modifiées.');
+  }
 
   const db = getDatabase();
   const sets: string[] = [`updated_at = datetime('now')`];
@@ -507,8 +569,91 @@ function updateStatut(actorUserId: number, id: number, from: FactureStatut[], to
 }
 
 export const soumettreFacture = (uid: number, id: number) => updateStatut(uid, id, ['brouillon'], 'soumise');
-export const validerFacture   = (uid: number, id: number) => updateStatut(uid, id, ['soumise'], 'validee');
-export const annulerFacture   = (uid: number, id: number) => updateStatut(uid, id, ['brouillon', 'soumise'], 'annulee');
+
+export function validerFacture(uid: number, id: number): FactureDetail {
+  assertCanFacturer(uid);
+  const db = getDatabase();
+  const row = getFactureById(id);
+  if (!['soumise', 'proforma', 'brouillon'].includes(row.statut)) {
+    throw new Error(`Transition invalide : ${row.statut} → validee`);
+  }
+
+  const seuilRow = db.prepare(`SELECT value FROM app_settings WHERE key='workflow_seuil_facture_ttc'`).get() as { value: string } | undefined;
+  const seuil = Number(seuilRow?.value ?? 500000);
+  const clientType = row.clientId
+    ? (db.prepare('SELECT type FROM clients_facturation WHERE id=?').get(row.clientId) as { type: string } | undefined)?.type
+    : null;
+  const needsWorkflow = row.montantTtc > seuil || clientType === 'entreprise';
+  if (needsWorkflow) {
+    let wf = findWorkflow('facturation', 'facture', id);
+    if (!wf) {
+      wf = createWorkflow(uid, { module: 'facturation', entityType: 'facture', entityId: id, hotelId: row.hotelId, commentaire: 'Validation facture soumise au workflow' });
+      wf = submitWorkflow(uid, wf.id, 'Soumission automatique — seuil ou client entreprise');
+    }
+    if (!['valide', 'valide_dec', 'cloture'].includes(wf.statut)) {
+      throw new Error('Cette facture nécessite une approbation workflow avant validation finale.');
+    }
+  }
+
+  let exercice: number;
+  try {
+    exercice = Number(getExerciceOuvert().code);
+  } catch {
+    exercice = new Date(row.dateEmission).getFullYear();
+  }
+
+  const serie = row.typeDocument === 'avoir' ? 'AV' : 'FAC';
+  const numeroLegal = allocateNumeroLegal(serie, exercice);
+  const dateValidation = new Date().toISOString();
+
+  db.prepare(`
+    UPDATE factures SET statut='validee', numero=?, serie=?, exercice=?, verrouillee=1,
+      date_validation=?, updated_at=datetime('now') WHERE id=?
+  `).run(numeroLegal, serie, exercice, dateValidation.slice(0, 10), id);
+
+  const clientNif = row.clientId
+    ? (db.prepare('SELECT nif FROM clients_facturation WHERE id=?').get(row.clientId) as { nif: string | null } | undefined)?.nif ?? null
+    : null;
+
+  db.prepare(`
+    INSERT INTO factures_registre (facture_id, numero, type_document, date_emission, client_nom, nif_client, montant_ht, montant_tva, montant_ttc, statut, exercice, hotel_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'validee', ?, ?)
+  `).run(id, numeroLegal, row.typeDocument, row.dateEmission, row.clientNom, clientNif, row.montantHt, row.montantTva, row.montantTtc, exercice, row.hotelId);
+
+  const nifEmetteur = (db.prepare(`SELECT value FROM app_settings WHERE key='company_nif'`).get() as { value: string } | undefined)?.value ?? '';
+  const payload = `${numeroLegal}|${row.dateEmission}|${row.montantTtc}|${nifEmetteur}|${clientNif ?? ''}`;
+  db.prepare(`
+    INSERT INTO factures_fiscales_metadata (facture_id, nif_emetteur, nif_receveur, qr_payload, document_hash, horodatage, sifec_statut)
+    VALUES (?, ?, ?, ?, ?, ?, 'prepare')
+  `).run(id, nifEmetteur, clientNif, `SIFEC-PENDING:${numeroLegal}`, hashDocument(payload), dateValidation);
+
+  genererEcritureFacture(uid, {
+    factureId: id, numero: numeroLegal, dateEmission: row.dateEmission, clientNom: row.clientNom,
+    montantHt: row.montantHt, montantTva: row.montantTva, montantTtc: row.montantTtc,
+    hotelId: row.hotelId, typeDocument: row.typeDocument === 'avoir' ? 'avoir' : 'facture',
+  });
+
+  enregistrerTvaVente(uid, {
+    factureId: id, dateOperation: row.dateEmission, numeroPiece: numeroLegal, clientNom: row.clientNom,
+    nifClient: clientNif, baseHt: row.montantHt, montantTva: row.montantTva, montantTtc: row.montantTtc,
+    typeMouvement: row.typeDocument === 'avoir' ? 'avoir' : 'vente', hotelId: row.hotelId,
+  });
+
+  if (row.typeDocument === 'facture' && row.factureOrigineId) {
+    /* avoir lié — rien de plus */
+  }
+
+  writeAuditLog({ userId: uid, action: 'UPDATE', module: 'facturation', description: `Facture ${numeroLegal} validée (conformité légale)` });
+
+  try {
+    const fresh = getFactureById(id);
+    if (fresh.montantTtc - fresh.montantPaye > 0) createCreanceFromFacture(uid, id);
+  } catch { /* déjà soldée ou créance existante */ }
+
+  return getFactureDetail(uid, id);
+}
+
+export const annulerFacture   = (uid: number, id: number) => updateStatut(uid, id, ['brouillon', 'soumise', 'proforma'], 'annulee');
 
 export function deleteFacture(actorUserId: number, id: number): boolean {
   assertCanFacturer(actorUserId);
@@ -560,7 +705,10 @@ export function addPaiement(actorUserId: number, input: AddPaiementInput): Factu
     `SELECT COALESCE(SUM(montant),0) as total FROM paiements_facture WHERE facture_id=? AND deleted_at IS NULL`
   ).get(input.factureId) as { total: number };
 
-  const newStatut: FactureStatut = totalPaye.total >= row.montantTtc ? 'payee' : 'validee';
+  const newStatut: FactureStatut =
+    totalPaye.total >= row.montantTtc ? 'payee'
+    : totalPaye.total > 0 ? 'payee_partielle'
+    : 'validee';
   db.prepare(`UPDATE factures SET montant_paye=?, statut=?, updated_at=datetime('now') WHERE id=?`).run(
     totalPaye.total, newStatut, input.factureId,
   );
@@ -590,7 +738,10 @@ export function deletePaiement(actorUserId: number, id: number): FactureDetail {
   ).get(pmt.facture_id) as { total: number };
 
   const row = getFactureById(pmt.facture_id);
-  const newStatut: FactureStatut = totalPaye.total >= row.montantTtc ? 'payee' : 'validee';
+  const newStatut: FactureStatut =
+    totalPaye.total >= row.montantTtc ? 'payee'
+    : totalPaye.total > 0 ? 'payee_partielle'
+    : 'validee';
   db.prepare(`UPDATE factures SET montant_paye=?, statut=?, updated_at=datetime('now') WHERE id=?`).run(
     totalPaye.total, newStatut, pmt.facture_id,
   );
@@ -667,3 +818,84 @@ function mapClient(row: Record<string, unknown>): ClientFacturation {
     rc: row.rc ? String(row.rc) : null,
   };
 }
+
+// ── Avoir & registre conforme ──────────────────────────────────────────────────
+
+export function createAvoir(actorUserId: number, input: CreateAvoirInput): FactureDetail {
+  assertCanFacturer(actorUserId);
+  const origine = getFactureDetail(actorUserId, input.factureOrigineId);
+  if (!['validee', 'payee', 'payee_partielle', 'envoyee'].includes(origine.statut)) {
+    throw new Error('Seule une facture validée peut faire l\'objet d\'un avoir.');
+  }
+
+  const lignes = input.lignes?.length
+    ? input.lignes
+    : origine.lignes.map((l) => ({
+        designation: `Avoir — ${l.designation}`,
+        quantite: l.quantite,
+        prixUnitaire: l.prixUnitaire,
+        tauxTva: l.tauxTva,
+      }));
+
+  const facture = createFacture(actorUserId, {
+    hotelId: origine.hotelId,
+    clientId: origine.clientId ?? undefined,
+    clientNom: origine.clientNom,
+    notes: input.notes ?? `Avoir sur facture ${origine.numero}`,
+    lignes,
+  });
+
+  const db = getDatabase();
+  db.prepare(`
+    UPDATE factures SET type_document='avoir', serie='AV', facture_origine_id=?, statut='soumise', updated_at=datetime('now')
+    WHERE id=?
+  `).run(input.factureOrigineId, facture.id);
+
+  db.prepare(`UPDATE factures SET statut='avoir_emis', updated_at=datetime('now') WHERE id=?`).run(input.factureOrigineId);
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'facturation', description: `Avoir créé sur facture ${origine.numero}` });
+  return getFactureDetail(actorUserId, facture.id);
+}
+
+export function listRegistreFactures(actorUserId: number, filters: FactureFilters = {}): FactureRegistreItem[] {
+  assertCanFacturer(actorUserId);
+  const db = getDatabase();
+  const conds = ['1=1'];
+  const params: unknown[] = [];
+  if (filters.dateDebut) { conds.push('r.date_emission >= ?'); params.push(filters.dateDebut); }
+  if (filters.dateFin) { conds.push('r.date_emission <= ?'); params.push(filters.dateFin); }
+  if (filters.hotelId) { conds.push('r.hotel_id = ?'); params.push(filters.hotelId); }
+  if (filters.typeDocument) { conds.push('r.type_document = ?'); params.push(filters.typeDocument); }
+
+  return (db.prepare(`
+    SELECT r.* FROM factures_registre r WHERE ${conds.join(' AND ')} ORDER BY r.date_emission DESC, r.id DESC LIMIT 1000
+  `).all(...params) as Record<string, unknown>[]).map((r) => ({
+    id: Number(r.id),
+    factureId: Number(r.facture_id),
+    numero: String(r.numero),
+    typeDocument: r.type_document as TypeDocument,
+    dateEmission: String(r.date_emission),
+    clientNom: String(r.client_nom),
+    nifClient: r.nif_client ? String(r.nif_client) : null,
+    montantHt: Number(r.montant_ht),
+    montantTva: Number(r.montant_tva),
+    montantTtc: Number(r.montant_ttc),
+    statut: r.statut as FactureStatut,
+    exercice: r.exercice ? Number(r.exercice) : null,
+    hotelId: r.hotel_id ? Number(r.hotel_id) : null,
+  }));
+}
+
+export function exportRegistreFacturesCsv(actorUserId: number, filters: FactureFilters = {}): string {
+  const rows = listRegistreFactures(actorUserId, filters);
+  const lines = [
+    'Numéro;Type;Date;Client;NIF;HT;TVA;TTC;Statut;Exercice',
+    ...rows.map((r) =>
+      [r.numero, r.typeDocument, r.dateEmission, r.clientNom, r.nifClient ?? '', r.montantHt, r.montantTva, r.montantTtc, r.statut, r.exercice ?? ''].join(';'),
+    ),
+  ];
+  writeAuditLog({ userId: actorUserId, action: 'EXPORT', module: 'facturation', description: 'Export registre des factures CSV' });
+  return lines.join('\n');
+}
+
+/** Numérotation légale — exposé pour tests unitaires */
+export { allocateNumeroLegal };

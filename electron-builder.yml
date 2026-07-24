@@ -1,6 +1,7 @@
 appId: dz.raqmisystem.desktop
 productName: Raqmi System
 copyright: Copyright © Raqmi System
+artifactName: Raqmi-System-${version}-Setup.${ext}
 # better-sqlite3 est déjà précompilé via npm run rebuild:native (postinstall)
 npmRebuild: false
 directories:
@@ -32,3 +33,5 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Raqmi System
+  uninstallDisplayName: Raqmi System
+  license: assets/LICENSE-EULA.txt

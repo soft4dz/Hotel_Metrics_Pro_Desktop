@@ -10,13 +10,18 @@ import { cn } from '@/lib/utils';
 import { STATUT_FACT_LABELS } from '@/shared/types/facturation';
 import type { FactureStatut } from '@/shared/types/facturation';
 
-const STATUT_CLS: Record<FactureStatut, string> = {
+const STATUT_CLS: Partial<Record<FactureStatut, string>> = {
   brouillon: 'border-slate-200 bg-slate-100 text-slate-600',
+  proforma: 'border-violet-200 bg-violet-50 text-violet-700',
   soumise:   'border-blue-200 bg-blue-50 text-blue-700',
   validee:   'border-emerald-200 bg-emerald-50 text-emerald-700',
+  envoyee:   'border-cyan-200 bg-cyan-50 text-cyan-700',
+  payee_partielle: 'border-amber-200 bg-amber-50 text-amber-700',
   payee:     'border-green-200 bg-green-100 text-green-800',
   annulee:   'border-red-200 bg-red-50 text-red-600',
+  avoir_emis: 'border-orange-200 bg-orange-50 text-orange-700',
 };
+const DEFAULT_STATUT_CLS = 'border-slate-200 bg-slate-100 text-slate-600';
 
 export function FacturationBoard() {
   const { data, loading, error } = useFacturationDashboard();
@@ -149,7 +154,7 @@ export function FacturationBoard() {
                       {f.montantRestant > 0 ? formatMoney(f.montantRestant) : '✓'}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <span className={cn('rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', STATUT_CLS[f.statut])}>
+                      <span className={cn('rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', STATUT_CLS[f.statut] ?? DEFAULT_STATUT_CLS)}>
                         {STATUT_FACT_LABELS[f.statut]}
                       </span>
                     </td>

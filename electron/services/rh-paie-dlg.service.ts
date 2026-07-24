@@ -7,6 +7,7 @@ import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
 import { calculatePaieDz } from './rh-conformite-dz.service';
+import { assertPeriodePaieModifiable } from './rh-paie-cloture.service';
 import { listEmployes } from './rh.service';
 import type {
   CreatePrimeInput,
@@ -311,6 +312,7 @@ export function listPrimes(actorUserId: number, periode?: string, employeId?: nu
 
 export function createPrime(actorUserId: number, input: CreatePrimeInput): RhPrime {
   assertRhPaie(actorUserId);
+  assertPeriodePaieModifiable(input.periode);
   const db = getDatabase();
   const result = db.prepare(`
     INSERT INTO rh_primes (employe_id, periode, code, libelle, montant, source)
@@ -367,6 +369,7 @@ export function listDlgJournal(actorUserId: number, limit = 30): RhDlgJournalEnt
 
 export function generatePrePaie(actorUserId: number, periode: string): RhBulletin[] {
   assertRhPaie(actorUserId);
+  assertPeriodePaieModifiable(periode);
   const db = getDatabase();
   const { debut, fin } = periodeBounds(periode);
   const employes = listEmployes(actorUserId).filter((e) => e.statutRh === 'actif');
@@ -723,6 +726,8 @@ export function importDepuisDlg(
 
 export function validerBulletin(actorUserId: number, bulletinId: number): RhBulletin {
   assertRhPaie(actorUserId);
+  const periodeRow = getDatabase().prepare('SELECT periode FROM rh_bulletins WHERE id = ?').get(bulletinId) as { periode: string } | undefined;
+  if (periodeRow) assertPeriodePaieModifiable(periodeRow.periode);
   getDatabase()
     .prepare(`UPDATE rh_bulletins SET statut = 'valide', updated_at = datetime('now') WHERE id = ?`)
     .run(bulletinId);

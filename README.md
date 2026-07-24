@@ -410,7 +410,7 @@ npm run build            # vérifie la compilation production
 npm run dist
 ```
 
-**Sortie :** dossier `release/` — installateur **NSIS x64** Windows.
+**Sortie :** dossier `installers/` — installateur **NSIS x64** Windows (`Raqmi-System-{version}-Setup.exe`).
 
 **Configuration :** `electron-builder.yml`
 
@@ -532,7 +532,7 @@ SQLite (better-sqlite3)  ──optionnel──▶  API centrale / sync_queue
 | 1–5 | ✅ | Auth, admin, recettes, dashboards |
 | 6–8 | ✅ | PortMaster, facturation, sync |
 | 9 | 🔄 | Stabilisation prod, GED, documentation |
-| 10 | 📋 | Installateur finalisé, gestion de licence |
+| 10 | ✅ | Installateur NSIS, gestion de licence offline |
 
 ---
 

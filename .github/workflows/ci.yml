@@ -18,4 +18,6 @@ jobs:
       - run: npm ci
       - run: npm run rebuild:native
       - run: npm test
+      - run: npm run audit:ipc
+      - run: npm run validate:packaging
       - run: npm run build

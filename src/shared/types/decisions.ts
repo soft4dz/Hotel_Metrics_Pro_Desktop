@@ -7,6 +7,6 @@ export interface Decision {
 }
 export interface CreateDecisionInput {
   hotelId?: number; titre: string; contenu: string;
-  type?: string; priorite?: string; destinataires?: number[];
+  type?: string; priorite?: string; destinataireIds?: number[];
   dateDecision?: string; dateEcheance?: string;
 }

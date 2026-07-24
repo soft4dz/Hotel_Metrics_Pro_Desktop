@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cloud, Database, ImagePlus, LayoutGrid, Loader2, Save, Trash2, User, UserCog } from 'lucide-react';
+import { Cloud, Database, ImagePlus, KeyRound, LayoutGrid, Loader2, Save, Trash2, User, UserCog } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
 import { canManageRh, canManageSync, canManageUsers } from '@/shared/permissions';
 import type { AppInfoDto, AppSettingsDto } from '@/shared/types/settings';
+import type { LicenseStatusDto } from '@/shared/types/license';
 
 const DEFAULT_SETTINGS: AppSettingsDto = {
   companyName: 'EGT Sidi Fredj',
@@ -42,6 +43,20 @@ const DEFAULT_SETTINGS: AppSettingsDto = {
   maxLoginAttempts: 5,
   lockoutMinutes: 15,
 };
+
+function licenseBadgeClass(state: LicenseStatusDto['state']): string {
+  switch (state) {
+    case 'active':
+    case 'development':
+      return 'bg-brand-success/15 text-brand-success';
+    case 'trial':
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-400';
+    case 'expired':
+      return 'bg-destructive/15 text-destructive';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+}
 
 function mergeSettings(partial?: Partial<AppSettingsDto>): AppSettingsDto {
   return { ...DEFAULT_SETTINGS, ...partial };
@@ -117,6 +132,9 @@ export function SettingsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [brandLoading, setBrandLoading] = useState<BrandAssetKind | null>(null);
+  const [license, setLicense] = useState<LicenseStatusDto | null>(null);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [licenseBusy, setLicenseBusy] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -127,6 +145,11 @@ export function SettingsPage() {
         setForm(mergeSettings(data.settings));
       } catch {
         setForm(DEFAULT_SETTINGS);
+      }
+      try {
+        setLicense(unwrapIpc(await ipcClient.license.getStatus()));
+      } catch {
+        setLicense(null);
       } finally {
         setLoading(false);
       }
@@ -167,6 +190,23 @@ export function SettingsPage() {
       setError(err instanceof Error ? err.message : 'Erreur lors du téléversement.');
     } finally {
       setBrandLoading(null);
+    }
+  };
+
+  const handleActivateLicense = async () => {
+    if (!isAdmin || !licenseKey.trim()) return;
+    setLicenseBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const status = unwrapIpc(await ipcClient.license.activate(licenseKey.trim()));
+      setLicense(status);
+      setLicenseKey('');
+      setMessage('Licence activée avec succès.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Activation impossible.');
+    } finally {
+      setLicenseBusy(false);
     }
   };
 
@@ -273,6 +313,68 @@ export function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <KeyRound className="h-4 w-4" />
+                Licence Raqmi System
+              </CardTitle>
+              <CardDescription>
+                Activation production — période d&apos;essai 30 jours sans clé.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {license && (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        'rounded-full px-2.5 py-0.5 text-xs font-medium uppercase',
+                        licenseBadgeClass(license.state),
+                      )}
+                    >
+                      {license.state}
+                    </span>
+                    {license.edition && (
+                      <span className="text-muted-foreground">{license.edition}</span>
+                    )}
+                  </div>
+                  <p>{license.message}</p>
+                  {license.expiresAt && (
+                    <p>
+                      <span className="text-muted-foreground">Expiration :</span> {license.expiresAt}
+                    </p>
+                  )}
+                  <p className="break-all font-mono text-xs">
+                    <span className="font-sans text-muted-foreground">Identifiant poste :</span>{' '}
+                    {license.machineId}
+                  </p>
+                </>
+              )}
+              <div className="space-y-2 pt-1">
+                <Label htmlFor="licenseKey">Clé de licence</Label>
+                <Input
+                  id="licenseKey"
+                  value={licenseKey}
+                  onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+                  placeholder="RS-PRO-20271231-XXXXXXXX"
+                  disabled={licenseBusy}
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={licenseBusy || !licenseKey.trim()}
+                onClick={() => void handleActivateLicense()}
+              >
+                {licenseBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Activer la licence
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <form onSubmit={(e) => void handleSave(e)} className="mt-6 space-y-6">

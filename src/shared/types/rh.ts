@@ -418,6 +418,17 @@ export interface RhBulletin {
   tresorerieId: number | null;
 }
 
+export type PaieClotureStatut = 'brouillon' | 'valide' | 'cloture';
+
+export interface PaieClotureMensuelle {
+  id: number;
+  periode: string;
+  statut: PaieClotureStatut;
+  nbBulletins: number;
+  valideAt: string | null;
+  clotureAt: string | null;
+}
+
 export interface RhPrime {
   id: number;
   employeId: number;

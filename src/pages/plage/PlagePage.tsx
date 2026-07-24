@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
-import { Waves, Plus, Users } from 'lucide-react';
+import { Waves, Plus, Users, Settings } from 'lucide-react';
+
+interface PlageConfig { capacitePlage: number; capacitePiscine: number; tarifAdulte: number; tarifEnfant: number; tarifResident: number }
 
 interface PlageEntree { id: number; typeVisiteur: string; nombrePersonnes: number; nombreAdultes: number; nombreEnfants: number; montantPaye: number; formule: string; dateEntree: string }
 interface PlageStats { totalEntreesJour: number; totalVisiteursJour: number; chiffreAffaireJour: number; totalEntreesMois: number; totalVisiteursMois: number; chiffreAffaireMois: number }
@@ -17,6 +19,22 @@ export default function PlagePage() {
   const [date, setDate] = useState(today);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ typeVisiteur: 'touriste', nombreAdultes: 1, nombreEnfants: 0, formule: 'plage' });
+  const [pageTab, setPageTab] = useState<'exploitation' | 'parametrage'>('exploitation');
+  const [cfgForm, setCfgForm] = useState<PlageConfig>({ capacitePlage: 0, capacitePiscine: 0, tarifAdulte: 0, tarifEnfant: 0, tarifResident: 0 });
+
+  const { data: config } = useQuery({
+    queryKey: ['plage-config', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.plage.getConfig(hotelId)) as PlageConfig,
+  });
+
+  useEffect(() => {
+    if (config) setCfgForm(config);
+  }, [config]);
+
+  const saveConfig = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.plage.saveConfig(hotelId, cfgForm)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['plage'] }); notify.success('Paramètres plage enregistrés'); },
+  });
 
   const { data: entrees = [] } = useQuery({
     queryKey: ['plage-entrees', hotelId, date],
@@ -65,6 +83,30 @@ export default function PlagePage() {
         </div>
       </div>
 
+      <div className="flex gap-1 border-b">
+        {(['exploitation', 'parametrage'] as const).map((t) => (
+          <button key={t} type="button" onClick={() => setPageTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 capitalize ${pageTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>
+            {t === 'exploitation' ? 'Exploitation' : 'Paramétrage'}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === 'parametrage' && (
+        <div className="bg-card border rounded-xl p-6 space-y-4 max-w-lg">
+          <h2 className="font-semibold flex items-center gap-2"><Settings className="h-4 w-4" /> Tarifs & capacités</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-xs">Capacité plage<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.capacitePlage} onChange={(e) => setCfgForm((c) => ({ ...c, capacitePlage: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Capacité piscine<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.capacitePiscine} onChange={(e) => setCfgForm((c) => ({ ...c, capacitePiscine: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Tarif adulte<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifAdulte} onChange={(e) => setCfgForm((c) => ({ ...c, tarifAdulte: Number(e.target.value) }))} /></label>
+            <label className="text-xs">Tarif enfant<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifEnfant} onChange={(e) => setCfgForm((c) => ({ ...c, tarifEnfant: Number(e.target.value) }))} /></label>
+            <label className="text-xs col-span-2">Tarif résident<input type="number" className="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm bg-background" value={cfgForm.tarifResident} onChange={(e) => setCfgForm((c) => ({ ...c, tarifResident: Number(e.target.value) }))} /></label>
+          </div>
+          <button type="button" onClick={() => saveConfig.mutate()} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">Enregistrer</button>
+        </div>
+      )}
+
+      {pageTab === 'exploitation' && (
+      <>
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-card border rounded-xl p-4 col-span-1">
@@ -116,6 +158,8 @@ export default function PlagePage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

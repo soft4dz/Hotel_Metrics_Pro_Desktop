@@ -1,4 +1,8 @@
-import { RotateCcw, AlertCircle, AlertTriangle, Info, CalendarClock, Target, ClipboardX, BarChart3, RefreshCw, ShieldAlert } from 'lucide-react';
+import { RotateCcw, AlertCircle, AlertTriangle, Info, CalendarClock, Target, ClipboardX, BarChart3, RefreshCw, ShieldAlert, Bell } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ipcClient } from '@/lib/ipcClient';
+import { unwrapIpc } from '@/lib/ipcHelpers';
+import { notify } from '@/lib/toast';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionBlock } from '@/components/common/SectionBlock';
 import { Button } from '@/components/ui/button';
@@ -91,8 +95,25 @@ function ActiveBadge({ count }: { count: number }) {
 
 /* ── Page ─────────────────────────────────────────────── */
 export function NotificationsPage() {
+  const qc = useQueryClient();
   const { notifPrefs, setNotifPref, resetNotifPrefs } = useUiStore();
   const set = <K extends keyof NotifPrefs>(k: K) => (v: NotifPrefs[K]) => setNotifPref(k, v);
+
+  const { data: rules = [] } = useQuery({
+    queryKey: ['notification-rules'],
+    queryFn: async () => unwrapIpc(await ipcClient.notifications.getRules()) as { code: string; module: string; conditionLabel: string; actif: boolean }[],
+  });
+
+  const updateRule = useMutation({
+    mutationFn: async ({ code, actif }: { code: string; actif: boolean }) =>
+      unwrapIpc(await ipcClient.notifications.updateRule({ code, actif })),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notification-rules'] }); notify.success('Règle mise à jour'); },
+  });
+
+  const generateSystem = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.notifications.generateSystem()),
+    onSuccess: (n) => notify.success(`${n ?? 0} notification(s) générée(s)`),
+  });
 
   const alertCount = [
     notifPrefs.alertesCritiques,
@@ -133,6 +154,28 @@ export function NotificationsPage() {
           </Button>
         }
       />
+
+      <SectionBlock
+        title="Règles système (backend)"
+        description="Alertes persistées en base — synchronisées avec la cloche navbar"
+        action={
+          <button type="button" onClick={() => generateSystem.mutate()} className="text-xs border rounded-lg px-3 py-1.5 hover:bg-muted flex items-center gap-1">
+            <Bell className="w-3 h-3" /> Générer maintenant
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-2">
+          {rules.map((r) => (
+            <div key={r.code} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-3">
+              <div>
+                <p className="text-sm font-medium">{r.conditionLabel}</p>
+                <p className="text-xs text-muted-foreground">{r.module} · {r.code}</p>
+              </div>
+              <Toggle checked={r.actif} onChange={(v) => updateRule.mutate({ code: r.code, actif: v })} />
+            </div>
+          ))}
+        </div>
+      </SectionBlock>
 
       {/* ── Alertes dashboard ──────────────────────────── */}
       <SectionBlock

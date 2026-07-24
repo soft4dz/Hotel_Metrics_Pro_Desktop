@@ -1,13 +1,27 @@
-export type FactureStatut = 'brouillon' | 'soumise' | 'validee' | 'payee' | 'annulee';
+export type FactureStatut =
+  | 'brouillon'
+  | 'proforma'
+  | 'soumise'
+  | 'validee'
+  | 'envoyee'
+  | 'payee_partielle'
+  | 'payee'
+  | 'annulee'
+  | 'avoir_emis';
+export type TypeDocument = 'facture' | 'avoir' | 'proforma';
 export type TypeClient = 'particulier' | 'entreprise';
 export type ModePaiementFact = 'especes' | 'cheque' | 'virement' | 'carte' | 'effet' | 'autre';
 
 export const STATUT_FACT_LABELS: Record<FactureStatut, string> = {
   brouillon: 'Brouillon',
-  soumise:   'Soumise',
-  validee:   'Validée',
-  payee:     'Payée',
-  annulee:   'Annulée',
+  proforma: 'Proforma',
+  soumise: 'Soumise',
+  validee: 'Validée',
+  envoyee: 'Envoyée',
+  payee_partielle: 'Payée partielle',
+  payee: 'Payée',
+  annulee: 'Annulée',
+  avoir_emis: 'Avoir émis',
 };
 
 export const MODE_FACT_LABELS: Record<ModePaiementFact, string> = {
@@ -71,6 +85,9 @@ export interface FactureListItem {
   dateEmission: string;
   dateEcheance: string | null;
   statut: FactureStatut;
+  typeDocument?: TypeDocument;
+  factureOrigineId?: number | null;
+  verrouillee?: boolean;
   montantHt: number;
   montantTva: number;
   montantTtc: number;
@@ -142,4 +159,26 @@ export interface FactureFilters {
   dateDebut?: string;
   dateFin?: string;
   search?: string;
+  typeDocument?: TypeDocument;
+}
+
+export interface FactureRegistreItem {
+  id: number;
+  factureId: number;
+  numero: string;
+  typeDocument: TypeDocument;
+  dateEmission: string;
+  clientNom: string;
+  nifClient: string | null;
+  montantHt: number;
+  montantTva: number;
+  montantTtc: number;
+  statut: FactureStatut;
+  exercice: number | null;
+}
+
+export interface CreateAvoirInput {
+  factureOrigineId: number;
+  lignes?: LigneInput[];
+  notes?: string;
 }

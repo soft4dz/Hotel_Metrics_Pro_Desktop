@@ -217,6 +217,166 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Tarifs & Conventions',
     subtitle: 'Plans tarifaires, grille journalière, promotions et conventions',
   },
+  '/comptabilite': {
+    title: 'Comptabilité SCF',
+    subtitle: 'Plan comptable, saisie et balance',
+  },
+  '/comptabilite/plan': {
+    title: 'Plan comptable',
+    subtitle: 'Consultation des comptes SCF',
+  },
+  '/comptabilite/saisie': {
+    title: 'Saisie OD',
+    subtitle: 'Écritures manuelles journal OD',
+  },
+  '/comptabilite/journaux': {
+    title: 'Journaux comptables',
+    subtitle: 'Consultation des écritures',
+  },
+  '/comptabilite/balance': {
+    title: 'Balance générale',
+    subtitle: 'Balance par exercice et période',
+  },
+  '/comptabilite/exercices': {
+    title: 'Exercices comptables',
+    subtitle: 'Ouverture et clôture des exercices',
+  },
+  '/fiscalite': {
+    title: 'Fiscalité DGI',
+    subtitle: 'TVA, retenues et liasse fiscale',
+  },
+  '/fiscalite/registre-tva': {
+    title: 'Registre TVA',
+    subtitle: 'Registre des ventes et avoirs',
+  },
+  '/fiscalite/declaration-tva': {
+    title: 'Déclaration TVA',
+    subtitle: 'Calcul et historique des déclarations',
+  },
+  '/fiscalite/retenue-source': {
+    title: 'Retenue à la source',
+    subtitle: 'Retenues sur paiements fournisseurs',
+  },
+  '/fiscalite/liasse': {
+    title: 'Liasse fiscale',
+    subtitle: 'États G50 et export DGI',
+  },
+  '/fiscalite/tva-achats': {
+    title: 'Registre TVA achats',
+    subtitle: 'TVA déductible et import depuis achats',
+  },
+  '/fiscalite/teledeclarations': {
+    title: 'Télédéclarations DGI',
+    subtitle: 'Export G50 et suivi des dépôts',
+  },
+  '/fiscalite/sifec': {
+    title: 'Connecteur SIFEC',
+    subtitle: 'Facturation électronique DGI',
+  },
+  '/fiscalite/sifec/factures': {
+    title: 'Transmissions SIFEC',
+    subtitle: 'Envoi et suivi des factures électroniques',
+  },
+  '/fiscalite/sifec/config': {
+    title: 'Configuration SIFEC',
+    subtitle: 'Paramètres connecteur sandbox / production',
+  },
+  '/facturation/registre': {
+    title: 'Registre des factures',
+    subtitle: 'Registre légal des pièces de vente',
+  },
+  '/rh/paie/cloture': {
+    title: 'Clôture paie mensuelle',
+    subtitle: 'Validation et clôture de la paie',
+  },
+  '/workflows': {
+    title: 'Workflows',
+    subtitle: 'File d\'attente des validations transverses',
+  },
+  '/recettes/cloture': {
+    title: 'Clôture journalière',
+    subtitle: 'Contrôle CA, encaissements et créances par unité',
+  },
+  '/finance/rapprochements': {
+    title: 'Rapprochements financiers',
+    subtitle: 'Rapprochement recettes / trésorerie / créances',
+  },
+  '/creances': {
+    title: 'Créances globales',
+    subtitle: 'Recouvrement, balance âgée et relances',
+  },
+  '/dec/cockpit': {
+    title: 'Cockpit DEC',
+    subtitle: 'Alertes et indicateurs opérationnels',
+  },
+  '/dashboard/pdg': {
+    title: 'Dashboard PDG',
+    subtitle: 'Vue consolidée multi-unités',
+  },
+  '/rh/organisation/egt': {
+    title: 'Organisation EGT',
+    subtitle: 'Organigramme et effectifs cible vs réel',
+  },
+  '/rh/fiches-poste': {
+    title: 'Fiches de poste',
+    subtitle: 'Missions, compétences et KPI par poste',
+  },
+  '/controle/checklists': {
+    title: 'Checklists de contrôle',
+    subtitle: 'DEC, qualité, hygiène, maintenance, sécurité',
+  },
+  '/hotel-legal': {
+    title: 'Conformité hôtelière',
+    subtitle: 'Fiche police, taxe de séjour, rapports tourisme',
+  },
+  '/ged/archivage-legal': {
+    title: 'Archivage légal GED',
+    subtitle: 'Rétention 10 ans, horodatage et intégrité',
+  },
+  '/settings/system-health': {
+    title: 'Santé système',
+    subtitle: 'Base de données, sauvegardes, sync et intégrité GED',
+  },
+  '/conformite/donnees-personnelles': {
+    title: 'Protection des données',
+    subtitle: 'Loi 18-07 / ANPDP — registre et droits des personnes',
+  },
+  '/conformite/donnees-personnelles/traitements': {
+    title: 'Registre des traitements',
+    subtitle: 'Loi 18-07 — art. 30',
+  },
+  '/conformite/donnees-personnelles/consentements': {
+    title: 'Consentements',
+    subtitle: 'Preuves et retraits de consentement',
+  },
+  '/conformite/donnees-personnelles/demandes': {
+    title: 'Demandes d\'exercice des droits',
+    subtitle: 'Accès, rectification, suppression, opposition, portabilité',
+  },
+  '/conformite/donnees-personnelles/incidents': {
+    title: 'Incidents de données',
+    subtitle: 'Violations et notification ANPDP',
+  },
+  '/conformite/donnees-personnelles/conservation': {
+    title: 'Politiques de conservation',
+    subtitle: 'Durées liées à l\'archivage GED',
+  },
+  '/conformite/modules-legaux': {
+    title: 'Modules légaux',
+    subtitle: 'Immobilisations, CASNOS et inventaire légal',
+  },
+  '/conformite/modules-legaux/immobilisations': {
+    title: 'Immobilisations SCF',
+    subtitle: 'Registre et amortissements comptables',
+  },
+  '/conformite/modules-legaux/casnos': {
+    title: 'CASNOS — TNS',
+    subtitle: 'Cotisations travailleurs non salariés',
+  },
+  '/conformite/modules-legaux/inventaire': {
+    title: 'Inventaire légal',
+    subtitle: 'Inventaire physique annuel des stocks',
+  },
 };
 
 export function getPageTitle(pathname: string): { title: string; subtitle?: string } {

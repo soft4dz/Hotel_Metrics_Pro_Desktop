@@ -1,6 +1,7 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { dualWrite } from './dualWrite';
+import { genererEcritureEncaissement } from './comptabilite.service';
 import {
   getActorContext,
   actorHasAllHotels,
@@ -8,6 +9,7 @@ import {
   isGlobalAdminRole,
   applyActorHotelFilter,
 } from './actorContext';
+import { isDateJournalLocked } from './daily-closure.service';
 
 export type ModePaiement = 'especes' | 'cheque' | 'virement' | 'carte' | 'effet' | 'autre';
 export type EncaissementStatut = 'en_attente' | 'confirme' | 'rejete';
@@ -289,6 +291,9 @@ export function listEncaissements(actorUserId: number, filters: EncaissementFilt
 export function createEncaissement(actorUserId: number, input: CreateEncaissementInput): EncaissementItem {
   const actor = getActorContext(actorUserId);
   if (!actorCanAccessHotel(actor, input.hotelId)) throw new Error('Accès hôtel refusé.');
+  if (isDateJournalLocked(input.hotelId, input.dateEncaissement)) {
+    throw new Error('Journée clôturée. Encaissement impossible.');
+  }
 
   const db = getDatabase();
   const result = db.prepare(`
@@ -328,6 +333,10 @@ export function updateEncaissement(
   const existing = getEncaissementById(id);
   if (!actorCanAccessHotel(actor, existing.hotelId)) throw new Error('Accès refusé.');
   if (existing.statut === 'confirme') throw new Error('Impossible de modifier un encaissement confirmé.');
+  const dateCheck = input.dateEncaissement ?? existing.dateEncaissement;
+  if (isDateJournalLocked(existing.hotelId, dateCheck)) {
+    throw new Error('Journée clôturée. Modification encaissement impossible.');
+  }
 
   const db = getDatabase();
   const sets: string[] = ['updated_at = datetime(\'now\')'];
@@ -351,10 +360,22 @@ export function updateEncaissement(
 export function confirmerEncaissement(actorUserId: number, id: number): EncaissementItem {
   const actor = getActorContext(actorUserId);
   assertCanManageTresorerie(actor);
+  const encBefore = getEncaissementById(id);
+  if (isDateJournalLocked(encBefore.hotelId, encBefore.dateEncaissement)) {
+    throw new Error('Journée clôturée. Confirmation encaissement impossible.');
+  }
   const db = getDatabase();
   db.prepare(`UPDATE encaissements SET statut='confirme', updated_at=datetime('now') WHERE id=? AND deleted_at IS NULL`).run(id);
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'encaissements', description: `Encaissement ${id} confirmé` });
   const encConfirme = getEncaissementById(id);
+  genererEcritureEncaissement(actorUserId, {
+    encaissementId: encConfirme.id,
+    dateEncaissement: encConfirme.dateEncaissement,
+    montant: encConfirme.montant,
+    mode: encConfirme.mode,
+    reference: encConfirme.reference,
+    hotelId: encConfirme.hotelId,
+  });
   dualWrite(encConfirme, 'patch', `/tresorerie/encaissements/${id}/statut`, { statut: 'confirme' });
   return encConfirme;
 }
@@ -362,6 +383,10 @@ export function confirmerEncaissement(actorUserId: number, id: number): Encaisse
 export function rejeterEncaissement(actorUserId: number, id: number, motif: string): EncaissementItem {
   const actor = getActorContext(actorUserId);
   assertCanManageTresorerie(actor);
+  const encBefore = getEncaissementById(id);
+  if (isDateJournalLocked(encBefore.hotelId, encBefore.dateEncaissement)) {
+    throw new Error('Journée clôturée. Rejet encaissement impossible.');
+  }
   const db = getDatabase();
   db.prepare(`UPDATE encaissements SET statut='rejete', description=?, updated_at=datetime('now') WHERE id=? AND deleted_at IS NULL`).run(
     motif, id,
@@ -375,6 +400,10 @@ export function rejeterEncaissement(actorUserId: number, id: number, motif: stri
 export function deleteEncaissement(actorUserId: number, id: number): boolean {
   const actor = getActorContext(actorUserId);
   assertCanManageTresorerie(actor);
+  const enc = getEncaissementById(id);
+  if (isDateJournalLocked(enc.hotelId, enc.dateEncaissement)) {
+    throw new Error('Journée clôturée. Suppression encaissement impossible.');
+  }
   const db = getDatabase();
   db.prepare(`UPDATE encaissements SET deleted_at=datetime('now') WHERE id=? AND deleted_at IS NULL`).run(id);
   writeAuditLog({ userId: actorUserId, action: 'DELETE', module: 'encaissements', description: `Encaissement ${id} supprimé` });

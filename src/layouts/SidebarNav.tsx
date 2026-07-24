@@ -335,11 +335,11 @@ export function SidebarNav({
             <div className="flex min-w-0 items-center gap-3">
               <img
                 src={brandLogoUrl}
-                alt="Hotel Metrics Pro"
+                alt="Raqmi System"
                 className="h-8 w-8 shrink-0 rounded-lg object-contain ring-1 ring-white/20"
               />
               <div className="min-w-0 sidebar-nav-label">
-                <p className="truncate text-sm font-bold text-white">Hotel Metrics</p>
+                <p className="truncate text-sm font-bold text-white">Raqmi System</p>
                 <p className="text-[11px] text-white/50">Pro Desktop</p>
               </div>
             </div>
@@ -363,7 +363,7 @@ export function SidebarNav({
           >
             <img
               src={brandLogoUrl}
-              alt="Hotel Metrics Pro"
+              alt="Raqmi System"
               className="h-8 w-8 rounded-lg object-contain ring-1 ring-white/20"
             />
           </button>

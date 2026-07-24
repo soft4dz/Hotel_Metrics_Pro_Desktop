@@ -66,8 +66,51 @@ import { ComptesBancairesPage } from '@/pages/tresorerie/ComptesBancairesPage';
 import { FacturationIndexPage } from '@/pages/facturation/FacturationIndexPage';
 import { FacturationBoard } from '@/pages/facturation/FacturationBoard';
 import { FacturesListPage } from '@/pages/facturation/FacturesListPage';
+import { FacturationRegistrePage } from '@/pages/facturation/FacturationRegistrePage';
 import { NouvelleFacturePage } from '@/pages/facturation/NouvelleFacturePage';
 import { FactureDetailPage as FactureDetailFacturationPage } from '@/pages/facturation/FactureDetailPage';
+import { ComptabiliteIndexPage } from '@/pages/comptabilite/ComptabiliteIndexPage';
+import { ComptabiliteHubPage } from '@/pages/comptabilite/ComptabiliteHubPage';
+import { ComptabilitePlanPage } from '@/pages/comptabilite/ComptabilitePlanPage';
+import { ComptabiliteSaisiePage } from '@/pages/comptabilite/ComptabiliteSaisiePage';
+import { ComptabiliteJournauxPage } from '@/pages/comptabilite/ComptabiliteJournauxPage';
+import { ComptabiliteBalancePage } from '@/pages/comptabilite/ComptabiliteBalancePage';
+import { ComptabiliteExercicesPage } from '@/pages/comptabilite/ComptabiliteExercicesPage';
+import { FiscaliteIndexPage } from '@/pages/fiscalite/FiscaliteIndexPage';
+import { FiscaliteRegistreTvaPage } from '@/pages/fiscalite/FiscaliteRegistreTvaPage';
+import { FiscaliteDeclarationTvaPage } from '@/pages/fiscalite/FiscaliteDeclarationTvaPage';
+import { FiscaliteRetenuePage } from '@/pages/fiscalite/FiscaliteRetenuePage';
+import { FiscaliteLiassePage } from '@/pages/fiscalite/FiscaliteLiassePage';
+import { FiscaliteTvaAchatsPage } from '@/pages/fiscalite/FiscaliteTvaAchatsPage';
+import { FiscaliteTeledeclarationsPage } from '@/pages/fiscalite/FiscaliteTeledeclarationsPage';
+import { SifecHubPage } from '@/pages/fiscalite/sifec/SifecHubPage';
+import { SifecFacturesPage } from '@/pages/fiscalite/sifec/SifecFacturesPage';
+import { SifecConfigPage } from '@/pages/fiscalite/sifec/SifecConfigPage';
+import WorkflowsPage from '@/pages/workflows/WorkflowsPage';
+import ClotureJournalierePage from '@/pages/recettes/ClotureJournalierePage';
+import RapprochementsPage from '@/pages/finance/RapprochementsPage';
+import CreancesPage from '@/pages/creances/CreancesPage';
+import ContratsHotelPage from '@/pages/contrats/ContratsHotelPage';
+import DecCockpitPage from '@/pages/dec/DecCockpitPage';
+import DashboardPdgPage from '@/pages/dashboard/DashboardPdgPage';
+import RhOrganisationEgtPage from '@/pages/rh/RhOrganisationEgtPage';
+import RhFichesPostePage from '@/pages/rh/RhFichesPostePage';
+import ChecklistsPage from '@/pages/controle/ChecklistsPage';
+import HotelLegalPage from '@/pages/hotel-legal/HotelLegalPage';
+import GedArchivageLegalPage from '@/pages/ged/GedArchivageLegalPage';
+import SystemHealthPage from '@/pages/system/SystemHealthPage';
+import { ConformiteDonneesIndexPage } from '@/pages/conformite/ConformiteDonneesIndexPage';
+import { RgpdHubPage } from '@/pages/conformite/RgpdHubPage';
+import { RgpdTraitementsPage } from '@/pages/conformite/RgpdTraitementsPage';
+import { RgpdConsentementsPage } from '@/pages/conformite/RgpdConsentementsPage';
+import { RgpdDemandesPage } from '@/pages/conformite/RgpdDemandesPage';
+import { RgpdIncidentsPage } from '@/pages/conformite/RgpdIncidentsPage';
+import { RgpdConservationPage } from '@/pages/conformite/RgpdConservationPage';
+import { ConformiteModulesLegauxIndexPage } from '@/pages/conformite/modules-legaux/ConformiteModulesLegauxIndexPage';
+import { ModulesLegauxHubPage } from '@/pages/conformite/modules-legaux/ModulesLegauxHubPage';
+import { ImmobilisationsPage } from '@/pages/conformite/modules-legaux/ImmobilisationsPage';
+import { CasnosPage } from '@/pages/conformite/modules-legaux/CasnosPage';
+import { InventaireLegalPage } from '@/pages/conformite/modules-legaux/InventaireLegalPage';
 import { ClientsListPage } from '@/pages/clients/ClientsListPage';
 import { ClientDetailPage } from '@/pages/clients/ClientDetailPage';
 import { NouveauClientPage } from '@/pages/clients/NouveauClientPage';
@@ -75,6 +118,7 @@ import { HebergementPage } from '@/pages/hebergement/HebergementPage';
 import { TarifsPage as HotelTarifsPage } from '@/pages/tarifs/TarifsPage';
 import { RhHubPage } from '@/pages/rh/RhHubPage';
 import { RhPage } from '@/pages/rh/RhPage';
+import { RhPaieCloturePage } from '@/pages/rh/RhPaieCloturePage';
 import { RhReferentielPage } from '@/pages/system/RhReferentielPage';
 import { ModulesAdminPage } from '@/pages/system/ModulesAdminPage';
 import { RequireRh } from '@/routes/RequireRh';
@@ -177,10 +221,60 @@ export function AppRoutes() {
             <Route path="/facturation" element={<FacturationIndexPage />}>
               <Route index element={<FacturationBoard />} />
               <Route path="factures" element={<FacturesListPage />} />
+              <Route path="registre" element={<FacturationRegistrePage />} />
               <Route path="clients" element={<Navigate to="/clients" replace />} />
             </Route>
             <Route path="/facturation/nouvelle" element={<NouvelleFacturePage />} />
             <Route path="/facturation/factures/:id" element={<FactureDetailFacturationPage />} />
+
+            <Route path="/comptabilite" element={<ComptabiliteIndexPage />}>
+              <Route index element={<ComptabiliteHubPage />} />
+              <Route path="plan" element={<ComptabilitePlanPage />} />
+              <Route path="saisie" element={<ComptabiliteSaisiePage />} />
+              <Route path="journaux" element={<ComptabiliteJournauxPage />} />
+              <Route path="balance" element={<ComptabiliteBalancePage />} />
+              <Route path="exercices" element={<ComptabiliteExercicesPage />} />
+            </Route>
+
+            <Route path="/fiscalite" element={<FiscaliteIndexPage />}>
+              <Route index element={<Navigate to="registre-tva" replace />} />
+              <Route path="registre-tva" element={<FiscaliteRegistreTvaPage />} />
+              <Route path="tva-achats" element={<FiscaliteTvaAchatsPage />} />
+              <Route path="declaration-tva" element={<FiscaliteDeclarationTvaPage />} />
+              <Route path="teledeclarations" element={<FiscaliteTeledeclarationsPage />} />
+              <Route path="retenue-source" element={<FiscaliteRetenuePage />} />
+              <Route path="liasse" element={<FiscaliteLiassePage />} />
+              <Route path="sifec" element={<SifecHubPage />} />
+              <Route path="sifec/factures" element={<SifecFacturesPage />} />
+              <Route path="sifec/config" element={<SifecConfigPage />} />
+            </Route>
+
+            <Route path="/workflows" element={<WorkflowsPage />} />
+            <Route path="/recettes/cloture" element={<ClotureJournalierePage />} />
+            <Route path="/finance/rapprochements" element={<RapprochementsPage />} />
+            <Route path="/creances" element={<CreancesPage />} />
+            <Route path="/contrats" element={<ContratsHotelPage />} />
+            <Route path="/dec/cockpit" element={<DecCockpitPage />} />
+            <Route path="/dashboard/pdg" element={<DashboardPdgPage />} />
+            <Route path="/controle/checklists" element={<ChecklistsPage />} />
+            <Route path="/hotel-legal" element={<HotelLegalPage />} />
+            <Route path="/ged/archivage-legal" element={<GedArchivageLegalPage />} />
+
+            <Route path="/conformite/donnees-personnelles" element={<RequireSystemAdmin><ConformiteDonneesIndexPage /></RequireSystemAdmin>}>
+              <Route index element={<RgpdHubPage />} />
+              <Route path="traitements" element={<RgpdTraitementsPage />} />
+              <Route path="consentements" element={<RgpdConsentementsPage />} />
+              <Route path="demandes" element={<RgpdDemandesPage />} />
+              <Route path="incidents" element={<RgpdIncidentsPage />} />
+              <Route path="conservation" element={<RgpdConservationPage />} />
+            </Route>
+
+            <Route path="/conformite/modules-legaux" element={<RequireSystemAdmin><ConformiteModulesLegauxIndexPage /></RequireSystemAdmin>}>
+              <Route index element={<ModulesLegauxHubPage />} />
+              <Route path="immobilisations" element={<ImmobilisationsPage />} />
+              <Route path="casnos" element={<CasnosPage />} />
+              <Route path="inventaire" element={<InventaireLegalPage />} />
+            </Route>
 
             <Route path="/clients" element={<ClientsListPage />} />
             <Route path="/clients/nouveau" element={<NouveauClientPage />} />
@@ -191,6 +285,9 @@ export function AppRoutes() {
 
             <Route element={<RequireRh />}>
               <Route path="/rh" element={<RhHubPage />} />
+              <Route path="/rh/paie/cloture" element={<RhPaieCloturePage />} />
+              <Route path="/rh/organisation/egt" element={<RhOrganisationEgtPage />} />
+              <Route path="/rh/fiches-poste" element={<RhFichesPostePage />} />
               <Route path="/rh/:hub" element={<RhPage />} />
               <Route path="/rh/:hub/:sub" element={<RhPage />} />
             </Route>
@@ -214,6 +311,7 @@ export function AppRoutes() {
               <Route path="/settings/rh-referentiel" element={<RhReferentielPage />} />
             </Route>
             <Route path="/settings/interface" element={<InterfaceThemePage />} />
+            <Route path="/settings/system-health" element={<RequireSystemAdmin><SystemHealthPage /></RequireSystemAdmin>} />
             <Route path="/settings/notifications" element={<NotificationsPage />} />
             <Route path="/settings/securite" element={<SecuriteAccesPage />} />
             <Route path="/settings/database" element={<RequireSystemAdmin><DatabasePage /></RequireSystemAdmin>} />

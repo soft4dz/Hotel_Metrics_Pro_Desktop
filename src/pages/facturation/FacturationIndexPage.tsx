@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, FileText, Users } from 'lucide-react';
+import { BarChart3, BookOpenCheck, FileText, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TABS = [
   { to: '/facturation',         label: 'Tableau de bord', icon: BarChart3,  end: true },
   { to: '/facturation/factures', label: 'Factures',        icon: FileText,   end: false },
+  { to: '/facturation/registre', label: 'Registre',        icon: BookOpenCheck, end: false },
   { to: '/clients',              label: 'Clients',         icon: Users,      end: false },
 ];
 

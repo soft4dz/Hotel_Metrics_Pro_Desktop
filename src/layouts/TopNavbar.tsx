@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, LogOut, Menu, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SyncStatusBadge } from '@/components/common/SyncStatusBadge';
+import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { NavbarNav } from '@/layouts/NavbarNav';
 import { NavbarUserMenu } from '@/layouts/NavbarUserMenu';
@@ -77,6 +78,8 @@ export function TopNavbar() {
             compact
             className="border-amber-300/40 bg-amber-400/15 text-amber-50 hover:bg-amber-400/25 md:inline-flex"
           />
+
+          <NotificationBell />
 
           <div className="hidden items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs text-white/70 md:flex lg:px-3 2xl:text-sm">
             <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gold 2xl:h-4 2xl:w-4" />

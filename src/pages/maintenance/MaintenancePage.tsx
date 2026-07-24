@@ -4,9 +4,10 @@ import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
-import { Wrench, Plus, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Wrench, Plus, AlertTriangle, CheckCircle, Clock, Cog } from 'lucide-react';
 
-interface Intervention { id: number; equipementDesignation: string | null; titre: string; typeIntervention: string; priorite: string; statut: string; technicienNom: string | null; dateDemande: string; datePlanifiee: string | null; coutPieces: number; coutMainOeuvre: number }
+interface Equipement { id: number; code: string; designation: string; categorie: string; localisation: string | null; statut: string; dateAchat: string | null }
+interface Intervention { id: number; equipementId: number | null; equipementDesignation: string | null; titre: string; typeIntervention: string; priorite: string; statut: string; technicienNom: string | null; dateDemande: string; datePlanifiee: string | null; coutPieces: number; coutMainOeuvre: number; rapport: string | null }
 interface MaintenanceStats { total: number; enCours: number; urgentes: number; coutMois: number }
 
 const prioriteColor = (p: string) => ({ normale: 'bg-gray-100 text-gray-600', haute: 'bg-orange-100 text-orange-700', urgente: 'bg-red-100 text-red-700' }[p] ?? 'bg-gray-100');
@@ -16,9 +17,17 @@ export default function MaintenancePage() {
   const qc = useQueryClient();
   const { hotels } = useHotelsList();
   const [hotelId, setHotelId] = useState<number>(hotels[0]?.id ?? 1);
+  const [tab, setTab] = useState<'interventions' | 'equipements'>('interventions');
   const [showForm, setShowForm] = useState(false);
+  const [showEquipForm, setShowEquipForm] = useState(false);
   const [statutFilter, setStatutFilter] = useState('');
-  const [form, setForm] = useState({ titre: '', typeIntervention: 'corrective', priorite: 'normale', description: '', datePlanifiee: '' });
+  const [form, setForm] = useState({ titre: '', typeIntervention: 'corrective', priorite: 'normale', description: '', datePlanifiee: '', equipementId: 0, coutPieces: 0, coutMainOeuvre: 0, rapport: '' });
+  const [equipForm, setEquipForm] = useState({ code: '', designation: '', categorie: 'autre', localisation: '', marque: '', dateAchat: '' });
+
+  const { data: equipements = [] } = useQuery({
+    queryKey: ['maintenance-equipements', hotelId],
+    queryFn: async () => unwrapIpc(await ipcClient.maintenance.listEquipements(hotelId)) as Equipement[],
+  });
 
   const { data: interventions = [], isLoading } = useQuery({
     queryKey: ['maintenance-interventions', hotelId, statutFilter],
@@ -29,14 +38,34 @@ export default function MaintenancePage() {
     queryFn: async () => unwrapIpc(await ipcClient.maintenance.stats(hotelId)) as MaintenanceStats,
   });
 
+  const createEquip = useMutation({
+    mutationFn: async () => unwrapIpc(await ipcClient.maintenance.createEquipement({ hotelId, ...equipForm })),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance-equipements'] }); setShowEquipForm(false); notify.success('Équipement créé'); },
+    onError: () => notify.error('Erreur'),
+  });
+
   const create = useMutation({
-    mutationFn: async () => unwrapIpc(await ipcClient.maintenance.createIntervention({ hotelId, ...form })),
+    mutationFn: async () => unwrapIpc(await ipcClient.maintenance.createIntervention({
+      hotelId,
+      titre: form.titre,
+      typeIntervention: form.typeIntervention,
+      priorite: form.priorite,
+      description: form.description,
+      datePlanifiee: form.datePlanifiee || undefined,
+      equipementId: form.equipementId || undefined,
+    })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); setShowForm(false); notify.success('Intervention créée'); },
     onError: () => notify.error('Erreur'),
   });
 
   const terminer = useMutation({
-    mutationFn: async (id: number) => unwrapIpc(await ipcClient.maintenance.updateIntervention(id, { statut: 'terminee', dateFin: new Date().toISOString().slice(0, 10) })),
+    mutationFn: async (id: number) => unwrapIpc(await ipcClient.maintenance.updateIntervention(id, {
+      statut: 'terminee',
+      dateFin: new Date().toISOString().slice(0, 10),
+      coutPieces: form.coutPieces,
+      coutMainOeuvre: form.coutMainOeuvre,
+      rapport: form.rapport || undefined,
+    })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); notify.success('Intervention terminée'); },
   });
 
@@ -45,6 +74,12 @@ export default function MaintenancePage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); },
   });
 
+  const openInterventionFromEquip = (equipId: number, designation: string) => {
+    setForm((f) => ({ ...f, equipementId: equipId, titre: `Intervention — ${designation}` }));
+    setTab('interventions');
+    setShowForm(true);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -52,20 +87,33 @@ export default function MaintenancePage() {
           <Wrench className="w-7 h-7 text-slate-600" />
           <div>
             <h1 className="text-2xl font-bold">Maintenance</h1>
-            <p className="text-sm text-muted-foreground">Gestion des équipements et interventions techniques</p>
+            <p className="text-sm text-muted-foreground">Équipements et interventions techniques</p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <select value={hotelId} onChange={e => setHotelId(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-background">
             {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-            <Plus className="w-4 h-4" /> Nouvelle intervention
-          </button>
+          {tab === 'interventions' ? (
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+              <Plus className="w-4 h-4" /> Nouvelle intervention
+            </button>
+          ) : (
+            <button onClick={() => setShowEquipForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+              <Plus className="w-4 h-4" /> Nouvel équipement
+            </button>
+          )}
         </div>
       </div>
 
-      {/* KPIs */}
+      <div className="flex gap-1 border-b">
+        {[{ id: 'interventions' as const, label: 'Interventions' }, { id: 'equipements' as const, label: 'Équipements' }].map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stats?.total ?? '--', color: 'text-slate-600' },
@@ -80,53 +128,56 @@ export default function MaintenancePage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-1 flex-wrap">
-        {[{ value: '', label: 'Toutes' }, { value: 'ouverte', label: 'Ouvertes' }, { value: 'en_cours', label: 'En cours' }, { value: 'planifiee', label: 'Planifiées' }, { value: 'terminee', label: 'Terminées' }].map(s => (
-          <button key={s.value} onClick={() => setStatutFilter(s.value)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statutFilter === s.value ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}>
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
-      ) : interventions.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl">
-          <Wrench className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p>Aucune intervention</p>
-        </div>
+      {tab === 'equipements' ? (
+        equipements.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl"><Cog className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>Aucun équipement enregistré</p></div>
+        ) : (
+          <div className="space-y-2">
+            {equipements.map((eq) => (
+              <div key={eq.id} className="bg-card border rounded-xl p-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-medium text-sm">{eq.designation} <span className="text-xs text-muted-foreground">({eq.code})</span></div>
+                  <div className="text-xs text-muted-foreground mt-1">{eq.categorie} · {eq.localisation ?? '—'} · {eq.dateAchat ?? '—'}</div>
+                </div>
+                <button onClick={() => openInterventionFromEquip(eq.id, eq.designation)} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100">Créer intervention</button>
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div className="space-y-2">
-          {interventions.map(i => (
-            <div key={i.id} className="bg-card border rounded-xl p-4 flex items-start justify-between gap-4">
-              <div className="flex gap-3 items-start min-w-0">
-                {statutIcon(i.statut)}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm">{i.titre}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prioriteColor(i.priorite)}`}>{i.priorite}</span>
-                    <span className="text-xs text-muted-foreground">{i.typeIntervention}</span>
+        <>
+          <div className="flex gap-1 flex-wrap">
+            {[{ value: '', label: 'Toutes' }, { value: 'ouverte', label: 'Ouvertes' }, { value: 'en_cours', label: 'En cours' }, { value: 'planifiee', label: 'Planifiées' }, { value: 'terminee', label: 'Terminées' }].map(s => (
+              <button key={s.value} onClick={() => setStatutFilter(s.value)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statutFilter === s.value ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}>{s.label}</button>
+            ))}
+          </div>
+          {isLoading ? (
+            <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+          ) : interventions.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl"><Wrench className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>Aucune intervention</p></div>
+          ) : (
+            <div className="space-y-2">
+              {interventions.map(i => (
+                <div key={i.id} className="bg-card border rounded-xl p-4 flex items-start justify-between gap-4">
+                  <div className="flex gap-3 items-start min-w-0">
+                    {statutIcon(i.statut)}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{i.titre}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prioriteColor(i.priorite)}`}>{i.priorite}</span>
+                      </div>
+                      {i.equipementDesignation && <p className="text-xs text-muted-foreground mt-0.5">Équipement: {i.equipementDesignation}</p>}
+                    </div>
                   </div>
-                  {i.equipementDesignation && <p className="text-xs text-muted-foreground mt-0.5">Équipement: {i.equipementDesignation}</p>}
-                  <div className="text-xs text-muted-foreground flex gap-3 mt-0.5">
-                    <span>{i.dateDemande}</span>
-                    {i.technicienNom && <span>· {i.technicienNom}</span>}
-                    {(i.coutPieces + i.coutMainOeuvre) > 0 && <span>· Coût: {(i.coutPieces + i.coutMainOeuvre).toLocaleString()} DA</span>}
+                  <div className="flex gap-2 shrink-0">
+                    {i.statut === 'ouverte' && <button onClick={() => commencer.mutate(i.id)} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg">Commencer</button>}
+                    {i.statut === 'en_cours' && <button onClick={() => terminer.mutate(i.id)} className="text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg">Terminer</button>}
                   </div>
                 </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                {i.statut === 'ouverte' && (
-                  <button onClick={() => commencer.mutate(i.id)} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100">Commencer</button>
-                )}
-                {i.statut === 'en_cours' && (
-                  <button onClick={() => terminer.mutate(i.id)} className="text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-100">Terminer</button>
-                )}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {showForm && (
@@ -135,22 +186,34 @@ export default function MaintenancePage() {
             <h2 className="text-lg font-bold">Nouvelle intervention</h2>
             <div className="space-y-3">
               <input placeholder="Titre *" value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
-              <div className="grid grid-cols-2 gap-3">
-                <select value={form.typeIntervention} onChange={e => setForm(f => ({ ...f, typeIntervention: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background">
-                  {['corrective', 'preventive', 'ameliorative'].map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select value={form.priorite} onChange={e => setForm(f => ({ ...f, priorite: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background">
-                  {['normale', 'haute', 'urgente'].map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
+              <select value={form.equipementId || ''} onChange={e => setForm(f => ({ ...f, equipementId: Number(e.target.value) }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">Équipement (optionnel)</option>
+                {equipements.map(eq => <option key={eq.id} value={eq.id}>{eq.designation}</option>)}
+              </select>
               <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm bg-background resize-none" />
-              <input type="date" value={form.datePlanifiee} onChange={e => setForm(f => ({ ...f, datePlanifiee: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
-              <button onClick={() => create.mutate()} disabled={!form.titre || create.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                {create.isPending ? 'Création...' : 'Créer'}
-              </button>
+              <button onClick={() => create.mutate()} disabled={!form.titre || create.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground disabled:opacity-50">Créer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEquipForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
+            <h2 className="text-lg font-bold">Nouvel équipement</h2>
+            <div className="space-y-3">
+              <input placeholder="Code *" value={equipForm.code} onChange={e => setEquipForm(f => ({ ...f, code: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Désignation *" value={equipForm.designation} onChange={e => setEquipForm(f => ({ ...f, designation: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Catégorie" value={equipForm.categorie} onChange={e => setEquipForm(f => ({ ...f, categorie: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Emplacement" value={equipForm.localisation} onChange={e => setEquipForm(f => ({ ...f, localisation: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input type="date" value={equipForm.dateAchat} onChange={e => setEquipForm(f => ({ ...f, dateAchat: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowEquipForm(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
+              <button onClick={() => createEquip.mutate()} disabled={!equipForm.code || !equipForm.designation || createEquip.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground disabled:opacity-50">Créer</button>
             </div>
           </div>
         </div>
@@ -158,3 +221,4 @@ export default function MaintenancePage() {
     </div>
   );
 }
+

@@ -114,3 +114,12 @@ export function assertEnum<T extends string>(value: unknown, label: string, allo
   }
   return value as T;
 }
+
+/** Période comptable/fiscale YYYY-MM */
+export function assertPeriodeMois(value: unknown, label = 'periode'): string {
+  const s = assertText(value, label, { required: true, maxLength: 7 });
+  if (!/^\d{4}-\d{2}$/.test(s)) invalid(label, 'format YYYY-MM attendu');
+  const month = Number(s.slice(5, 7));
+  if (month < 1 || month > 12) invalid(label, 'mois invalide');
+  return s;
+}

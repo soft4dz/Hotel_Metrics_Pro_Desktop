@@ -3,6 +3,7 @@ import { writeAuditLog } from './audit.service';
 import { getActorContext, applyActorHotelFilter, isGlobalAdminRole } from './actorContext';
 import { simulerPrix } from './tarifs.service';
 import { createFacture } from './facturation.service';
+import { createFichePoliceFromReservation, calculerTaxeSejour } from './hotel-legal.service';
 import type {
   TypeChambre, Chambre, Reservation, OccupationKpis, OccupationPeriode,
   CreateTypeChambreInput, CreateChambreInput, CreateReservationInput,
@@ -374,6 +375,18 @@ export function updateReservationStatut(actorUserId: number, id: number, statut:
     db.prepare(`UPDATE chambres SET statut=?, updated_at=datetime('now') WHERE id=?`).run(newStatutChambre, res.chambreId);
   }
 
+  if (statut === 'arrivee') {
+    try { createFichePoliceFromReservation(actorUserId, id); } catch { /* déjà créée ou données incomplètes */ }
+    try { createFolioFromReservation(actorUserId, id); } catch { /* folio existant */ }
+  }
+  if (statut === 'depart') {
+    try {
+      const periode = res.dateDepart.slice(0, 7);
+      calculerTaxeSejour(actorUserId, res.hotelId, periode);
+    } catch { /* ignore */ }
+    try { closeFolio(actorUserId, id); } catch { /* pas de folio */ }
+  }
+
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Réservation ${id} → ${statut}` });
   return getReservation(actorUserId, id);
 }
@@ -480,6 +493,137 @@ export function getOccupationKpis(
     adrMoyen: Math.round(avgAdr * 100) / 100,
     totalRevenu: Math.round(totalRevenu * 100) / 100,
   };
+}
+
+// ── Folios client ─────────────────────────────────────────────────────────────
+
+export interface FolioLigne {
+  id: number;
+  folioId: number;
+  designation: string;
+  quantite: number;
+  prixUnitaire: number;
+  tauxTva: number;
+  montantHt: number;
+  montantTtc: number;
+  categorie: string;
+  ordre: number;
+}
+
+export interface HebergementFolio {
+  id: number;
+  reservationId: number;
+  hotelId: number;
+  statut: 'ouvert' | 'clos' | 'facture';
+  totalHt: number;
+  totalTtc: number;
+  factureId: number | null;
+  lignes: FolioLigne[];
+}
+
+function mapFolioLigne(row: Record<string, unknown>): FolioLigne {
+  return {
+    id: Number(row.id),
+    folioId: Number(row.folio_id),
+    designation: String(row.designation),
+    quantite: Number(row.quantite),
+    prixUnitaire: Number(row.prix_unitaire),
+    tauxTva: Number(row.taux_tva),
+    montantHt: Number(row.montant_ht),
+    montantTtc: Number(row.montant_ttc),
+    categorie: String(row.categorie),
+    ordre: Number(row.ordre),
+  };
+}
+
+function recalcFolioTotals(db: ReturnType<typeof getDatabase>, folioId: number): void {
+  const totals = db.prepare(`
+    SELECT COALESCE(SUM(montant_ht),0) AS ht, COALESCE(SUM(montant_ttc),0) AS ttc
+    FROM hebergement_folio_lignes WHERE folio_id = ?
+  `).get(folioId) as { ht: number; ttc: number };
+  db.prepare(`UPDATE hebergement_folios SET total_ht=?, total_ttc=?, updated_at=datetime('now') WHERE id=?`).run(totals.ht, totals.ttc, folioId);
+}
+
+export function getFolioByReservation(actorUserId: number, reservationId: number): HebergementFolio | null {
+  void actorUserId;
+  const db = getDatabase();
+  const folio = db.prepare(`SELECT * FROM hebergement_folios WHERE reservation_id = ?`).get(reservationId) as Record<string, unknown> | undefined;
+  if (!folio) return null;
+  const lignes = db.prepare(`SELECT * FROM hebergement_folio_lignes WHERE folio_id = ? ORDER BY ordre, id`).all(Number(folio.id)) as Record<string, unknown>[];
+  return {
+    id: Number(folio.id),
+    reservationId: Number(folio.reservation_id),
+    hotelId: Number(folio.hotel_id),
+    statut: folio.statut as HebergementFolio['statut'],
+    totalHt: Number(folio.total_ht),
+    totalTtc: Number(folio.total_ttc),
+    factureId: folio.facture_id ? Number(folio.facture_id) : null,
+    lignes: lignes.map(mapFolioLigne),
+  };
+}
+
+export function createFolioFromReservation(actorUserId: number, reservationId: number): HebergementFolio {
+  const res = getReservation(actorUserId, reservationId);
+  const existing = getFolioByReservation(actorUserId, reservationId);
+  if (existing) return existing;
+
+  const db = getDatabase();
+  const prixNuit = res.nbNuits > 0 ? res.montantTotal / res.nbNuits : res.montantTotal;
+  const r = db.prepare(`
+    INSERT INTO hebergement_folios (reservation_id, hotel_id, statut, total_ht, total_ttc)
+    VALUES (?, ?, 'ouvert', ?, ?)
+  `).run(reservationId, res.hotelId, res.montantTotal, res.montantTotal);
+  const folioId = Number(r.lastInsertRowid);
+
+  db.prepare(`
+    INSERT INTO hebergement_folio_lignes (folio_id, designation, quantite, prix_unitaire, taux_tva, montant_ht, montant_ttc, categorie, ordre)
+    VALUES (?, ?, ?, ?, 0, ?, ?, 'hebergement', 0)
+  `).run(folioId, `Nuitées ch. ${res.chambreNumero ?? '—'}`, res.nbNuits, prixNuit, res.montantTotal, res.montantTotal);
+
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'hebergement', description: `Folio réservation #${reservationId}` });
+  return getFolioByReservation(actorUserId, reservationId)!;
+}
+
+export function addFolioLine(actorUserId: number, folioId: number, input: { designation: string; quantite?: number; prixUnitaire: number; tauxTva?: number; categorie?: string }): HebergementFolio {
+  const db = getDatabase();
+  const folio = db.prepare(`SELECT * FROM hebergement_folios WHERE id = ?`).get(folioId) as Record<string, unknown> | undefined;
+  if (!folio) throw new Error('Folio introuvable.');
+  if (folio.statut !== 'ouvert') throw new Error('Folio non modifiable.');
+
+  const qte = input.quantite ?? 1;
+  const ht = Math.round(qte * input.prixUnitaire * 100) / 100;
+  const tva = input.tauxTva ?? 0;
+  const ttc = Math.round(ht * (1 + tva / 100) * 100) / 100;
+  db.prepare(`
+    INSERT INTO hebergement_folio_lignes (folio_id, designation, quantite, prix_unitaire, taux_tva, montant_ht, montant_ttc, categorie, ordre)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(ordre),0)+1 FROM hebergement_folio_lignes WHERE folio_id = ?))
+  `).run(folioId, input.designation, qte, input.prixUnitaire, tva, ht, ttc, input.categorie ?? 'extra', folioId);
+  recalcFolioTotals(db, folioId);
+  writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Ligne folio #${folioId}` });
+  return getFolioByReservation(actorUserId, Number(folio.reservation_id))!;
+}
+
+export function closeFolio(actorUserId: number, reservationId: number): HebergementFolio {
+  const db = getDatabase();
+  const folio = getFolioByReservation(actorUserId, reservationId);
+  if (!folio) throw new Error('Folio introuvable.');
+  db.prepare(`UPDATE hebergement_folios SET statut='clos', updated_at=datetime('now') WHERE id=?`).run(folio.id);
+  writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Folio #${folio.id} clos` });
+  return getFolioByReservation(actorUserId, reservationId)!;
+}
+
+export function closeFolioToFacture(actorUserId: number, reservationId: number): { folio: HebergementFolio; factureId: number } {
+  let folio = getFolioByReservation(actorUserId, reservationId);
+  if (!folio) folio = createFolioFromReservation(actorUserId, reservationId);
+  if (folio.factureId) return { folio, factureId: folio.factureId };
+
+  const facture = createFactureFromReservation(actorUserId, reservationId);
+  getDatabase().prepare(`
+    UPDATE hebergement_folios SET statut='facture', facture_id=?, updated_at=datetime('now') WHERE id=?
+  `).run(facture.id, folio.id);
+
+  writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Folio facturé — facture ${facture.numero}` });
+  return { folio: getFolioByReservation(actorUserId, reservationId)!, factureId: facture.id };
 }
 
 function mapReservation(r: any): Reservation {
