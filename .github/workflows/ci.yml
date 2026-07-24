@@ -19,7 +19,23 @@ jobs:
       # explicite : dépendances JS, binaire Electron, puis module SQLite natif.
       - run: npm ci --ignore-scripts
       - name: Installer le binaire Electron
-        run: node node_modules/electron/install.js
+        shell: pwsh
+        run: |
+          $installed = $false
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Write-Host "Installation Electron, tentative $attempt/3"
+            node node_modules/electron/install.js
+            if ($LASTEXITCODE -eq 0) {
+              $installed = $true
+              break
+            }
+            if ($attempt -lt 3) {
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+          }
+          if (-not $installed) {
+            throw "Échec du téléchargement du binaire Electron après 3 tentatives."
+          }
       - run: npm run rebuild:native
       - name: Tests
         run: npm test -- --reporter=json --outputFile=vitest-results.json
