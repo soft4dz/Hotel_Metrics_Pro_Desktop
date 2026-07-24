@@ -13,9 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-      - run: npm ci
+      # Le postinstall reconstruit déjà better-sqlite3. En CI, on l'isole
+      # dans l'étape suivante afin d'obtenir un diagnostic clair et d'éviter
+      # une double reconstruction pendant npm ci.
+      - run: npm ci --ignore-scripts
       - run: npm run rebuild:native
       - run: npm test
       - run: npm run build
