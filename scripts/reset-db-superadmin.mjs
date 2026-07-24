@@ -8,15 +8,20 @@
  */
 import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
-import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-
-const DEFAULT_PASSWORD = 'Admin@2026!';
 const SUPERADMIN_EMAIL = 'admin@hotelmetrics.local';
 
 const DB_CANDIDATES = [
@@ -66,6 +71,10 @@ const MODULE_IDS = [
   'sauvegarde-restauration', 'synchronisation-multi-postes', 'journalisation-tracabilite',
 ];
 
+function generatePassword() {
+  return `A9!${randomBytes(18).toString('base64url')}`;
+}
+
 function resolveDbPaths() {
   const argIdx = process.argv.indexOf('--db');
   if (argIdx >= 0 && process.argv[argIdx + 1]) {
@@ -83,10 +92,7 @@ function resetOneDatabase(dbPath) {
   }
 
   removeDbFiles(dbPath);
-
-  if (!existsSync(dataDir)) {
-    mkdirSync(dataDir, { recursive: true });
-  }
+  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
@@ -94,16 +100,14 @@ function resetOneDatabase(dbPath) {
 
   applyMigrations(db);
   wipeAllData(db);
-  seedSuperAdminOnly(db);
-
+  const credentials = seedSuperAdminOnly(db);
+  writeCredentialsFile(dataDir, credentials.password);
   printSummary(db, dbPath);
   db.close();
 }
 
 function main() {
-  for (const dbPath of resolveDbPaths()) {
-    resetOneDatabase(dbPath);
-  }
+  for (const dbPath of resolveDbPaths()) resetOneDatabase(dbPath);
   process.exit(0);
 }
 
@@ -119,7 +123,7 @@ function removeDbFiles(dbPath) {
 
 function applyMigrations(db) {
   const dir = path.join(root, 'electron', 'database', 'migrations');
-  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  const files = readdirSync(dir).filter((file) => file.endsWith('.sql')).sort();
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,9 +157,7 @@ function wipeAllData(db) {
     .all()
     .map((row) => row.name);
 
-  for (const table of tables) {
-    db.exec(`DELETE FROM "${table}"`);
-  }
+  for (const table of tables) db.exec(`DELETE FROM "${table}"`);
   db.exec('DELETE FROM sqlite_sequence');
   db.pragma('foreign_keys = ON');
   console.log(`Données effacées (${tables.length} tables).`);
@@ -177,31 +179,31 @@ function seedSuperAdminOnly(db) {
     VALUES (@uuid, @code, @label, @module)
   `);
   const permissionIds = new Map();
-  for (const perm of PERMISSIONS) {
-    const result = insertPermission.run({ uuid: randomUUID(), ...perm });
-    permissionIds.set(perm.code, Number(result.lastInsertRowid));
+  for (const permission of PERMISSIONS) {
+    const result = insertPermission.run({ uuid: randomUUID(), ...permission });
+    permissionIds.set(permission.code, Number(result.lastInsertRowid));
   }
 
   const superAdminRoleId = roleIds.get('SUPERADMIN');
   const linkRolePerm = db.prepare('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
-  for (const perm of PERMISSIONS) {
-    const permId = permissionIds.get(perm.code);
-    if (permId && superAdminRoleId) linkRolePerm.run(superAdminRoleId, permId);
+  for (const permission of PERMISSIONS) {
+    const permissionId = permissionIds.get(permission.code);
+    if (permissionId && superAdminRoleId) linkRolePerm.run(superAdminRoleId, permissionId);
   }
 
-  const passwordHash = bcrypt.hashSync(DEFAULT_PASSWORD, 12);
+  const password = generatePassword();
   db.prepare(`
     INSERT INTO users (
       uuid, email, password_hash, full_name, role_id, hotel_id, is_active,
       must_change_password, created_by, updated_by
     ) VALUES (
       @uuid, @email, @password_hash, @full_name, @role_id, NULL, 1,
-      0, NULL, NULL
+      1, NULL, NULL
     )
   `).run({
     uuid: randomUUID(),
     email: SUPERADMIN_EMAIL,
-    password_hash: passwordHash,
+    password_hash: bcrypt.hashSync(password, 12),
     full_name: 'Super Administrateur',
     role_id: superAdminRoleId,
   });
@@ -209,9 +211,7 @@ function seedSuperAdminOnly(db) {
   const insertModule = db.prepare(
     'INSERT INTO modules_config (module_id, is_enabled) VALUES (?, 1)',
   );
-  for (const moduleId of MODULE_IDS) {
-    insertModule.run(moduleId);
-  }
+  for (const moduleId of MODULE_IDS) insertModule.run(moduleId);
 
   const settings = [
     ['seed_completed', '1'],
@@ -229,6 +229,28 @@ function seedSuperAdminOnly(db) {
     INSERT OR REPLACE INTO sync_config (id, api_base_url, device_id, auto_sync)
     VALUES (1, 'http://127.0.0.1:3847', ?, 0)
   `).run(randomUUID());
+
+  return { password };
+}
+
+function writeCredentialsFile(dataDir, password) {
+  const filePath = path.join(dataDir, 'INITIAL_ADMIN_CREDENTIALS.txt');
+  writeFileSync(
+    filePath,
+    [
+      'Raqmi System — identifiants après réinitialisation',
+      '===============================================',
+      '',
+      `E-mail       : ${SUPERADMIN_EMAIL}`,
+      `Mot de passe : ${password}`,
+      '',
+      'Le changement est obligatoire à la première connexion.',
+      'Supprimez ce fichier après utilisation.',
+      '',
+    ].join('\n'),
+    { encoding: 'utf-8', mode: 0o600 },
+  );
+  console.log('Identifiants temporaires enregistrés dans :', filePath);
 }
 
 function printSummary(db, dbPath) {
@@ -239,13 +261,10 @@ function printSummary(db, dbPath) {
   console.log('\n=== Base réinitialisée ===');
   console.log('Fichier   :', dbPath);
   console.log('Utilisateurs :', users.length);
-  for (const u of users) console.log(`  - ${u.email} (${u.full_name})`);
+  for (const user of users) console.log(`  - ${user.email} (${user.full_name})`);
   console.log('Hôtels    :', hotels);
   console.log('Employés RH :', rh);
-  console.log('\nConnexion SUPERADMIN :');
-  console.log(`  E-mail    : ${SUPERADMIN_EMAIL}`);
-  console.log(`  Mot de passe : ${DEFAULT_PASSWORD}`);
-  console.log('\nRelancez l\'application avec npm run dev');
+  console.log('\nRelancez l\'application. Le mot de passe n\'est jamais affiché dans la console.');
 }
 
 main();
