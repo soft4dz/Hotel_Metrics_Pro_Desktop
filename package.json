@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:all": "vitest run && npm run test:rh-paie && npm run verify:phase3",
+    "prebuild": "node scripts/assert-production-safe.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "dist": "npm run build && node scripts/build-installer.mjs",
