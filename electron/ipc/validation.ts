@@ -48,14 +48,36 @@ export function assertPositiveInteger(value: unknown, label: string, options: Va
   return value as number;
 }
 
-export function assertAmount(value: unknown, label: string): number {
+export function assertFiniteNumber(value: unknown, label: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    invalid(label, 'montant numérique attendu');
-  }
-  if (value < 0) {
-    invalid(label, 'montant négatif refusé');
+    invalid(label, 'nombre fini attendu');
   }
   return value;
+}
+
+export function assertPositiveNumber(
+  value: unknown,
+  label: string,
+  options: Pick<ValidationOptions, 'allowZero'> = {},
+): number {
+  const parsed = assertFiniteNumber(value, label);
+  const min = options.allowZero ? 0 : Number.EPSILON;
+  if (parsed < min) {
+    invalid(label, options.allowZero ? 'doit être supérieur ou égal à 0' : 'doit être strictement positif');
+  }
+  return parsed;
+}
+
+export function assertAmount(value: unknown, label: string): number {
+  return assertPositiveNumber(value, label, { allowZero: true });
+}
+
+export function assertPercentage(value: unknown, label: string): number {
+  const parsed = assertFiniteNumber(value, label);
+  if (parsed < 0 || parsed > 100) {
+    invalid(label, 'doit être compris entre 0 et 100');
+  }
+  return parsed;
 }
 
 export function assertDateJournal(value: unknown, label = 'dateJournal'): string {
