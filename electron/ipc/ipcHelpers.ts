@@ -1,15 +1,15 @@
 import type { IpcMainInvokeEvent } from 'electron';
-import { getDatabase } from '../database/sqlite';
+import { logger } from '../utils/logger';
 import { PermissionError } from '../services/permissions.service';
-import {
-  bindSession,
-  getSessionUserId,
-  requireSessionUserId,
-  SessionError,
-} from '../services/session.service';
+import { requireSessionUserId, SessionError } from '../services/session.service';
 import { IpcValidationError } from './validation';
 
-export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'SERVER_ERROR';
+export type IpcErrorCode =
+  | 'FORBIDDEN'
+  | 'SESSION_EXPIRED'
+  | 'NOT_FOUND'
+  | 'VALIDATION_ERROR'
+  | 'SERVER_ERROR';
 
 export interface IpcErrorResult {
   ok: false;
@@ -35,48 +35,35 @@ function toIpcError(err: unknown): IpcErrorResult {
       errorCode: 'VALIDATION_ERROR',
     };
   }
+
   if (err instanceof Error) {
-    return { ok: false, error: err.message, errorCode: classifyError(err) };
-  }
-  return { ok: false, error: 'Erreur inconnue.', errorCode: 'SERVER_ERROR' };
-}
-
-const DEV_AUTO_ADMIN_ACTOR =
-  process.env.HMP_DEV_AUTO_ADMIN === '1' ||
-  (process.env.NODE_ENV !== 'production' && process.env.HMP_DEV_AUTO_ADMIN !== '0');
-
-const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
-
-let cachedDevAdminUserId: number | null | undefined;
-
-function resolveDevAdminUserId(): number | null {
-  if (cachedDevAdminUserId !== undefined) return cachedDevAdminUserId;
-
-  const db = getDatabase();
-  const row = db
-    .prepare(
-      `SELECT id FROM users WHERE email = ? AND deleted_at IS NULL AND is_active = 1 LIMIT 1`,
-    )
-    .get(DEV_ADMIN_EMAIL) as { id: number } | undefined;
-
-  cachedDevAdminUserId = row?.id ?? null;
-  return cachedDevAdminUserId;
-}
-
-export function requireActor(event: IpcMainInvokeEvent): number {
-  const webContentsId = event.sender.id;
-  const sessionUserId = getSessionUserId(webContentsId);
-  if (sessionUserId !== null) return sessionUserId;
-
-  if (DEV_AUTO_ADMIN_ACTOR) {
-    const adminId = resolveDevAdminUserId();
-    if (adminId !== null) {
-      bindSession(webContentsId, adminId);
-      return adminId;
+    const errorCode = classifyError(err);
+    if (errorCode === 'SERVER_ERROR') {
+      logger.error('Erreur IPC non gérée', err);
+      return {
+        ok: false,
+        error: 'Une erreur interne est survenue. Consultez les journaux applicatifs.',
+        errorCode,
+      };
     }
+    return { ok: false, error: err.message, errorCode };
   }
 
-  return requireSessionUserId(webContentsId);
+  logger.error('Erreur IPC inconnue', err);
+  return {
+    ok: false,
+    error: 'Une erreur interne est survenue. Consultez les journaux applicatifs.',
+    errorCode: 'SERVER_ERROR',
+  };
+}
+
+/**
+ * Résout l'acteur uniquement à partir d'une session authentifiée liée au
+ * webContents appelant. Aucun compte administrateur implicite n'est autorisé,
+ * y compris en développement.
+ */
+export function requireActor(event: IpcMainInvokeEvent): number {
+  return requireSessionUserId(event.sender.id);
 }
 
 export function wrapIpc<T>(event: IpcMainInvokeEvent, fn: (actorUserId: number) => T): IpcResult<T> {
