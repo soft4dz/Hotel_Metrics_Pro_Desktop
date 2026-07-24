@@ -462,7 +462,7 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhEgt.exportOrganigrammeCsv(uid, hotelId)));
 
   Electron.ipcMain.handle('rh:pointeuses:list', (event, hotelId: number) =>
-    wrapIpc(event, (uid) => rhPointeuse.listPointeuses(hotelId)));
+    wrapIpc(event, () => rhPointeuse.listPointeuses(hotelId)));
   Electron.ipcMain.handle('rh:pointeuses:upsert', (event, input: rhPointeuse.UpsertPointeuseInput, id?: number) =>
     wrapIpc(event, (uid) => rhPointeuse.upsertPointeuse(uid, input, id)));
   Electron.ipcMain.handle('rh:pointeuses:importCsv', (event, hotelId: number, csvContent: string, pointeuseId?: number) =>

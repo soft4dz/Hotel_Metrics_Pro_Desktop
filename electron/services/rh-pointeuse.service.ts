@@ -123,14 +123,14 @@ export function upsertPointeuse(actorUserId: number, input: UpsertPointeuseInput
     input.port ?? 4370,
     input.actif === false ? 0 : 1,
   ) as { id: number };
-  writeAuditLog(actorUserId, 'rh.pointeuse.create', `pointeuse:${res.id}`, input.nom);
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'rh', description: `Pointeuse enregistrée : ${input.nom}`, newValue: `pointeuse:${res.id}` });
   return listPointeuses(input.hotelId).find((p) => p.id === res.id)!;
 }
 
 export function setEmployeBadge(actorUserId: number, employeId: number, badgeId: string | null): void {
   assertRhPointeuse(actorUserId);
   getDatabase().prepare(`UPDATE rh_employes SET pointeuse_badge_id = ? WHERE id = ?`).run(badgeId, employeId);
-  writeAuditLog(actorUserId, 'rh.employe.badge', `employe:${employeId}`, badgeId ?? '—');
+  writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'rh', description: `Badge pointeuse employé ${employeId}`, newValue: badgeId ?? '—' });
 }
 
 function parseCsvLine(line: string): string[] {
@@ -209,7 +209,7 @@ export function importPunches(
   if (pointeuseId) {
     db.prepare(`UPDATE rh_pointeuses SET derniere_sync = datetime('now') WHERE id = ?`).run(pointeuseId);
   }
-  writeAuditLog(actorUserId, 'rh.pointeuse.import', `hotel:${hotelId}`, `${imported} pointages importés`);
+  writeAuditLog({ userId: actorUserId, action: 'IMPORT', module: 'rh', description: `${imported} pointages importés (hotel ${hotelId})` });
   emitErpEvent({ type: 'POINTEUSE_IMPORTED', entiteType: 'hotel', entiteId: hotelId, data: { imported, duplicates } });
   return { imported, duplicates };
 }
@@ -314,7 +314,7 @@ export function traiterRawPunches(
     }
   }
 
-  writeAuditLog(actorUserId, 'rh.pointeuse.traiter', `hotel:${hotelId}`, `${pointagesCrees} créés, ${pointagesMisAJour} MAJ`);
+  writeAuditLog({ userId: actorUserId, action: 'PROCESS', module: 'rh', description: `Pointages générés : ${pointagesCrees} créés, ${pointagesMisAJour} MAJ (hotel ${hotelId})` });
   emitErpEvent({
     type: 'POINTAGES_GENERATED',
     entiteType: 'hotel',

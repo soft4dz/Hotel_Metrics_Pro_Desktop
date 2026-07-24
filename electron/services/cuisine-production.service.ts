@@ -97,12 +97,12 @@ export function createRecette(actorUserId: number, input: CreateRecetteInput): C
     input.prixVente ?? null,
     actorUserId,
   ) as { id: number };
-  writeAuditLog(actorUserId, 'cuisine.recette.create', `recette:${res.id}`, input.nom);
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'cuisine', description: `Fiche technique créée : ${input.nom}`, newValue: `recette:${res.id}` });
   return getRecette(res.id)!;
 }
 
 export function updateRecette(
-  actorUserId: number,
+  _actorUserId: number,
   id: number,
   input: Partial<Pick<CreateRecetteInput, 'nom' | 'portions' | 'prixVente'>>,
 ): CuisineRecette {
@@ -119,7 +119,7 @@ export function updateRecette(
 }
 
 export function upsertRecetteLigne(
-  actorUserId: number,
+  _actorUserId: number,
   recetteId: number,
   input: UpsertRecetteLigneInput,
   ligneId?: number,
@@ -153,7 +153,7 @@ export function upsertRecetteLigne(
   return getRecette(recetteId)!;
 }
 
-export function removeRecetteLigne(actorUserId: number, recetteId: number, ligneId: number): CuisineRecette {
+export function removeRecetteLigne(_actorUserId: number, recetteId: number, ligneId: number): CuisineRecette {
   const recette = getRecette(recetteId);
   if (!recette || recette.statut === 'valide') throw new Error('Modification impossible.');
   getDatabase().prepare(`DELETE FROM cuisine_recette_lignes WHERE id = ? AND recette_id = ?`).run(ligneId, recetteId);
@@ -175,7 +175,7 @@ export function validerRecette(actorUserId: number, id: number): CuisineRecette 
     SET statut = 'valide', cout_revient = ?, marge_pct = ?, valide_par = ?, valide_at = datetime('now'), updated_at = datetime('now')
     WHERE id = ?
   `).run(cout, margePct, actorUserId, id);
-  writeAuditLog(actorUserId, 'cuisine.recette.valider', `recette:${id}`, recette.nom);
+  writeAuditLog({ userId: actorUserId, action: 'VALIDATE', module: 'cuisine', description: `Fiche technique validée : ${recette.nom}`, newValue: `recette:${id}` });
   emitErpEvent({
     type: 'RECIPE_VALIDATED',
     entiteType: 'cuisine_recette',
@@ -218,7 +218,7 @@ export function createOrdreProduction(actorUserId: number, input: CreateOrdrePro
     INSERT INTO cuisine_ordres_production (hotel_id, recette_id, date_production, portions_prevues, cout_theorique)
     VALUES (?, ?, ?, ?, ?) RETURNING id
   `).get(input.hotelId, input.recetteId, input.dateProduction, input.portionsPrevues, coutTheorique) as { id: number };
-  writeAuditLog(actorUserId, 'cuisine.ordre.create', `ordre:${res.id}`, recette.nom);
+  writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'cuisine', description: `Ordre production : ${recette.nom}`, newValue: `ordre:${res.id}` });
   return listOrdresProduction(input.hotelId).find((o) => o.id === res.id)!;
 }
 
@@ -256,7 +256,7 @@ export function executerOrdreProduction(actorUserId: number, ordreId: number): C
     SET statut = 'termine', portions_realisees = ?, execute_par = ?, execute_at = datetime('now')
     WHERE id = ?
   `).run(portions, actorUserId, ordreId);
-  writeAuditLog(actorUserId, 'cuisine.ordre.executer', `ordre:${ordreId}`, ordre.recette_nom as string);
+  writeAuditLog({ userId: actorUserId, action: 'EXECUTE', module: 'cuisine', description: `Production exécutée : ${ordre.recette_nom as string}`, newValue: `ordre:${ordreId}` });
   emitErpEvent({
     type: 'PRODUCTION_EXECUTED',
     entiteType: 'cuisine_ordre',

@@ -15,8 +15,12 @@ vi.mock('./fiscalite-dz.service', () => ({ enregistrerTvaVente: vi.fn() }));
 vi.mock('./workflow.service', () => ({ findWorkflow: vi.fn(() => null), createWorkflow: vi.fn(), submitWorkflow: vi.fn() }));
 vi.mock('./creances.service', () => ({ createCreanceFromFacture: vi.fn() }));
 
-function chain(row?: Record<string, unknown>) {
-  return { all: vi.fn(() => []), get: vi.fn(() => row), run: vi.fn() };
+function chain(rows?: Record<string, unknown>[] | Record<string, unknown>) {
+  return {
+    all: vi.fn(() => (Array.isArray(rows) ? rows : rows ? [rows] : [])),
+    get: vi.fn(() => (Array.isArray(rows) ? rows[0] : rows)),
+    run: vi.fn(),
+  };
 }
 
 describe('Phase 5 — créance auto à validation facture', () => {
