@@ -2,107 +2,157 @@ import { randomUUID } from 'node:crypto';
 import { bcrypt } from '../utils/bcrypt';
 import { verifyStoredPassword } from '../utils/legacyPassword';
 import { getDatabase } from './sqlite';
-import { DEFAULT_ADMIN_PASSWORD } from './seed';
+import { generateInitialAdminPassword, writeInitialAdminCredentials } from './seed';
 import { logger } from '../utils/logger';
 
-/** Comptes garantis après chaque démarrage (mot de passe connu si hash invalide). */
-const BOOTSTRAP_ACCOUNTS: Array<{
-  email: string;
-  password: string;
-  fullName: string;
-  roleCode: string;
-}> = [
-  {
-    email: 'admin@hotelmetrics.local',
-    password: DEFAULT_ADMIN_PASSWORD,
-    fullName: 'Super Administrateur',
-    roleCode: 'SUPERADMIN',
-  },
-];
+const INITIAL_ADMIN_EMAIL = 'admin@hotelmetrics.local';
+const LEGACY_COMPROMISED_PASSWORD = 'Admin@2026!';
 
-function unlockUser(userId: number): void {
-  const db = getDatabase();
-  db.prepare(
-    `
-    UPDATE users
-    SET failed_login_attempts = 0, locked_until = NULL, is_active = 1, updated_at = datetime('now')
-    WHERE id = ?
-  `,
-  ).run(userId);
+interface AdminRow {
+  id: number;
+  email: string;
+  password_hash: string;
+  is_active: number;
+  role_code: string;
 }
 
-function ensureUserExists(
-  spec: (typeof BOOTSTRAP_ACCOUNTS)[0],
-  passwordHash: string,
-): number {
-  const db = getDatabase();
-  const existing = db
-    .prepare(
-      `SELECT id FROM users WHERE email = ? COLLATE NOCASE AND deleted_at IS NULL`,
-    )
-    .get(spec.email) as { id: number } | undefined;
-
-  if (existing) return existing.id;
-
-  const role = db.prepare(`SELECT id FROM roles WHERE code = ?`).get(spec.roleCode) as
-    | { id: number }
-    | undefined;
-  if (!role) {
-    logger.warn(`Rôle ${spec.roleCode} absent — compte ${spec.email} non créé.`);
-    return 0;
-  }
-
-  const result = db
+function loadInitialAdmin(): AdminRow | undefined {
+  return getDatabase()
     .prepare(
       `
-    INSERT INTO users (
-      uuid, email, password_hash, full_name, role_id, hotel_id, is_active,
-      must_change_password, created_by, updated_by
-    ) VALUES (
-      @uuid, @email, @password_hash, @full_name, @role_id, NULL, 1,
-      0, NULL, NULL
+      SELECT u.id, u.email, u.password_hash, u.is_active, r.code AS role_code
+      FROM users u
+      INNER JOIN roles r ON r.id = u.role_id
+      WHERE u.email = ? COLLATE NOCASE AND u.deleted_at IS NULL
+      LIMIT 1
+    `,
     )
-  `,
-    )
-    .run({
-      uuid: randomUUID(),
-      email: spec.email.toLowerCase(),
-      password_hash: passwordHash,
-      full_name: spec.fullName,
-      role_id: role.id,
-    });
+    .get(INITIAL_ADMIN_EMAIL) as AdminRow | undefined;
+}
 
-  logger.info(`Compte créé au démarrage : ${spec.email}`);
-  return Number(result.lastInsertRowid);
+function hasActiveSuperadmin(): boolean {
+  const row = getDatabase()
+    .prepare(
+      `
+      SELECT 1
+      FROM users u
+      INNER JOIN roles r ON r.id = u.role_id
+      WHERE r.code = 'SUPERADMIN'
+        AND u.deleted_at IS NULL
+        AND u.is_active = 1
+      LIMIT 1
+    `,
+    )
+    .get();
+  return Boolean(row);
+}
+
+function hasAnySuperadmin(): boolean {
+  const row = getDatabase()
+    .prepare(
+      `
+      SELECT 1
+      FROM users u
+      INNER JOIN roles r ON r.id = u.role_id
+      WHERE r.code = 'SUPERADMIN' AND u.deleted_at IS NULL
+      LIMIT 1
+    `,
+    )
+    .get();
+  return Boolean(row);
+}
+
+function rotateLegacyPasswordIfNeeded(row: AdminRow): void {
+  if (!verifyStoredPassword(LEGACY_COMPROMISED_PASSWORD, row.password_hash)) return;
+
+  const password = generateInitialAdminPassword();
+  getDatabase()
+    .prepare(
+      `
+      UPDATE users
+      SET password_hash = ?, must_change_password = 1, updated_at = datetime('now')
+      WHERE id = ?
+    `,
+    )
+    .run(bcrypt.hashSync(password, 12), row.id);
+
+  const credFile = writeInitialAdminCredentials(password);
+  logger.warn(
+    `Le mot de passe administrateur historique a été remplacé. Identifiants temporaires : ${credFile}`,
+  );
+}
+
+function promoteInitialAdminToSuperadmin(row: AdminRow): void {
+  if (row.role_code === 'SUPERADMIN') return;
+
+  const role = getDatabase()
+    .prepare(`SELECT id FROM roles WHERE code = 'SUPERADMIN'`)
+    .get() as { id: number } | undefined;
+  if (!role) throw new Error('Rôle SUPERADMIN absent. Migration de sécurité impossible.');
+
+  getDatabase()
+    .prepare(`UPDATE users SET role_id = ?, updated_at = datetime('now') WHERE id = ?`)
+    .run(role.id, row.id);
+  logger.warn(`Compte ${row.email} promu vers le rôle SUPERADMIN pour la migration de sécurité.`);
+}
+
+function createRecoverySuperadmin(): void {
+  const role = getDatabase()
+    .prepare(`SELECT id FROM roles WHERE code = 'SUPERADMIN'`)
+    .get() as { id: number } | undefined;
+  if (!role) throw new Error('Rôle SUPERADMIN absent. Compte initial impossible à créer.');
+
+  const password = generateInitialAdminPassword();
+  getDatabase()
+    .prepare(
+      `
+      INSERT INTO users (
+        uuid, email, password_hash, full_name, role_id, hotel_id, is_active,
+        must_change_password, created_by, updated_by
+      ) VALUES (?, ?, ?, ?, ?, NULL, 1, 1, NULL, NULL)
+    `,
+    )
+    .run(
+      randomUUID(),
+      INITIAL_ADMIN_EMAIL,
+      bcrypt.hashSync(password, 12),
+      'Administrateur système',
+      role.id,
+    );
+
+  const credFile = writeInitialAdminCredentials(password);
+  logger.warn(`Compte SUPERADMIN de récupération créé. Identifiants temporaires : ${credFile}`);
 }
 
 /**
- * Garantit que les comptes admin/dec existent, sont déverrouillés et acceptent le mot de passe documenté.
+ * Garantit uniquement l'existence d'un SUPERADMIN lors d'une installation ou
+ * migration. Cette fonction ne déverrouille jamais un compte, ne le réactive
+ * jamais et ne rétablit aucun mot de passe fixe.
  */
 export function ensureBootstrapAuthAccounts(): void {
-  const db = getDatabase();
+  const initialAdmin = loadInitialAdmin();
 
-  for (const spec of BOOTSTRAP_ACCOUNTS) {
-    const targetHash = bcrypt.hashSync(spec.password, 12);
-    const userId = ensureUserExists(spec, targetHash);
-    if (!userId) continue;
-
-    const row = db
-      .prepare(`SELECT password_hash FROM users WHERE id = ?`)
-      .get(userId) as { password_hash: string };
-
-    const acceptsKnownPassword = verifyStoredPassword(spec.password, row.password_hash);
-    if (!acceptsKnownPassword) {
-      db.prepare(
-        `
-        UPDATE users
-        SET password_hash = ?, must_change_password = 0, updated_at = datetime('now')
-        WHERE id = ?
-      `,
-      ).run(targetHash, userId);
-      logger.info(`Mot de passe réparé pour ${spec.email}`);
-    }
-
-    unlockUser(userId);
+  if (hasActiveSuperadmin()) {
+    if (initialAdmin?.is_active) rotateLegacyPasswordIfNeeded(initialAdmin);
+    return;
   }
+
+  if (hasAnySuperadmin()) {
+    throw new Error(
+      'Un compte SUPERADMIN existe mais il est inactif. Utilisez la procédure de récupération administrateur.',
+    );
+  }
+
+  if (initialAdmin) {
+    if (!initialAdmin.is_active) {
+      throw new Error(
+        `Le compte ${INITIAL_ADMIN_EMAIL} est inactif. Aucune réactivation automatique n'est autorisée.`,
+      );
+    }
+    promoteInitialAdminToSuperadmin(initialAdmin);
+    rotateLegacyPasswordIfNeeded(initialAdmin);
+    return;
+  }
+
+  createRecoverySuperadmin();
 }
