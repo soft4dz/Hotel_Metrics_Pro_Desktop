@@ -5,11 +5,6 @@ import type { AuthUserDto } from '@/shared/types/auth';
 
 export type AuthUser = AuthUserDto;
 
-const DEV_AUTO_ADMIN_LOGIN = import.meta.env.DEV && import.meta.env.VITE_AUTO_LOGIN === 'true';
-
-const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
-const DEV_ADMIN_PASSWORD = 'Admin@2026!';
-
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -28,15 +23,15 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAuthenticated: false,
       rememberMe: false,
       sessionToken: null,
       sessionChecked: false,
 
-      login: async (email, password, rememberMe) => {
-        const result = await ipcClient.auth.login({ email, password, rememberMe });
+      login: async (email, password) => {
+        const result = await ipcClient.auth.login({ email, password, rememberMe: false });
 
         if (!result.success || !result.user) {
           return {
@@ -49,8 +44,8 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: result.user,
           isAuthenticated: true,
-          rememberMe,
-          sessionToken: result.sessionToken ?? null,
+          rememberMe: false,
+          sessionToken: null,
           sessionChecked: true,
         });
 
@@ -58,58 +53,36 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        const { sessionToken } = get();
         try {
-          await ipcClient.auth.logout(sessionToken ?? undefined);
+          await ipcClient.auth.logout(undefined);
         } catch {
-          /* ignore */
+          /* La session locale est effacée même si le processus principal est indisponible. */
         }
-        set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
+        set({
+          user: null,
+          isAuthenticated: false,
+          rememberMe: false,
+          sessionToken: null,
+          sessionChecked: true,
+        });
       },
 
       restoreSession: async () => {
-        if (DEV_AUTO_ADMIN_LOGIN) {
-          if (!get().isAuthenticated) {
-            try {
-              await get().login(DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD, false);
-            } catch {
-              set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
-              return;
-            }
-          }
-          set({ sessionChecked: true });
-          return;
-        }
-
-        const { sessionToken, rememberMe } = get();
-        if (!rememberMe || !sessionToken) {
-          set({ sessionChecked: true });
-          return;
-        }
-
-        try {
-          const result = await ipcClient.auth.restore(sessionToken);
-          if (result.success && result.user) {
-            set({
-              user: result.user,
-              isAuthenticated: true,
-              sessionToken: result.sessionToken ?? sessionToken,
-              sessionChecked: true,
-            });
-          } else {
-            set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
-          }
-        } catch {
-          set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
-        }
+        // Les anciens jetons éventuellement présents dans localStorage sont
+        // supprimés. Une reconnexion est exigée après chaque redémarrage tant
+        // qu'un stockage chiffré natif n'est pas disponible.
+        set({
+          user: null,
+          isAuthenticated: false,
+          rememberMe: false,
+          sessionToken: null,
+          sessionChecked: true,
+        });
       },
     }),
     {
       name: 'hmp-auth',
-      partialize: (state) =>
-        state.rememberMe && state.sessionToken
-          ? { rememberMe: true, sessionToken: state.sessionToken }
-          : { rememberMe: false },
+      partialize: () => ({ rememberMe: false, sessionToken: null }),
     },
   ),
 );
