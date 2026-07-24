@@ -1,34 +1,38 @@
 @echo off
 chcp 65001 >nul
-title Hotel Metrics Pro — Reparation connexion
+title Raqmi System — Recuperation de compte
 
 cd /d "%~dp0"
 
 echo.
-echo  Reparation des comptes de connexion...
+echo  Recuperation securisee d'un compte local
+echo  ========================================
+echo.
+echo  L'application doit etre completement fermee.
+echo  Un mot de passe temporaire aleatoire sera genere.
+echo  Il ne sera pas affiche dans cette console.
 echo.
 
-call npx --yes electron scripts/reset-user-password.mjs dec@egt-sidifredj.dz "Admin@2026!"
-if errorlevel 1 goto err
+set /p HMP_RECOVERY_EMAIL=Adresse e-mail du compte a recuperer : 
+if "%HMP_RECOVERY_EMAIL%"=="" goto err
 
-call npx --yes electron scripts/reset-user-password.mjs admin@hotelmetrics.local "Admin@2026!"
+call npx --yes electron scripts/reset-user-password.mjs "%HMP_RECOVERY_EMAIL%"
 if errorlevel 1 goto err
 
 echo.
 echo  ============================================
-echo   Comptes repares
+echo   Reinitialisation terminee
 echo  ============================================
 echo.
-echo   E-mail     : dec@egt-sidifredj.dz
-echo              admin@hotelmetrics.local
-echo   Mot de passe : Admin@2026!
-echo.
-echo   IMPORTANT : fermez Hotel Metrics Pro puis relancez dev.bat
+echo  Consultez le fichier PASSWORD_RESET_*.txt cree a cote de la base.
+echo  Le changement du mot de passe sera obligatoire a la connexion.
+echo  Supprimez le fichier apres transmission securisee.
 echo.
 pause
 exit /b 0
 
 :err
-echo [ERREUR] Reparation echouee.
+echo.
+echo [ERREUR] Recuperation echouee.
 pause
 exit /b 1
