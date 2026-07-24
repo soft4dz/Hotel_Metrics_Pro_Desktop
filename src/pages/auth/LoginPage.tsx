@@ -17,7 +17,6 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +39,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(email, password, rememberMe);
+      const result = await login(email, password, false);
       if (result.ok) {
         const user = useAuthStore.getState().user;
         if (user?.mustChangePassword) {
@@ -52,7 +51,7 @@ export function LoginPage() {
         setError(result.error ?? 'Identifiants incorrects.');
       }
     } catch {
-      setError("Impossible de contacter l'application. Lancez via dev.bat ou npm run dev.");
+      setError("Impossible de contacter l'application. Relancez l'application desktop.");
     } finally {
       setLoading(false);
     }
@@ -110,7 +109,7 @@ export function LoginPage() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-                onClick={() => setShowPassword((v) => !v)}
+                onClick={() => setShowPassword((value) => !value)}
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -118,18 +117,9 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              id="remember"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 cursor-pointer rounded border-input text-primary focus:ring-ring"
-            />
-            <Label htmlFor="remember" className="cursor-pointer font-normal">
-              Mémoriser la session sur cet ordinateur
-            </Label>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Pour des raisons de sécurité, une nouvelle connexion est exigée après chaque redémarrage.
+          </p>
 
           {error && <p className="status-banner-error">{error}</p>}
 
@@ -143,22 +133,6 @@ export function LoginPage() {
               'Se connecter'
             )}
           </Button>
-
-          {import.meta.env.DEV && (
-            <p className="rounded-lg bg-secondary/50 px-3 py-2 text-center text-xs text-muted-foreground">
-              <strong className="text-foreground">Comptes de connexion (dev)</strong>
-              <br />
-              <span className="text-foreground">dec@egt-sidifredj.dz</span> ou{' '}
-              <span className="text-foreground">admin@hotelmetrics.local</span>
-              <br />
-              Mot de passe : <strong className="text-foreground">Admin@2026!</strong>
-              <br />
-              <span className="mt-1 inline-block text-[11px]">
-                Fermez complètement l&apos;application, lancez <strong>fix-auth.bat</strong> puis{' '}
-                <strong>dev.bat</strong>. N&apos;ouvrez pas Chrome sur localhost:5173.
-              </span>
-            </p>
-          )}
 
           <button
             type="button"
