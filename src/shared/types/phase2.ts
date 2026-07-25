@@ -60,18 +60,33 @@ export interface WorkflowFilters {
 
 export type DailyClosureStatut = 'brouillon' | 'soumis' | 'valide_unite' | 'valide_dec' | 'refuse' | 'cloture';
 
+export interface DailyClosureItem {
+  id: number;
+  rubrique: string;
+  montant: number;
+  sourceModule: string | null;
+  observation: string | null;
+}
+
 export interface DailyClosure {
   id: number;
   hotelId: number;
   hotelName: string;
   dateJournal: string;
   caDeclare: number;
-  montantEncaisse: number;
-  montantCreance: number;
-  ecart: number;
+  /** @deprecated alias — prefer encaissementsTotal */
+  montantEncaisse?: number;
+  encaissementsTotal?: number;
+  /** @deprecated alias — prefer creancesTotal */
+  montantCreance?: number;
+  creancesTotal?: number;
+  /** @deprecated alias — prefer ecartCaisse */
+  ecart?: number;
+  ecartCaisse?: number;
   statut: DailyClosureStatut;
   reconciliationId: number | null;
   workflowId: number | null;
+  items?: DailyClosureItem[];
 }
 
 export type ReconciliationStatut = 'a_controler' | 'equilibre' | 'ecart_justifie' | 'ecart_non_justifie' | 'valide';

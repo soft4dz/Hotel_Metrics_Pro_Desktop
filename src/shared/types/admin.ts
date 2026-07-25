@@ -83,6 +83,8 @@ export interface RoleListItem {
   permissionCodes: string[];
   userCount: number;
   editable: boolean;
+  profileCategory?: string;
+  profileGuideSlug?: string;
 }
 
 export interface PermissionListItem {

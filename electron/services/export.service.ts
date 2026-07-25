@@ -7,11 +7,10 @@ import { getActorContext, isGlobalAdminRole } from './actorContext';
 import { getFacture } from './portmaster-factures.service';
 import { listFactures } from './portmaster-factures.service';
 import { getDashboard, type DashboardFilters } from './dashboard.service';
+import { createPdfWithLetterhead } from './pdf-letterhead.util';
 import {
   formatDzdPdf,
   getEmployeurLegalInfo,
-  loadPdfLib,
-  sanitizePdfText,
 } from './rh-legal-export.util';
 
 function assertExport(actorUserId: number) {
@@ -190,16 +189,19 @@ export async function exportFacturePdf(
     throw new Error('Impression autorisée uniquement après validation de la facture.');
   }
 
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let y = 800;
+  const ctx = await createPdfWithLetterhead();
+  const { font, bold, rgb } = ctx;
 
   const draw = (text: string, size = 11, useBold = false) => {
-    page.drawText(text, { x: 50, y, size, font: useBold ? bold : font, color: rgb(0.1, 0.15, 0.2) });
-    y -= size + 8;
+    ctx.ensureSpace(size + 10);
+    ctx.page.drawText(text, {
+      x: 50,
+      y: ctx.y,
+      size,
+      font: useBold ? bold : font,
+      color: rgb(0.1, 0.15, 0.2),
+    });
+    ctx.y -= size + 8;
   };
 
   draw('HOTEL METRICS PRO — PORTMASTER', 14, true);
@@ -209,13 +211,13 @@ export async function exportFacturePdf(
   if (f.bateauNom) draw(`Bateau : ${f.bateauNom}`);
   if (f.contratNumero) draw(`Contrat : ${f.contratNumero}`);
   if (f.periodeDebut) draw(`Période : ${f.periodeDebut} → ${f.periodeFin ?? '—'}`);
-  y -= 10;
+  ctx.y -= 10;
   draw(`Montant HT : ${f.montantHt.toLocaleString('fr-FR')} DZD`);
   draw(`TVA : ${f.montantTva.toLocaleString('fr-FR')} DZD`);
   draw(`Montant TTC : ${f.montantTtc.toLocaleString('fr-FR')} DZD`, 12, true);
   draw(`Encaissé : ${f.paye.toLocaleString('fr-FR')} — Reste : ${f.reste.toLocaleString('fr-FR')} DZD`);
 
-  const bytes = await pdf.save();
+  const bytes = await ctx.finalize();
   return saveWithDialog(Buffer.from(bytes), `${f.numero}.pdf`, 'pdf');
 }
 
@@ -285,37 +287,15 @@ export async function exportDashboardPdf(
 ): Promise<ExportResult> {
   assertExport(actorUserId);
   const d = getDashboard(actorUserId, filters);
+  const ctx = await createPdfWithLetterhead();
   const emp = getEmployeurLegalInfo();
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const draw = (text: string, size = 10, useBold = false, x = 40) => ctx.draw(text, size, useBold, x);
 
-  let page = pdf.addPage([595, 842]);
-  let y = 800;
-
-  const newPage = () => {
-    page = pdf.addPage([595, 842]);
-    y = 800;
-  };
-
-  const draw = (text: string, size = 10, useBold = false, x = 40) => {
-    if (y < 50) newPage();
-    page.drawText(sanitizePdfText(text).slice(0, 95), {
-      x,
-      y,
-      size,
-      font: useBold ? bold : font,
-      color: rgb(0.1, 0.15, 0.2),
-    });
-    y -= size + 6;
-  };
-
-  draw('TABLEAU DE BORD — HOTEL METRICS PRO', 14, true);
+  draw('TABLEAU DE BORD', 14, true);
   draw(emp.raisonSociale, 10, true);
   draw(`Periode : ${d.kpis.periodeLabel}`, 10, true);
   draw(`Genere le : ${new Date().toISOString().slice(0, 10)}`, 9);
-  y -= 4;
+  ctx.y -= 4;
 
   draw('INDICATEURS CLES', 11, true);
   draw(`CA jour : ${formatDzdPdf(d.kpis.caJour)}`);
@@ -325,13 +305,13 @@ export async function exportDashboardPdf(
   draw(`Ecart objectif : ${formatDzdPdf(d.kpis.ecartObjectif)}`);
   draw(`Encaissements : ${formatDzdPdf(d.kpis.totalEncaissements)} — Taux : ${d.kpis.tauxEncaissement}%`);
   draw(`Variation CA : ${d.kpis.variationCaPct}%`);
-  y -= 4;
+  ctx.y -= 4;
 
   draw('HOSPITALITE', 11, true);
   draw(`Taux occupation : ${d.kpis.tauxOccupation}% — RevPAR : ${formatDzdPdf(d.kpis.revPAR ?? 0)}`);
   draw(`ADR : ${formatDzdPdf(d.kpis.adr ?? 0)} — Prix moyen couvert : ${formatDzdPdf(d.kpis.prixMoyenCouvert ?? 0)}`);
   draw(`Chambres : ${d.frequentation.chambres} — Nuitees : ${d.frequentation.nuitees} — Couverts : ${d.frequentation.couverts}`);
-  y -= 4;
+  ctx.y -= 4;
 
   draw('SYNTHESE PAR HOTEL', 11, true);
   for (const h of d.parHotel) {
@@ -340,7 +320,7 @@ export async function exportDashboardPdf(
     );
     draw(`  Encaissements : ${formatDzdPdf(h.encaissements)} (${h.tauxEncaissement}%)`, 9);
   }
-  y -= 4;
+  ctx.y -= 4;
 
   draw('REPARTITION PAR RUBRIQUE', 11, true);
   for (const r of d.parRubrique) {
@@ -350,17 +330,17 @@ export async function exportDashboardPdf(
   }
 
   if (d.alertes.length > 0) {
-    y -= 4;
+    ctx.y -= 4;
     draw('ALERTES', 11, true);
     for (const a of d.alertes.slice(0, 8)) {
       draw(`${a.niveau.toUpperCase()} : ${a.description}`, 9);
     }
   }
 
-  y -= 6;
+  ctx.y -= 6;
   draw('Document de synthese interne — Hotel Metrics Pro Desktop.', 8);
 
   const suffix = filters.mois ? `${filters.annee}_${String(filters.mois).padStart(2, '0')}` : String(filters.annee);
-  const bytes = await pdf.save();
+  const bytes = await ctx.finalize();
   return saveWithDialog(Buffer.from(bytes), `dashboard_${suffix}.pdf`, 'pdf');
 }

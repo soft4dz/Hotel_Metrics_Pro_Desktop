@@ -4,6 +4,8 @@ import { getActorContext, applyActorHotelFilter, isGlobalAdminRole } from './act
 import { simulerPrix } from './tarifs.service';
 import { createFacture } from './facturation.service';
 import { createFichePoliceFromReservation, calculerTaxeSejour } from './hotel-legal.service';
+import { syncHebergementCaFromErp } from './recettes-auto-sync.service';
+import { createTacheFromDepart, ensureTacheForChambreMenage, cancelOpenTachesForChambre } from './housekeeping.service';
 import type {
   TypeChambre, Chambre, Reservation, OccupationKpis, OccupationPeriode,
   CreateTypeChambreInput, CreateChambreInput, CreateReservationInput,
@@ -164,13 +166,33 @@ export function createChambre(actorUserId: number, input: CreateChambreInput): C
 
 export function updateStatutChambre(actorUserId: number, id: number, statut: StatutChambre): Chambre {
   const db = getDatabase();
+  const before = db.prepare(`SELECT statut FROM chambres WHERE id = ?`).get(id) as { statut: StatutChambre } | undefined;
+
   db.prepare(`UPDATE chambres SET statut=?, updated_at=datetime('now') WHERE id=?`).run(statut, id);
+
+  if (statut === 'menage') {
+    try {
+      ensureTacheForChambreMenage(actorUserId, id);
+    } catch {
+      /* tâche déjà ouverte ou module non initialisé */
+    }
+  } else if (before?.statut === 'menage') {
+    try {
+      cancelOpenTachesForChambre(actorUserId, id);
+    } catch {
+      /* ignore */
+    }
+  }
+
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Chambre ${id} → ${statut}` });
   return listChambres(actorUserId).find((c) => c.id === id)!;
 }
 
 export function updateChambre(actorUserId: number, id: number, input: Partial<CreateChambreInput>): Chambre {
   const db = getDatabase();
+  const before = input.statut !== undefined
+    ? (db.prepare(`SELECT statut FROM chambres WHERE id = ?`).get(id) as { statut: StatutChambre } | undefined)
+    : undefined;
   const sets: string[] = [`updated_at = datetime('now')`];
   const params: unknown[] = [];
   if (input.typeChambreId !== undefined) { sets.push('type_chambre_id = ?'); params.push(input.typeChambreId ?? null); }
@@ -180,6 +202,13 @@ export function updateChambre(actorUserId: number, id: number, input: Partial<Cr
   if (input.description !== undefined)   { sets.push('description = ?');      params.push(input.description ?? null); }
   params.push(id);
   db.prepare(`UPDATE chambres SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+
+  if (input.statut === 'menage') {
+    try { ensureTacheForChambreMenage(actorUserId, id); } catch { /* ignore */ }
+  } else if (before?.statut === 'menage' && input.statut !== undefined) {
+    try { cancelOpenTachesForChambre(actorUserId, id); } catch { /* ignore */ }
+  }
+
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Chambre ${id} modifiée` });
   return listChambres(actorUserId).find((c) => c.id === id)!;
 }
@@ -381,10 +410,14 @@ export function updateReservationStatut(actorUserId: number, id: number, statut:
   }
   if (statut === 'depart') {
     try {
+      if (res.chambreId) createTacheFromDepart(actorUserId, res.hotelId, res.chambreId, id);
+    } catch { /* tâche déjà ouverte */ }
+    try {
       const periode = res.dateDepart.slice(0, 7);
       calculerTaxeSejour(actorUserId, res.hotelId, periode);
     } catch { /* ignore */ }
     try { closeFolio(actorUserId, id); } catch { /* pas de folio */ }
+    try { syncHebergementCaFromErp(actorUserId, res.hotelId, res.dateDepart); } catch { /* sync CA */ }
   }
 
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'hebergement', description: `Réservation ${id} → ${statut}` });

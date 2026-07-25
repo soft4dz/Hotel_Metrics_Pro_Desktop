@@ -8,7 +8,10 @@ export type ErpEventType =
   | 'POINTAGES_GENERATED'
   | 'POS_SALE_RECORDED'
   | 'STOCK_COMPTA_POSTED'
-  | 'POINTEUSE_SYNCED';
+  | 'POINTEUSE_SYNCED'
+  | 'POS_SESSION_OPENED'
+  | 'POS_FACTION_CLOSED'
+  | 'POS_DAY_CLOSED';
 
 export interface ErpEventPayload {
   type: ErpEventType;

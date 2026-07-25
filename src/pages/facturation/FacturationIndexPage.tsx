@@ -1,19 +1,23 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { BarChart3, BookOpenCheck, FileText, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
+import { canManageClients } from '@/shared/permissions';
 
 const TABS = [
   { to: '/facturation',         label: 'Tableau de bord', icon: BarChart3,  end: true },
   { to: '/facturation/factures', label: 'Factures',        icon: FileText,   end: false },
   { to: '/facturation/registre', label: 'Registre',        icon: BookOpenCheck, end: false },
-  { to: '/clients',              label: 'Clients',         icon: Users,      end: false },
+  { to: '/clients',              label: 'Clients',         icon: Users,      end: false, visible: canManageClients },
 ];
 
 export function FacturationIndexPage() {
+  const role = useAuthStore((s) => s.user?.role);
+  const tabs = TABS.filter((tab) => !tab.visible || tab.visible(role));
   return (
     <div className="space-y-5">
       <nav className="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-white px-2 py-1.5 shadow-sm">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+        {tabs.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

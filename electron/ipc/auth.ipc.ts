@@ -1,4 +1,5 @@
 import Electron from '../lib/electronApi';
+import { listDemoAccountsForLogin } from '../database/profileSeed';
 import * as authService from '../services/auth.service';
 import {
   bindSession,
@@ -14,6 +15,8 @@ export interface LoginIpcResult extends authService.LoginResult {
 }
 
 export function registerAuthIpc(): void {
+  Electron.ipcMain.handle('auth:listDemoAccounts', () => listDemoAccountsForLogin());
+
   Electron.ipcMain.handle(
     'auth:login',
     (event, payload: { email: string; password: string; rememberMe?: boolean }): LoginIpcResult => {

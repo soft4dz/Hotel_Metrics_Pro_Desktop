@@ -9,8 +9,10 @@ Le responsable RH gère les collaborateurs, contrats, absences, congés, paie, f
 - Dashboard RH.
 - Collaborateurs.
 - Contrats.
-- Temps et absences.
-- Paie.
+- Temps et absences (planning, pointages, **réconciliation H+15**).
+- Paie certifiable DZ (HS, retenues, exports CNAS/DADS-U).
+- Recrutement ATS (pipeline, offres, entretiens).
+- GPEC et campagnes d'évaluation.
 - Formations.
 - Compétences.
 - Entretiens.

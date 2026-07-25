@@ -2,12 +2,11 @@ import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
 import { calculatePaieDz } from './rh-paie-dz-engine';
+import { createPdfWithLetterhead } from './pdf-letterhead.util';
 import {
   formatDzdPdf,
   getEmployeurLegalInfo,
-  loadPdfLib,
   saveRhExportFile,
-  sanitizePdfText,
   type RhExportResult,
 } from './rh-legal-export.util';
 
@@ -38,30 +37,15 @@ export async function exportBulletinPaiePdf(actorUserId: number, bulletinId: num
   const employeNom = `${row.prenom as string} ${row.nom as string}`;
   const periode = row.periode as string;
 
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let y = 800;
-
-  const draw = (text: string, size = 10, isBold = false) => {
-    page.drawText(sanitizePdfText(text).slice(0, 95), {
-      x: 45,
-      y,
-      size,
-      font: isBold ? bold : font,
-      color: rgb(0.08, 0.1, 0.15),
-    });
-    y -= size + 6;
-  };
+  const ctx = await createPdfWithLetterhead();
+  const draw = (text: string, size = 10, isBold = false) => ctx.draw(text, size, isBold, 45);
 
   draw('BULLETIN DE PAIE — RÉPUBLIQUE ALGÉRIENNE DÉMOCRATIQUE ET POPULAIRE', 11, true);
   draw(emp.raisonSociale, 10, true);
   draw(emp.adresse, 9);
   if (emp.nssEmployeur) draw(`N° employeur CNAS : ${emp.nssEmployeur}`, 9);
   if (emp.nis) draw(`NIS : ${emp.nis}`, 9);
-  y -= 4;
+  ctx.y -= 4;
   draw(`Période : ${periode}`, 10, true);
   draw(`Matricule : ${(row.dlg_matricule as string) ?? `EMP-${row.employe_id}`}`, 9);
   draw(`Employé : ${employeNom}`, 9);
@@ -69,24 +53,32 @@ export async function exportBulletinPaiePdf(actorUserId: number, bulletinId: num
   draw(`N° SS (NSS) : ${(row.nss as string) ?? '—'}`, 9);
   draw(`NIN : ${(row.nin as string) ?? '—'}`, 9);
   draw(`RIB : ${(row.rib as string) ?? '—'}`, 9);
-  y -= 6;
+  ctx.y -= 6;
   draw('ÉLÉMENTS DE RÉMUNÉRATION', 10, true);
-  draw(`Salaire brut + primes : ${formatDzdPdf(brut)}`, 9);
-  draw(`Heures travaillees : ${row.heures_travaillees} h — Jours absence : ${row.jours_absence}`, 9);
-  draw(`Primes periode : ${formatDzdPdf(row.primes_total as number)}`, 9);
-  y -= 4;
+  const brutBase = (row.brut_base as number) ?? 0;
+  if (brutBase > 0) draw(`Salaire de base : ${formatDzdPdf(brutBase)}`, 9);
+  const montantHs = (row.montant_hs as number) ?? 0;
+  if (montantHs > 0) {
+    draw(`Heures supplémentaires (${row.heures_sup} h) : ${formatDzdPdf(montantHs)}`, 9);
+  }
+  const retenueAbs = (row.retenue_absence as number) ?? 0;
+  if (retenueAbs > 0) draw(`Retenue absence sans solde : -${formatDzdPdf(retenueAbs)}`, 9);
+  draw(`Primes période : ${formatDzdPdf(row.primes_total as number)}`, 9);
+  draw(`Total brut imposable : ${formatDzdPdf(brut)}`, 9, true);
+  draw(`Heures travaillées : ${row.heures_travaillees} h — Jours absence : ${row.jours_absence}`, 9);
+  ctx.y -= 4;
   draw('RETENUES LEGALES', 10, true);
   draw(`Cotisation CNAS salariale (9 %) : ${formatDzdPdf(paie.cotisationSalarie)}`, 9);
   draw(`IRG (bareme en vigueur, ${enfants} enfant(s) a charge) : ${formatDzdPdf(paie.irg)}`, 9);
   draw(`Part patronale CNAS (26 %) — information : ${formatDzdPdf(paie.cotisationPatronale)}`, 9);
-  y -= 4;
+  ctx.y -= 4;
   draw(`NET A PAYER : ${formatDzdPdf(paie.net)}`, 12, true);
-  y -= 8;
+  ctx.y -= 8;
   draw('Mentions légales : bulletin établi conformément à la législation algérienne du travail', 8);
   draw('et de sécurité sociale (CNAS). Conservation obligatoire par l\'employeur et le salarié.', 8);
   draw(`Statut bulletin : ${row.statut as string}`, 8);
 
-  const buffer = Buffer.from(await pdf.save());
+  const buffer = Buffer.from(await ctx.finalize());
   writeAuditLog({
     userId: actorUserId,
     action: 'EXPORT',

@@ -140,11 +140,21 @@ const BRAND_DIALOG_TITLES: Record<CompanyBrandAsset, string> = {
 export function getCompanyBranding(): {
   companyName: string;
   companyLogoUrl: string | null;
+  reportHeader: string;
+  reportFooter: string;
+  reportHeaderImageUrl: string | null;
+  reportFooterImageUrl: string | null;
 } {
   const companyLogoFile = readOptionalSetting('company_logo_file');
+  const reportHeaderImageFile = readOptionalSetting('report_header_image_file');
+  const reportFooterImageFile = readOptionalSetting('report_footer_image_file');
   return {
     companyName: readSetting('company_name', 'Raqmi System'),
     companyLogoUrl: resolveCompanyBrandUrl(companyLogoFile),
+    reportHeader: readSetting('report_header', 'Raqmi System - Rapport interne'),
+    reportFooter: readSetting('report_footer', 'Document généré automatiquement'),
+    reportHeaderImageUrl: resolveCompanyBrandUrl(reportHeaderImageFile),
+    reportFooterImageUrl: resolveCompanyBrandUrl(reportFooterImageFile),
   };
 }
 

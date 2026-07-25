@@ -30,4 +30,7 @@ export function registerClotureIpc(): void {
 
   Electron.ipcMain.handle('cloture:list', (event, hotelId?: number, dateDebut?: string, dateFin?: string) =>
     wrapIpc(event, (uid) => svc.listDailyClosures(uid, hotelId, dateDebut, dateFin)));
+
+  Electron.ipcMain.handle('cloture:posStatus', (event, hotelId: number, dateJournal: string) =>
+    wrapIpc(event, () => svc.getPosClosureStatusForHotel(assertPositiveInteger(hotelId, 'hotelId'), assertDateJournal(dateJournal, 'dateJournal'))));
 }

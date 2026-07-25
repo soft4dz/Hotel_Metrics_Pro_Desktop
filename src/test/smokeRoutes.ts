@@ -39,6 +39,7 @@ export const SMOKE_ROUTES: string[] = [
   '/stocks',
   '/achats',
   '/maintenance',
+  '/housekeeping',
   '/commercial',
   '/ged',
   '/rapports',

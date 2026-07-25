@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BedDouble, Wrench, Wind, CheckCircle2 } from 'lucide-react';
 import { useChambres } from '@/hooks/useHebergement';
+import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { Chambre, StatutChambre } from '@/shared/types/hebergement';
 import { ChartEtatChambres } from './ChartEtatChambres';
@@ -15,6 +16,13 @@ const STATUT_CONFIG: Record<StatutChambre, { label: string; color: string; bg: s
 function ChambreCard({ chambre, onChangeStatut }: { chambre: Chambre; onChangeStatut: (id: number, s: StatutChambre) => void }) {
   const cfg = STATUT_CONFIG[chambre.statut];
   const Icon = cfg.icon;
+
+  const handleStatut = async (id: number, s: StatutChambre) => {
+    await onChangeStatut(id, s);
+    if (s === 'menage') {
+      notify.success(`Ch. ${chambre.numero} — tâche housekeeping créée`);
+    }
+  };
 
   return (
     <div className={cn('rounded-xl border p-4 cursor-pointer hover:shadow-md transition-all duration-200', cfg.bg)}>
@@ -36,7 +44,7 @@ function ChambreCard({ chambre, onChangeStatut }: { chambre: Chambre; onChangeSt
         {(Object.keys(STATUT_CONFIG) as StatutChambre[]).filter((s) => s !== chambre.statut).map((s) => (
           <button
             key={s}
-            onClick={(e) => { e.stopPropagation(); onChangeStatut(chambre.id, s); }}
+            onClick={(e) => { e.stopPropagation(); void handleStatut(chambre.id, s); }}
             className="rounded-md bg-white/70 border border-border/40 px-2 py-0.5 text-[10px] font-medium hover:bg-white transition-colors"
           >
             → {STATUT_CONFIG[s].label}

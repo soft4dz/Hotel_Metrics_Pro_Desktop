@@ -3,11 +3,12 @@ import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
 import { sortirEmploye } from './rh.service';
 import { calculateStcDz } from './rh-paie-dz-engine';
+import { createPdfWithLetterhead } from './pdf-letterhead.util';
 import {
   formatDzd,
   getEmployeurLegalInfo,
-  loadPdfLib,
   saveRhExportFile,
+  sanitizePdfText,
   type RhExportResult,
 } from './rh-legal-export.util';
 import type { ProcessRuptureInput, RhRuptureContrat, RhStcPreview } from '../../src/shared/types/rh';
@@ -160,37 +161,40 @@ export async function exportCertificatTravailPdf(
   if (!row) throw new Error('Rupture introuvable.');
 
   const emp = getEmployeurLegalInfo();
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let y = 760;
+  const ctx = await createPdfWithLetterhead();
+  const { font, bold, rgb } = ctx;
   const nom = `${row.prenom as string} ${row.nom as string}`;
 
   const draw = (text: string, size = 11, isBold = false) => {
-    page.drawText(text.slice(0, 90), { x: 50, y, size, font: isBold ? bold : font, color: rgb(0.1, 0.12, 0.18) });
-    y -= size + 8;
+    ctx.ensureSpace(size + 10);
+    ctx.page.drawText(sanitizePdfText(text).slice(0, 90), {
+      x: 50,
+      y: ctx.y,
+      size,
+      font: isBold ? bold : font,
+      color: rgb(0.1, 0.12, 0.18),
+    });
+    ctx.y -= size + 8;
   };
 
   draw('CERTIFICAT DE TRAVAIL', 14, true);
   draw(emp.raisonSociale, 11, true);
   draw(emp.adresse, 10);
-  y -= 10;
+  ctx.y -= 10;
   draw('Nous soussignés, certifions que :', 10);
   draw(`M./Mme ${nom}`, 11, true);
   draw(`N° SS : ${(row.nss as string) ?? '—'}`, 10);
   draw(`A occupé le poste de : ${(row.poste_nom as string) ?? '—'}`, 10);
   draw(`Du ${row.date_embauche as string} au ${row.date_sortie as string}`, 10);
   draw(`Motif de départ : ${row.type_rupture as string}`, 10);
-  y -= 10;
+  ctx.y -= 10;
   draw('Le présent certificat est délivré à l\'intéressé(e) pour servir et valoir ce que de droit,', 10);
   draw('conformément à la législation algérienne du travail.', 10);
-  y -= 20;
+  ctx.y -= 20;
   draw(`Fait à __________________, le ${new Date().toLocaleDateString('fr-FR')}`, 10);
   draw('Cachet et signature de l\'employeur', 10, true);
 
-  const buffer = Buffer.from(await pdf.save());
+  const buffer = Buffer.from(await ctx.finalize());
   dbMarkCertificat(ruptureId);
   return saveRhExportFile(buffer, `certificat_travail_${nom.replace(/\s+/g, '_')}.pdf`, 'pdf');
 }
@@ -209,16 +213,19 @@ export async function exportStcPdf(actorUserId: number, ruptureId: number): Prom
 
   const emp = getEmployeurLegalInfo();
   const nom = `${row.prenom as string} ${row.nom as string}`;
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let y = 760;
+  const ctx = await createPdfWithLetterhead();
+  const { font, bold, rgb } = ctx;
 
   const draw = (text: string, size = 10, isBold = false) => {
-    page.drawText(text.slice(0, 92), { x: 50, y, size, font: isBold ? bold : font, color: rgb(0.1, 0.12, 0.18) });
-    y -= size + 7;
+    ctx.ensureSpace(size + 9);
+    ctx.page.drawText(sanitizePdfText(text).slice(0, 92), {
+      x: 50,
+      y: ctx.y,
+      size,
+      font: isBold ? bold : font,
+      color: rgb(0.1, 0.12, 0.18),
+    });
+    ctx.y -= size + 7;
   };
 
   draw('SOLDE DE TOUT COMPTE (STC)', 14, true);
@@ -226,17 +233,17 @@ export async function exportStcPdf(actorUserId: number, ruptureId: number): Prom
   draw(`Employé : ${nom} — NSS : ${(row.nss as string) ?? '—'}`, 10);
   draw(`Date de sortie : ${row.date_sortie as string}`, 10);
   draw(`Type de rupture : ${row.type_rupture as string}`, 10);
-  y -= 6;
+  ctx.y -= 6;
   draw(`Indemnité congés payés : ${formatDzd(row.indemnite_conges as number)}`, 10);
   draw(`Indemnité de préavis : ${formatDzd(row.indemnite_preavis as number)}`, 10);
   draw(`Indemnité de licenciement : ${formatDzd(row.indemnite_licenciement as number)}`, 10);
   draw(`Total brut : ${formatDzd(row.total_brut_stc as number)}`, 10, true);
   draw(`Retenues CNAS/IRG : ${formatDzd(row.retenues as number)}`, 10);
   draw(`NET À PAYER : ${formatDzd(row.net_a_payer as number)}`, 12, true);
-  y -= 8;
+  ctx.y -= 8;
   draw('Document indicatif — sous réserve de validation par la paie et l\'expert-comptable.', 8);
 
-  const buffer = Buffer.from(await pdf.save());
+  const buffer = Buffer.from(await ctx.finalize());
   dbMarkStc(ruptureId);
   return saveRhExportFile(buffer, `STC_${nom.replace(/\s+/g, '_')}.pdf`, 'pdf');
 }

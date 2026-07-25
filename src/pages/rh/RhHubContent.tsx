@@ -17,6 +17,8 @@ import { ValidationsTab } from './ValidationsTab';
 import { OrganisationTab } from './OrganisationTab';
 import { ReferentielRhTab } from './ReferentielRhTab';
 import { PointeuseTab } from './PointeuseTab';
+import { ReconciliationTab } from './ReconciliationTab';
+import { GpecTab } from './GpecTab';
 import type { RhHub, RhHubId, RhSubSection } from './rhNavigation';
 
 interface Props {
@@ -55,6 +57,7 @@ export function RhHubContent({ hub, sub, canManage, canTeam, canSelf }: Props) {
         ) : null;
       }
       if (sub === 'absences') return canTeam || canSelf ? <AbsencesTab canValidate={canManage || canTeam} /> : null;
+      if (sub === 'reconciliation') return canManage ? <ReconciliationTab /> : null;
       if (sub === 'pointeuse') return canManage ? <PointeuseTab /> : null;
       return null;
 
@@ -67,6 +70,7 @@ export function RhHubContent({ hub, sub, canManage, canTeam, canSelf }: Props) {
     case 'talents':
       if (!canManage) return null;
       if (sub === 'recrutements') return <RecrutementsTab />;
+      if (sub === 'gpec') return <GpecTab />;
       return <FormationsTab initialSub={talentsSub(sub)} hideDocuments />;
 
     case 'validations':

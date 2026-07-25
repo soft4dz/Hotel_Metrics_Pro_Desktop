@@ -21,12 +21,12 @@ const ALL_MODULES = [
   'administration-utilisateurs', 'parametrage-global', 'unites-hotelieres',
   'recettes-journalieres', 'encaissements-tresorerie', 'budget-previsions',
   'hebergement-occupation', 'facturation', 'creances-recouvrement', 'contrats-conventions',
-  'stocks-consommations', 'achats-approvisionnements', 'maintenance-interventions',
+  'stocks-consommations', 'achats-approvisionnements', 'maintenance-interventions', 'housekeeping-chambres',
   'rh-productivite', 'tarifs-conventions', 'audit-controle-interne', 'journal-anomalies',
   'decisions-instructions', 'qualite-reclamations', 'plage-piscine', 'parking', 'portmaster',
   'clients', 'commercial-partenariats', 'tableaux-bord-directionnels', 'rapports-automatiques',
   'alertes-notifications', 'comparatif-inter-unites', 'gestion-documentaire',
-  'sauvegarde-restauration', 'synchronisation-multi-postes', 'journalisation-tracabilite',
+  'sauvegarde-restauration',   'synchronisation-multi-postes', 'journalisation-tracabilite', 'pos-restauration',
 ];
 
 const force = process.argv.includes('--force');
@@ -101,7 +101,15 @@ function seedPms(db, hotels) {
     return;
   }
   if (force) {
-    db.exec(`DELETE FROM reservations; DELETE FROM tarifs_journaliers; DELETE FROM chambres; DELETE FROM types_chambres; DELETE FROM plans_tarifaires`);
+    db.exec(`
+      PRAGMA foreign_keys = OFF;
+      DELETE FROM reservations;
+      DELETE FROM tarifs_journaliers;
+      DELETE FROM chambres;
+      DELETE FROM types_chambres;
+      DELETE FROM plans_tarifaires;
+      PRAGMA foreign_keys = ON;
+    `);
   }
 
   const insType = db.prepare(`INSERT INTO types_chambres (hotel_id, code, label, capacite, tarif_base, description, actif) VALUES (?, ?, ?, ?, ?, ?, 1)`);
@@ -427,10 +435,35 @@ function seedQualiteControle(db, hotels, adminId) {
   console.log(`Anomalies: ${count(db, 'anomalies')} | Décisions: ${count(db, 'decisions')} | Réclamations: ${count(db, 'reclamations')}`);
 }
 
+function ensureGedCategories(db) {
+  if (count(db, 'ged_categories') > 0) return;
+  const ins = db.prepare(`INSERT OR IGNORE INTO ged_categories (code, label, icone) VALUES (?, ?, ?)`);
+  for (const row of [
+    ['contrats', 'Contrats & conventions', 'file-text'],
+    ['factures', 'Factures & comptabilité', 'receipt'],
+    ['rh', 'RH & personnel', 'users'],
+    ['technique', 'Technique & maintenance', 'wrench'],
+    ['qualite', 'Qualité & normes', 'check-circle'],
+    ['legal', 'Juridique & légal', 'scale'],
+    ['divers', 'Divers', 'folder'],
+  ]) {
+    ins.run(...row);
+  }
+  console.log(`GED catégories: ${count(db, 'ged_categories')}`);
+}
+
 function seedGed(db, hotels, adminId) {
+  ensureGedCategories(db);
   if (count(db, 'ged_documents') >= 3 && !force) return;
 
-  const catId = db.prepare(`SELECT id FROM ged_categories WHERE code = 'contrats'`).get()?.id ?? 1;
+  const catId =
+    db.prepare(`SELECT id FROM ged_categories WHERE code = 'contrats'`).get()?.id ??
+    db.prepare(`SELECT id FROM ged_categories ORDER BY id LIMIT 1`).get()?.id;
+  if (!catId) {
+    console.log('GED: aucune catégorie — ignoré');
+    return;
+  }
+
   const ins = db.prepare(`
     INSERT INTO ged_documents (hotel_id, categorie_id, titre, nom_fichier, chemin, taille_octets, mime_type, uploaded_by, date_document)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -467,6 +500,214 @@ function seedPort(db) {
     VALUES (?, 'CTR-DEMO-001', ?, ?, date('now'), date('now', '+6 months'), 45000, 270000, 'actif')
   `).run(randomUUID(), bateauId, empId);
   console.log(`PortMaster: ${count(db, 'port_bateaux')} bateaux`);
+}
+
+function seedAssignDemoUsers(db, hotels) {
+  const hotel = hotels.find((h) => h.code === 'AZUR') ?? hotels[0];
+  const emails = [
+    'directeur@demo.hotelmetrics.local',
+    'controleur@demo.hotelmetrics.local',
+    'compta@demo.hotelmetrics.local',
+    'reception@demo.hotelmetrics.local',
+  ];
+  const upd = db.prepare(`UPDATE users SET hotel_id = ? WHERE email = ? COLLATE NOCASE AND deleted_at IS NULL`);
+  let n = 0;
+  for (const email of emails) {
+    n += upd.run(hotel.id, email).changes;
+  }
+  const siegeId = db.prepare(`SELECT id FROM hotels WHERE code = 'SIEGE'`).get()?.id;
+  if (siegeId) {
+    db.prepare(`UPDATE rh_employes SET hotel_id = ? WHERE hotel_id = ? OR hotel_id IS NULL`).run(hotel.id, siegeId);
+  }
+  console.log(`Utilisateurs démo: ${n} compte(s) rattachés à ${hotel.code}`);
+}
+
+function seedCreances(db, hotels, clients) {
+  if (count(db, 'global_creances') >= 3 && !force) {
+    console.log(`Créances: déjà ${count(db, 'global_creances')} — ignoré`);
+    return;
+  }
+  if (force) db.exec(`DELETE FROM global_creance_relances; DELETE FROM global_creances WHERE notes = 'DEMO_SEED'`);
+
+  const ins = db.prepare(`
+    INSERT INTO global_creances (
+      source_module, source_entity_type, hotel_id, client_label, client_id, reference_piece,
+      date_piece, date_echeance, montant_total, montant_regle, montant_restant, statut, niveau_risque, notes
+    ) VALUES (?, 'facture', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DEMO_SEED')
+  `);
+  const stats = [
+    ['ouverte', 'normal', 0],
+    ['partielle', 'eleve', 0.4],
+    ['litige', 'critique', 0.1],
+  ];
+  for (let i = 0; i < hotels.length; i++) {
+    const client = clients[i % clients.length];
+    const total = 180000 + i * 25000;
+    const [statut, risque, ratioRegle] = stats[i % stats.length];
+    const regle = Math.round(total * ratioRegle);
+    ins.run('facturation', hotels[i].id, client.nom, client.id, `CRE-DEMO-${i + 1}`, today(-10 - i),
+      today(20 - i), total, regle, total - regle, statut, risque);
+  }
+  console.log(`Créances: ${count(db, 'global_creances')}`);
+}
+
+function seedCuisine(db, hotels, adminId) {
+  if (count(db, 'cuisine_recettes') >= 3 && !force) {
+    console.log(`Cuisine: déjà ${count(db, 'cuisine_recettes')} recettes — ignoré`);
+    return;
+  }
+  if (force) db.exec(`DELETE FROM cuisine_recette_lignes; DELETE FROM cuisine_recettes WHERE code LIKE 'DEMO-%'`);
+
+  const ins = db.prepare(`
+    INSERT INTO cuisine_recettes (uuid, hotel_id, code, nom, portions, prix_vente, cout_revient, statut, valide_par, valide_at, cree_par)
+    VALUES (?, ?, ?, ?, 1, ?, ?, 'valide', ?, datetime('now'), ?)
+  `);
+  const plats = [
+    ['DEMO-COUSCOUS', 'Couscous royal', 2800, 1200],
+    ['DEMO-POISSON', 'Poisson grillé', 3200, 1400],
+    ['DEMO-SALADE', 'Salade méditerranéenne', 1500, 600],
+    ['DEMO-DESSERT', 'Makroud aux dattes', 900, 350],
+  ];
+  for (const hotel of hotels) {
+    for (const [code, nom, prix, cout] of plats) {
+      const exists = db.prepare(`SELECT id FROM cuisine_recettes WHERE hotel_id = ? AND code = ?`).get(hotel.id, code);
+      if (!exists) ins.run(randomUUID(), hotel.id, code, nom, prix, cout, adminId, adminId);
+    }
+  }
+  console.log(`Cuisine: ${count(db, 'cuisine_recettes')} recettes`);
+}
+
+const POS_FACTIONS = [
+  ['MATIN', 'Service matin', '06:00', '11:00', 1],
+  ['MIDI', 'Service midi', '11:00', '15:00', 2],
+  ['SOIR', 'Service soir', '18:00', '23:00', 3],
+];
+
+function seedPos(db, hotels, adminId) {
+  if (count(db, 'pos_points_vente') >= hotels.length && !force) {
+    console.log(`POS: déjà ${count(db, 'pos_points_vente')} points de vente — ignoré`);
+    return;
+  }
+  if (force) {
+    db.exec(`
+      DELETE FROM pos_ticket_lignes;
+      DELETE FROM pos_tickets;
+      DELETE FROM pos_sessions;
+      DELETE FROM pos_clotures_journalieres;
+      DELETE FROM pos_factions;
+      DELETE FROM pos_points_vente WHERE code LIKE 'RESTO-%'
+    `);
+  }
+
+  const insPv = db.prepare(`
+    INSERT INTO pos_points_vente (uuid, hotel_id, code, nom, type, actif) VALUES (?, ?, ?, ?, 'restaurant', 1)
+  `);
+  const insFaction = db.prepare(`
+    INSERT INTO pos_factions (point_vente_id, code, nom, heure_debut, heure_fin, ordre, actif) VALUES (?, ?, ?, ?, ?, ?, 1)
+  `);
+  const insSession = db.prepare(`
+    INSERT INTO pos_sessions (uuid, point_vente_id, faction_id, hotel_id, caissier_id, date_service, fond_caisse, statut,
+      total_ventes, total_especes, total_carte, cloture_at, cloture_par, observations)
+    VALUES (?, ?, ?, ?, ?, ?, 5000, 'cloturee', ?, ?, ?, datetime('now'), ?, 'DEMO_SEED')
+  `);
+  const insTicket = db.prepare(`
+    INSERT INTO pos_tickets (uuid, session_id, point_vente_id, hotel_id, numero, statut, total_ht, total_ttc, tva_montant, mode_paiement, date_ticket, cree_par, validated_at)
+    VALUES (?, ?, ?, ?, ?, 'valide', ?, ?, ?, ?, ?, ?, datetime('now'))
+  `);
+  const insLigne = db.prepare(`
+    INSERT INTO pos_ticket_lignes (ticket_id, recette_id, designation, quantite, prix_unitaire, montant_ligne, taux_tva)
+    VALUES (?, ?, ?, ?, ?, ?, 19)
+  `);
+
+  let ticketSeq = 1;
+  for (const hotel of hotels) {
+    let pvId = db.prepare(`SELECT id FROM pos_points_vente WHERE hotel_id = ? AND code = ?`).get(hotel.id, `RESTO-${hotel.code}`)?.id;
+    if (!pvId) {
+      pvId = insPv.run(randomUUID(), hotel.id, `RESTO-${hotel.code}`, `Restaurant ${hotel.name}`).lastInsertRowid;
+      for (const f of POS_FACTIONS) insFaction.run(pvId, ...f);
+    }
+    const factionId = db.prepare(`SELECT id FROM pos_factions WHERE point_vente_id = ? AND code = 'MIDI'`).get(pvId).id;
+    const recette = db.prepare(`SELECT id, nom, prix_vente FROM cuisine_recettes WHERE hotel_id = ? LIMIT 1`).get(hotel.id);
+    if (!recette) continue;
+
+    const totalTtc = recette.prix_vente * 3;
+    const totalHt = Math.round((totalTtc / 1.19) * 100) / 100;
+    const tva = Math.round((totalTtc - totalHt) * 100) / 100;
+    const sessionId = insSession.run(randomUUID(), pvId, factionId, hotel.id, adminId, today(-1),
+      totalTtc, totalTtc * 0.6, totalTtc * 0.4, adminId).lastInsertRowid;
+    const ticketId = insTicket.run(randomUUID(), sessionId, pvId, hotel.id, `TK-${hotel.code}-${String(ticketSeq++).padStart(4, '0')}`,
+      totalHt, totalTtc, tva, 'carte', today(-1), adminId).lastInsertRowid;
+    insLigne.run(ticketId, recette.id, recette.nom, 3, recette.prix_vente, totalTtc);
+  }
+  console.log(`POS: ${count(db, 'pos_points_vente')} PDV, ${count(db, 'pos_tickets')} tickets`);
+}
+
+function seedComptabilite(db, hotels, adminId) {
+  if (count(db, 'ecritures_comptables') >= 3 && !force) {
+    console.log(`Comptabilité: déjà ${count(db, 'ecritures_comptables')} écritures — ignoré`);
+    return;
+  }
+  if (force) db.exec(`DELETE FROM lignes_ecriture WHERE ecriture_id IN (SELECT id FROM ecritures_comptables WHERE source_ref = 'DEMO_SEED'); DELETE FROM ecritures_comptables WHERE source_ref = 'DEMO_SEED'`);
+
+  const exerciceId = db.prepare(`SELECT id FROM exercices_comptables ORDER BY id LIMIT 1`).get()?.id;
+  const journalId = db.prepare(`SELECT id FROM journaux WHERE code = 'VE'`).get()?.id
+    ?? db.prepare(`SELECT id FROM journaux ORDER BY id LIMIT 1`).get()?.id;
+  const compteClient = db.prepare(`SELECT id FROM comptes WHERE numero = '411000'`).get()?.id
+    ?? db.prepare(`SELECT id FROM comptes ORDER BY id LIMIT 1`).get()?.id;
+  const compteVente = db.prepare(`SELECT id FROM comptes WHERE numero = '701000'`).get()?.id
+    ?? db.prepare(`SELECT id FROM comptes ORDER BY id LIMIT 1`).get()?.id;
+  if (!exerciceId || !journalId || !compteClient || !compteVente) {
+    console.log('Comptabilité: référentiel incomplet — ignoré');
+    return;
+  }
+
+  const insEcrit = db.prepare(`
+    INSERT INTO ecritures_comptables (uuid, journal_id, exercice_id, date_ecriture, piece, libelle, statut, source_module, source_ref, hotel_id, created_by, validated_by, validated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'valide', 'recettes', 'DEMO_SEED', ?, ?, ?, datetime('now'))
+  `);
+  const insLigne = db.prepare(`
+    INSERT INTO lignes_ecriture (ecriture_id, compte_id, libelle, debit, credit, hotel_id, ordre) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (let i = 0; i < hotels.length; i++) {
+    const montant = 95000 + i * 12000;
+    const ecritureId = insEcrit.run(randomUUID(), journalId, exerciceId, today(-3 - i), `EC-DEMO-${i + 1}`,
+      `Vente hébergement ${hotels[i].code}`, hotels[i].id, adminId, adminId).lastInsertRowid;
+    insLigne.run(ecritureId, compteClient, 'Client hôtel', montant, 0, hotels[i].id, 1);
+    insLigne.run(ecritureId, compteVente, 'Produits hébergement', 0, montant, hotels[i].id, 2);
+  }
+  console.log(`Comptabilité: ${count(db, 'ecritures_comptables')} écritures`);
+}
+
+function seedHousekeeping(db, hotels, adminId) {
+  if (count(db, 'housekeeping_taches') >= 3 && !force) {
+    console.log(`Housekeeping: déjà ${count(db, 'housekeeping_taches')} tâches — ignoré`);
+    return;
+  }
+  if (force) db.exec(`DELETE FROM housekeeping_checklist_items; DELETE FROM housekeeping_taches WHERE notes = 'DEMO_SEED'`);
+
+  const checklistItems = ['Changement linge', 'Salle de bain', 'Sol & poussière', 'Minibar', 'Poubelles'];
+  const insTache = db.prepare(`
+    INSERT INTO housekeeping_taches (uuid, hotel_id, chambre_id, type_tache, statut, date_prevue, notes, cree_par)
+    VALUES (?, ?, ?, 'checkout', ?, ?, 'DEMO_SEED', ?)
+  `);
+  const insItem = db.prepare(`
+    INSERT INTO housekeeping_checklist_items (tache_id, libelle, ordre, statut) VALUES (?, ?, ?, ?)
+  `);
+
+  let n = 0;
+  for (const hotel of hotels.slice(0, 2)) {
+    const chambres = db.prepare(`SELECT id FROM chambres WHERE hotel_id = ? AND statut = 'menage' LIMIT 3`).all(hotel.id);
+    for (let i = 0; i < chambres.length; i++) {
+      const statut = i === 0 ? 'a_faire' : i === 1 ? 'en_cours' : 'controle';
+      const tacheId = insTache.run(randomUUID(), hotel.id, chambres[i].id, statut, today(0), adminId).lastInsertRowid;
+      checklistItems.forEach((libelle, idx) => {
+        insItem.run(tacheId, libelle, idx + 1, statut === 'controle' && idx < 4 ? 'ok' : 'pending');
+      });
+      n++;
+    }
+  }
+  console.log(`Housekeeping: ${count(db, 'housekeeping_taches')} tâches (+${n})`);
 }
 
 function enableAllModules(db) {
@@ -514,6 +755,12 @@ seedParkingPlage(db, hotels, adminId);
 seedQualiteControle(db, hotels, adminId);
 seedGed(db, hotels, adminId);
 seedPort(db);
+seedAssignDemoUsers(db, hotels);
+seedCreances(db, hotels, clients);
+seedCuisine(db, hotels, adminId);
+seedPos(db, hotels, adminId);
+seedComptabilite(db, hotels, adminId);
+seedHousekeeping(db, hotels, adminId);
 
 db.prepare(`INSERT OR REPLACE INTO app_settings (key, value) VALUES ('demo_full_seed_v1', datetime('now'))`).run();
 
@@ -531,6 +778,12 @@ const summary = {
   anomalies: count(db, 'anomalies'),
   reclamations: count(db, 'reclamations'),
   port_bateaux: count(db, 'port_bateaux'),
+  global_creances: count(db, 'global_creances'),
+  cuisine_recettes: count(db, 'cuisine_recettes'),
+  pos_points_vente: count(db, 'pos_points_vente'),
+  pos_tickets: count(db, 'pos_tickets'),
+  ecritures_comptables: count(db, 'ecritures_comptables'),
+  housekeeping_taches: count(db, 'housekeeping_taches'),
 };
 console.log(summary);
 console.log('\nSeed terminé — relancez l\'application pour tester.');

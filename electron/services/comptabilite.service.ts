@@ -525,3 +525,51 @@ export function genererEcritureVariationStock(actorUserId: number, input: StockV
     return null;
   }
 }
+
+export interface VenteRestaurationEcritureInput {
+  ticketId: number;
+  hotelId: number;
+  dateTicket: string;
+  numero: string;
+  totalTtc: number;
+  totalHt: number;
+  tvaMontant: number;
+  modePaiement: string;
+}
+
+/** Écriture vente restauration POS — CA 706100 + TVA + trésorerie. */
+export function genererEcritureVenteRestauration(actorUserId: number, input: VenteRestaurationEcritureInput): EcritureDetail | null {
+  if (input.totalTtc <= 0) return null;
+  try {
+    const journalCode = input.modePaiement === 'especes' ? 'CA' : 'BQ';
+    const compteTresorerie = input.modePaiement === 'especes' ? COMPTES_SCF.CAISSE : COMPTES_SCF.BANQUE;
+    const ht = Math.round(input.totalHt * 100) / 100;
+    const tva = Math.round(input.tvaMontant * 100) / 100;
+    const ttc = Math.round(input.totalTtc * 100) / 100;
+    const lignes: LigneEcritureInput[] = [
+      { compteNumero: compteTresorerie, debit: ttc, credit: 0, hotelId: input.hotelId },
+      { compteNumero: COMPTES_SCF.CA_RESTAURATION, debit: 0, credit: ht, hotelId: input.hotelId },
+    ];
+    if (tva > 0) {
+      lignes.push({ compteNumero: COMPTES_SCF.TVA_COLLECTEE, debit: 0, credit: tva, hotelId: input.hotelId });
+    }
+    return creerEcriture(actorUserId, {
+      journalCode,
+      dateEcriture: input.dateTicket,
+      libelle: `Vente POS ${input.numero}`,
+      piece: input.numero,
+      hotelId: input.hotelId,
+      sourceModule: 'pos',
+      sourceRef: String(input.ticketId),
+      lignes,
+    }, true);
+  } catch (err) {
+    writeAuditLog({
+      userId: actorUserId,
+      action: 'ERROR',
+      module: 'comptabilite',
+      description: `Échec écriture POS #${input.ticketId}: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    return null;
+  }
+}

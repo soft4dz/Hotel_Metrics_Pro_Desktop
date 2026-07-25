@@ -6,6 +6,7 @@ Ce dossier regroupe les guides par profil utilisateur. L'objectif est simple : c
 
 | Guide | Profil | Usage principal |
 |---|---|---|
+| `00-manuel-general.md` | Tous | Vue d'ensemble, modules, nouveautés |
 | `01-super-admin.md` | Super administrateur | Paramétrage global, sécurité, sauvegarde, modules |
 | `02-pdg.md` | PDG / Direction générale | Lecture consolidée, pilotage, décisions |
 | `03-directeur-unite.md` | Directeur d'unité | Suivi de son unité, recettes, exploitation, alertes |

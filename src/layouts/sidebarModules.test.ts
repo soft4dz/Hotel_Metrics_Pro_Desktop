@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { buildSidebarModules, findActiveModuleId } from './sidebarModules';
 
 describe('buildSidebarModules', () => {
-  it('retourne au moins les sections pilotage, exploitation, administration et systeme', () => {
+  it('retourne au moins les sections pilotage, exploitation, finance, administration et systeme', () => {
     const mods = buildSidebarModules('ADMIN_DEC');
     const ids = mods.map((m) => m.id);
     expect(ids).toContain('pilotage');
     expect(ids).toContain('exploitation');
+    expect(ids).toContain('finance');
     expect(ids).toContain('administration');
     expect(ids).toContain('systeme');
   });
@@ -56,12 +57,20 @@ describe('findActiveModuleId', () => {
     expect(findActiveModuleId(modules, '/dashboard')).toBe('pilotage');
   });
 
-  it('trouve le module pour une sous-route', () => {
+  it('trouve le module pour une sous-route recettes (exploitation)', () => {
     expect(findActiveModuleId(modules, '/recettes/journalieres/detail')).toBe('exploitation');
   });
 
   it('préfère la route la plus longue (plus précise)', () => {
     expect(findActiveModuleId(modules, '/recettes/historique')).toBe('exploitation');
+  });
+
+  it('trouve le module finance pour comptabilité', () => {
+    expect(findActiveModuleId(modules, '/comptabilite')).toBe('finance');
+  });
+
+  it('trouve le module exploitation pour hébergement', () => {
+    expect(findActiveModuleId(modules, '/hebergement')).toBe('exploitation');
   });
 
   it('trouve le module administration pour /admin/users', () => {

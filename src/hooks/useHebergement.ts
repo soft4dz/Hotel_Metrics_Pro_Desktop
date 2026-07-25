@@ -59,6 +59,7 @@ export function useChambres(hotelId?: number, statut?: StatutChambre) {
   const updateStatut = async (id: number, s: StatutChambre) => {
     unwrap(await ipcClient.hebergement.updateStatutChambre(id, s));
     await invalidate();
+    await qc.invalidateQueries({ queryKey: ['housekeeping'] });
   };
 
   const create = async (input: CreateChambreInput) => {

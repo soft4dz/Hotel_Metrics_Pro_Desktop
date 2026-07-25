@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, Loader2, Lock, Mail, UserCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,15 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
+import { ipcClient } from '@/lib/ipcClient';
+import { DEMO_PROFILE_PASSWORD } from '@/shared/constants/demoProfileAccounts';
+
+interface DemoAccountRow {
+  email: string;
+  fullName: string;
+  roleCode: string;
+  roleLabel: string;
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -21,6 +30,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccountRow[]>([]);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -28,10 +39,28 @@ export function LoginPage() {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    void (async () => {
+      try {
+        const rows = await ipcClient.auth.listDemoAccounts();
+        setDemoAccounts(rows);
+      } catch {
+        /* API indisponible hors Electron */
+      }
+    })();
+  }, []);
+
   const clearLocalSession = () => {
     localStorage.removeItem('hmp-auth');
     setError('');
     window.location.reload();
+  };
+
+  const fillDemoAccount = (account: DemoAccountRow) => {
+    setEmail(account.email);
+    setPassword(DEMO_PROFILE_PASSWORD);
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,19 +174,57 @@ export function LoginPage() {
           </Button>
 
           {import.meta.env.DEV && (
-            <p className="rounded-lg bg-secondary/50 px-3 py-2 text-center text-xs text-muted-foreground">
-              <strong className="text-foreground">Comptes de connexion (dev)</strong>
-              <br />
-              <span className="text-foreground">dec@egt-sidifredj.dz</span> ou{' '}
-              <span className="text-foreground">admin@hotelmetrics.local</span>
-              <br />
-              Mot de passe : <strong className="text-foreground">Admin@2026!</strong>
-              <br />
-              <span className="mt-1 inline-block text-[11px]">
-                Fermez complètement l&apos;application, lancez <strong>fix-auth.bat</strong> puis{' '}
-                <strong>dev.bat</strong>. N&apos;ouvrez pas Chrome sur localhost:5173.
-              </span>
-            </p>
+            <div className="space-y-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+              <p>
+                <strong className="text-foreground">Comptes administrateur</strong>
+                <br />
+                <span className="text-foreground">admin@hotelmetrics.local</span> — mot de passe initial
+                dans <span className="font-mono">INITIAL_ADMIN_CREDENTIALS.txt</span>
+              </p>
+
+              {demoAccounts.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 text-left font-medium text-foreground"
+                    onClick={() => setShowDemoAccounts((v) => !v)}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <UserCircle2 className="h-3.5 w-3.5" />
+                      Profils démo ({demoAccounts.length})
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showDemoAccounts ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <p className="mt-1">
+                    Mot de passe commun :{' '}
+                    <strong className="font-mono text-foreground">{DEMO_PROFILE_PASSWORD}</strong>
+                  </p>
+                  {showDemoAccounts && (
+                    <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                      {demoAccounts.map((account) => (
+                        <li key={account.email}>
+                          <button
+                            type="button"
+                            className="w-full rounded px-1 py-0.5 text-left hover:bg-background/80"
+                            onClick={() => fillDemoAccount(account)}
+                          >
+                            <span className="text-foreground">{account.roleLabel}</span>
+                            <span className="ml-1 font-mono text-[10px]">{account.email}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              <p className="text-[11px]">
+                Fermez l&apos;application, lancez <strong>dev.bat</strong> (pas Chrome seul sur
+                localhost:5173).
+              </p>
+            </div>
           )}
 
           <button

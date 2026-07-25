@@ -283,6 +283,12 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
     }
   }
 
+  // Le pull récupère les changements distants mais ne les applique PAS encore à la base
+  // locale : les entités référencées (bateaux, clients, factures, contrats...) ne sont pas
+  // elles-mêmes synchronisées par uuid, donc appliquer port_mouvements/port_relances distants
+  // en réutilisant leurs ids numériques risquerait de rattacher un enregistrement au mauvais
+  // bateau/client local. Tant que cette synchronisation des entités parentes n'existe pas,
+  // `pulled` ne doit être présenté que comme "détecté côté serveur", jamais "appliqué".
   let pulled = 0;
   try {
     const res = await fetch(
@@ -294,7 +300,7 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
       pulled = body.changes?.length ?? 0;
     }
   } catch {
-    /* pull optionnel phase 8 */
+    /* pull best-effort : une erreur réseau ici n'empêche pas le push d'avoir réussi */
   }
 
   db.prepare(
@@ -303,7 +309,10 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
 
   db.prepare(
     `INSERT INTO sync_log (direction, status, message, items_count) VALUES ('full', 'ok', ?, ?)`,
-  ).run(`Push ${pushed}, pull ${pulled}`, pushed + pulled);
+  ).run(
+    `Push ${pushed}, pull ${pulled} détecté(s) (non appliqué)`,
+    pushed + pulled,
+  );
 
   writeAuditLog({
     userId: actor.userId,
@@ -312,7 +321,7 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
     action: 'SYNC',
     module: 'sync',
     page: 'SyncPage',
-    description: `Synchronisation : ${pushed} envoyé(s), ${pulled} reçu(s)`,
+    description: `Synchronisation : ${pushed} envoyé(s), ${pulled} détecté(s) côté serveur (non appliqué localement)`,
   });
 
   return {
@@ -320,8 +329,10 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
     pulled,
     failed,
     message:
-      pushed > 0 || pulled > 0
-        ? `Synchronisation terminée (${pushed} envoyé(s), ${pulled} reçu(s)).`
-        : 'Aucun élément en attente — connexion API OK.',
+      pulled > 0
+        ? `${pushed} élément(s) envoyé(s). ${pulled} changement(s) distant(s) détecté(s) mais non appliqué(s) localement — la synchronisation descendante n'est pas encore disponible.`
+        : pushed > 0
+          ? `Synchronisation terminée (${pushed} envoyé(s)).`
+          : 'Aucun élément en attente — connexion API OK.',
   };
 }

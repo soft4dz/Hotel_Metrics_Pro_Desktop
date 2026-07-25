@@ -1,10 +1,10 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
+import { createPdfWithLetterhead, PDF_A4_LANDSCAPE } from './pdf-letterhead.util';
 import {
   csvLine,
   getEmployeurLegalInfo,
-  loadPdfLib,
   saveRhExportFile,
   type RhExportResult,
 } from './rh-legal-export.util';
@@ -199,41 +199,23 @@ async function buildRegistrePdf(
   rows: string[][],
 ): Promise<Buffer> {
   const emp = getEmployeurLegalInfo();
-  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
-  const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let page = pdf.addPage([842, 595]);
-  let y = 550;
-  const draw = (text: string, size = 9, isBold = false, x = 40) => {
-    if (y < 40) {
-      page = pdf.addPage([842, 595]);
-      y = 550;
-    }
-    page.drawText(text.slice(0, 110), {
-      x,
-      y,
-      size,
-      font: isBold ? bold : font,
-      color: rgb(0.1, 0.12, 0.18),
-    });
-    y -= size + 4;
-  };
+  const ctx = await createPdfWithLetterhead(PDF_A4_LANDSCAPE);
+  const draw = (text: string, size = 9, isBold = false, x = 40) => ctx.draw(text, size, isBold, x);
 
-  draw('REGISTRE LÉGAL — CONFORMITÉ ALGÉRIE', 12, true);
+  draw('REGISTRE LEGAL — CONFORMITE ALGERIE', 12, true);
   draw(emp.raisonSociale, 10, true);
   draw(emp.adresse, 9);
   if (emp.nssEmployeur) draw(`N° employeur CNAS : ${emp.nssEmployeur}`, 9);
   draw(titre, 11, true);
-  draw(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 8);
-  y -= 8;
+  draw(`Genere le ${new Date().toLocaleDateString('fr-FR')}`, 8);
+  ctx.y -= 8;
   draw(headers.join(' | '), 8, true);
   for (const row of rows) {
     draw(row.join(' | '), 8);
   }
-  draw('Document indicatif — registre à parapher et conserver selon la réglementation en vigueur.', 7);
+  draw('Document indicatif — registre a parapher et conserver selon la reglementation en vigueur.', 7);
 
-  return Buffer.from(await pdf.save());
+  return Buffer.from(await ctx.finalize());
 }
 
 export async function exportRegistrePersonnelPdf(actorUserId: number): Promise<RhExportResult> {

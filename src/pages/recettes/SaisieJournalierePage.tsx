@@ -8,13 +8,10 @@ import {
   ClipboardCheck,
   Loader2,
   Lock,
-  Save,
-  Send,
   X,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useHotelsList } from '@/hooks/useHotelsList';
@@ -59,7 +56,7 @@ const STATUT_CONFIG: Record<
 > = {
   brouillon: {
     label: 'Brouillon',
-    icon: Save,
+    icon: ClipboardCheck,
     bg: 'bg-muted/60',
     text: 'text-muted-foreground',
     border: 'border-border',
@@ -460,9 +457,7 @@ export function SaisieJournalierePage() {
   const [dateJournal, setDateJournal] = useState(today());
   const [saisie, setSaisie] = useState<SaisieJournaliereDto | null>(null);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState<'' | 'brouillon' | 'soumis'>('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (defaultHotelId && !hotelId) setHotelId(defaultHotelId);
@@ -472,7 +467,6 @@ export function SaisieJournalierePage() {
     if (!hotelId || !dateJournal) return;
     setLoading(true);
     setError('');
-    setSuccess('');
     try {
       const data = unwrapIpc(await ipcClient.recettes.getSaisie(hotelId, dateJournal));
       setSaisie(data);
@@ -488,76 +482,29 @@ export function SaisieJournalierePage() {
     void loadSaisie();
   }, [loadSaisie]);
 
-  const updateLigne = (rubriqueId: number, field: 'montant' | 'observation', value: string) => {
-    if (!saisie) return;
-    setSaisie({
-      ...saisie,
-      lignes: saisie.lignes.map((l) =>
-        l.rubriqueId === rubriqueId
-          ? { ...l, [field]: field === 'montant' ? parseFloat(value) || 0 : value }
-          : l,
-      ),
-      totalMontant:
-        field === 'montant'
-          ? saisie.lignes.reduce((s, l) => {
-              const m = l.rubriqueId === rubriqueId ? parseFloat(value) || 0 : l.montant;
-              return s + m;
-            }, 0)
-          : saisie.totalMontant,
-    });
-  };
-
-  const save = async (statut: 'brouillon' | 'soumis') => {
-    if (!saisie) return;
-    setSaving(statut);
-    setError('');
-    setSuccess('');
-    try {
-      const result = unwrapIpc(
-        await ipcClient.recettes.saveSaisie({
-          hotelId: saisie.hotelId,
-          dateJournal: saisie.dateJournal,
-          statut,
-          lignes: saisie.lignes.map((l) => ({
-            rubriqueId: l.rubriqueId,
-            montant: l.montant,
-            observation: l.observation ?? undefined,
-          })),
-          encaissementHt: saisie.encaissementHt,
-          chambres: saisie.chambres,
-          nuitees: saisie.nuitees,
-          couverts: saisie.couverts,
-        }),
-      );
-      setSaisie(result);
-      setSuccess(
-        statut === 'soumis'
-          ? 'Journée soumise pour validation avec succès.'
-          : 'Brouillon enregistré.',
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur lors de la sauvegarde');
-    } finally {
-      setSaving('');
-    }
-  };
-
-  // Group names for nav
   const groupNames = saisie
     ? [...new Map(saisie.lignes.map((l) => [l.parentLabel ?? l.rubriqueLabel, true])).keys()]
     : [];
-
   const isFuture = dateJournal > today();
+  const noopUpdate = (_id: number, _field: 'montant' | 'observation', _value: string) => {};
 
   const statutCfg = saisie ? STATUT_CONFIG[saisie.statut] : null;
-  const StatusIcon = statutCfg?.icon ?? Save;
+  const StatusIcon = statutCfg?.icon ?? ClipboardCheck;
 
   return (
     <div className="page-shell">
       <PageHeader
-        title="Saisie journalière"
-        description="Enregistrez le chiffre d'affaires par rubrique pour la journée"
+        title="CA journalier (ERP)"
+        description="Consolidation automatique depuis l'hébergement, le POS et la facturation"
       />
+
+      <div className="mb-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>
+          Le chiffre d&apos;affaires est alimenté automatiquement par l&apos;ERP. Aucune saisie manuelle
+          n&apos;est requise — consultez les montants consolidés par rubrique ci-dessous.
+        </p>
+      </div>
 
       {/* ── Barre de sélection ─────────────────────────── */}
       <Card className="mb-5">
@@ -636,15 +583,12 @@ export function SaisieJournalierePage() {
       {error && (
         <FlashMessage type="error" text={error} onDismiss={() => setError('')} />
       )}
-      {success && (
-        <FlashMessage type="success" text={success} onDismiss={() => setSuccess('')} />
-      )}
 
       {/* ── Avertissement date future ──────────────────── */}
       {isFuture && !loading && (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          La date sélectionnée est dans le futur — la saisie n'est pas disponible.
+          La date sélectionnée est dans le futur — le CA n&apos;est pas encore disponible.
         </div>
       )}
 
@@ -694,27 +638,27 @@ export function SaisieJournalierePage() {
                 <KpiInput
                   label="Encaissement HT"
                   value={saisie.encaissementHt}
-                  disabled={!saisie.canEdit}
+                  disabled
                   isFloat
-                  onChange={(v) => setSaisie({ ...saisie, encaissementHt: v })}
+                  onChange={() => {}}
                 />
                 <KpiInput
                   label="Chambres occupées"
                   value={saisie.chambres}
-                  disabled={!saisie.canEdit}
-                  onChange={(v) => setSaisie({ ...saisie, chambres: v })}
+                  disabled
+                  onChange={() => {}}
                 />
                 <KpiInput
                   label="Nuitées"
                   value={saisie.nuitees}
-                  disabled={!saisie.canEdit}
-                  onChange={(v) => setSaisie({ ...saisie, nuitees: v })}
+                  disabled
+                  onChange={() => {}}
                 />
                 <KpiInput
                   label="Couverts restaurant"
                   value={saisie.couverts}
-                  disabled={!saisie.canEdit}
-                  onChange={(v) => setSaisie({ ...saisie, couverts: v })}
+                  disabled
+                  onChange={() => {}}
                 />
               </div>
             </CardContent>
@@ -731,67 +675,15 @@ export function SaisieJournalierePage() {
           {/* Tableau des rubriques */}
           <LignesTable
             lignes={saisie.lignes}
-            canEdit={saisie.canEdit}
-            onUpdate={updateLigne}
+            canEdit={false}
+            onUpdate={noopUpdate}
           />
 
-          {/* Barre d'actions */}
-          {saisie.canEdit ? (
-            <div className="sticky bottom-4 z-10">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-5 py-4 shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    Utilisez <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">Entrée</kbd> pour passer au champ suivant
-                  </p>
-                </div>
-                <div className="flex gap-2.5">
-                  <Button
-                    variant="outline"
-                    disabled={saving !== ''}
-                    className="gap-2"
-                    onClick={() => void save('brouillon')}
-                  >
-                    {saving === 'brouillon' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Enregistrer brouillon
-                  </Button>
-                  <Button
-                    disabled={saving !== ''}
-                    className="gap-2"
-                    onClick={() => void save('soumis')}
-                  >
-                    {saving === 'soumis' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    Soumettre pour validation
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={cn(
-                'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm',
-                saisie.statut === 'valide'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400'
-                  : saisie.statut === 'soumis'
-                    ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
-                    : 'border-border bg-muted/40 text-muted-foreground',
-              )}
-            >
-              <Lock className="h-4 w-4 shrink-0" />
-              {saisie.statut === 'valide'
-                ? 'Cette journée a été validée — modification impossible.'
-                : saisie.statut === 'soumis'
-                  ? 'Cette journée est soumise et en attente de validation par un directeur ou administrateur.'
-                  : 'La modification de cette journée est désactivée.'}
-            </div>
-          )}
+          {/* Barre d'information */}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <Lock className="h-4 w-4 shrink-0" />
+            Données en lecture seule — mises à jour lors de la clôture POS, des départs hébergement et de la clôture journalière.
+          </div>
         </div>
       )}
 
@@ -802,7 +694,7 @@ export function SaisieJournalierePage() {
             <ChevronDown className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">
-            Sélectionnez un hôtel et une date pour charger la saisie.
+            Sélectionnez un hôtel et une date pour consulter le CA consolidé.
           </p>
         </div>
       )}

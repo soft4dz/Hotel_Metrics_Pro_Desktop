@@ -149,7 +149,8 @@ export function createMockIpcClient(): IpcApi {
     plage: namespace({ listZones: list(), listPassages: list() }),
     stocks: namespace({ getNiveaux: list(), listProduits: list() }),
     achats: namespace({ listCommandes: list(), listFournisseurs: list() }),
-    maintenance: namespace({ listTickets: list() }),
+    maintenance: namespace({ listEquipements: list(), listInterventions: list(), stats: ok({}) }),
+    housekeeping: namespace({ listTaches: list(), listChecklistItems: list(), stats: ok({}), syncFromChambres: ok(0), chambresMenageSansTache: list() }),
     commercial: namespace({ listPartenaires: list(), listActions: list() }),
     ged: namespace({ listDocuments: list(), listDossiers: list() }),
     reports: namespace({

@@ -1,3 +1,5 @@
+import { ROLE_PERMISSIONS_MAP } from './constants/rolePermissionsMap';
+
 /** Permissions par rôle — aligné sur le seed Phase 2/3 */
 
 /** Rôles avec accès total (toute permission actuelle ou future). */
@@ -25,18 +27,7 @@ export const PERMISSIONS = {
   RH_SELF: 'rh.self',
 } as const;
 
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  AUDIT_INTERNE: [PERMISSIONS.AUDIT_READ, PERMISSIONS.REPORTS_EXPORT],
-  PDG: [PERMISSIONS.AUDIT_READ, PERMISSIONS.REPORTS_EXPORT],
-  DIRECTEUR_UNITE: [PERMISSIONS.RECETTES_VALIDATE, PERMISSIONS.REPORTS_EXPORT],
-  CONTROLEUR_UNITE: [PERMISSIONS.RECETTES_SAISIE],
-  RESPONSABLE_PORT: [PERMISSIONS.PORTMASTER_FULL],
-  COMPTABILITE: [PERMISSIONS.REPORTS_EXPORT],
-  LECTURE_SEULE: [],
-  RH_MANAGER: [PERMISSIONS.RH_MANAGE, PERMISSIONS.RH_TEAM, PERMISSIONS.RH_SELF],
-  CHEF_DEPARTEMENT: [PERMISSIONS.RH_TEAM, PERMISSIONS.RH_SELF],
-  RECEPTIONNISTE: [PERMISSIONS.RH_SELF],
-};
+const ROLE_PERMISSIONS: Record<string, string[]> = ROLE_PERMISSIONS_MAP;
 
 export function hasPermission(roleCode: string | undefined, permission: string): boolean {
   if (!roleCode) return false;
@@ -56,6 +47,11 @@ export function canManageRolePermissions(roleCode?: string): boolean {
 
 export function canManageHotels(roleCode?: string): boolean {
   return hasPermission(roleCode, PERMISSIONS.HOTELS_MANAGE);
+}
+
+/** Référentiel Clients (coordonnées bancaires/fiscales) — réservé aux rôles admin globaux côté service (`assertCanManageClients`). */
+export function canManageClients(roleCode?: string): boolean {
+  return isAdminRole(roleCode);
 }
 
 export function canReadAudit(roleCode?: string): boolean {

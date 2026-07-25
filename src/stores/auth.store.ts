@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ipcClient } from '@/lib/ipcClient';
+import { loadUserUiPreferencesFromServer } from '@/lib/userUiPreferencesSync';
 import type { AuthUserDto } from '@/shared/types/auth';
 
 export type AuthUser = AuthUserDto;
@@ -54,6 +55,8 @@ export const useAuthStore = create<AuthState>()(
           sessionChecked: true,
         });
 
+        void loadUserUiPreferencesFromServer();
+
         return { ok: true };
       },
 
@@ -96,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
               sessionToken: result.sessionToken ?? sessionToken,
               sessionChecked: true,
             });
+            void loadUserUiPreferencesFromServer();
           } else {
             set({ user: null, isAuthenticated: false, sessionToken: null, sessionChecked: true });
           }

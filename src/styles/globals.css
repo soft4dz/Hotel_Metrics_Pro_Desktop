@@ -441,4 +441,46 @@
   .print\:hidden { display: none !important; }
   main { overflow: visible !important; background: white !important; }
   .dashboard-print { break-inside: avoid; }
+  .layout-content-shell { padding-bottom: 72px; }
+
+  .print-letterhead {
+    display: block !important;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #cbd5e1;
+  }
+  .print-letterhead__image {
+    display: block;
+    max-height: 56px;
+    max-width: 100%;
+    margin-bottom: 8px;
+    object-fit: contain;
+  }
+  .print-letterhead__text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .print-footer {
+    display: block !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px 32px 16px;
+    border-top: 1px solid #cbd5e1;
+    background: white;
+  }
+  .print-footer__image {
+    display: block;
+    max-height: 36px;
+    max-width: 100%;
+    margin-bottom: 4px;
+    object-fit: contain;
+  }
+  .print-footer__text {
+    font-size: 10px;
+    color: #64748b;
+  }
 }

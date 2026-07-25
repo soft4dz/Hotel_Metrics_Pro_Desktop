@@ -130,10 +130,13 @@ import ParkingPage from '@/pages/parking/ParkingPage';
 import PlagePage from '@/pages/plage/PlagePage';
 import StocksPage from '@/pages/stocks/StocksPage';
 import CuisinePage from '@/pages/cuisine/CuisinePage';
+import PosPage from '@/pages/pos/PosPage';
 import AchatsPage from '@/pages/achats/AchatsPage';
 import MaintenancePage from '@/pages/maintenance/MaintenancePage';
+import HousekeepingPage from '@/pages/housekeeping/HousekeepingPage';
 import CommercialPage from '@/pages/commercial/CommercialPage';
 import GedPage from '@/pages/ged/GedPage';
+import { GuidePage } from '@/pages/guide/GuidePage';
 
 const DashboardGlobalPage = lazy(() =>
   import('@/pages/dashboard/DashboardGlobalPage').then((m) => ({ default: m.DashboardGlobalPage })),
@@ -185,7 +188,7 @@ export function AppRoutes() {
             <Route path="/admin/roles" element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE}><RolesPage /></RequirePermission>} />
             <Route path="/admin/rubriques" element={<RequirePermission permission={PERMISSIONS.HOTELS_MANAGE}><RubriquesPage /></RequirePermission>} />
 
-            <Route path="/recettes/journalieres" element={<RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}><SaisieJournalierePage /></RequirePermission>} />
+            <Route path="/recettes/journalieres" element={<RequireRecettesView><SaisieJournalierePage /></RequireRecettesView>} />
             <Route path="/recettes/historique" element={<RequireRecettesView><HistoriqueRecettesPage /></RequireRecettesView>} />
             <Route path="/recettes/validation" element={<RequirePermission permission={PERMISSIONS.RECETTES_VALIDATE}><ValidationRecettesPage /></RequirePermission>} />
             <Route path="/recettes/mensuelles" element={<RequirePermission permission={PERMISSIONS.RECETTES_SAISIE}><SaisieMensuellePage /></RequirePermission>} />
@@ -300,13 +303,17 @@ export function AppRoutes() {
             <Route path="/plage" element={<PlagePage />} />
             <Route path="/stocks" element={<StocksPage />} />
             <Route path="/cuisine" element={<CuisinePage />} />
+            <Route path="/pos" element={<PosPage />} />
             <Route path="/achats" element={<AchatsPage />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/housekeeping" element={<HousekeepingPage />} />
             <Route path="/commercial" element={<CommercialPage />} />
             <Route path="/ged" element={<GedPage />} />
 
             <Route path="/rapports" element={<RequireReportsExport><RapportsPage /></RequireReportsExport>} />
             <Route path="/system/sync" element={<RequireSync><SyncPage /></RequireSync>} />
+            <Route path="/guide" element={<GuidePage />} />
+            <Route path="/guide/:slug" element={<GuidePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/modules" element={<RequireSystemAdmin><ModulesAdminPage /></RequireSystemAdmin>} />
             <Route element={<RequireRh />}>

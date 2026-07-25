@@ -92,6 +92,16 @@ export function PaieTab({ initialSub = 'prepaie', compactNav = false }: PaieTabP
     { key: 'employe', header: 'Employé', render: (b) => <span className="font-medium">{b.employeNom}</span> },
     { key: 'mat', header: 'Matricule DLG', render: (b) => b.dlgMatricule ?? '—' },
     { key: 'heures', header: 'Heures', render: (b) => `${b.heuresTravaillees} h` },
+    {
+      key: 'hs',
+      header: 'HS',
+      render: (b) => (b.heuresSup > 0 ? `${b.heuresSup} h (+${formatMoney(b.montantHs)})` : '—'),
+    },
+    {
+      key: 'retenue',
+      header: 'Retenue abs.',
+      render: (b) => (b.retenueAbsence > 0 ? formatMoney(b.retenueAbsence) : '—'),
+    },
     { key: 'brut', header: 'Brut', render: (b) => formatMoney(b.brut) },
     { key: 'net', header: 'Net', render: (b) => formatMoney(b.net) },
     { key: 'statut', header: 'Statut', render: (b) => <Badge variant={STATUT_BADGE[b.statut]}>{b.statut}</Badge> },
@@ -251,9 +261,21 @@ export function PaieTab({ initialSub = 'prepaie', compactNav = false }: PaieTabP
         <div className="rounded-lg border p-4 space-y-4">
           <h3 className="font-semibold">Exports déclaratifs (DZ)</h3>
           <p className="text-sm text-muted-foreground">
-            Fichiers CSV pour DAS annuelle, CNAS mensuelle, virements bancaires et déclarations ANEM.
+            Fichiers CSV pour DAS annuelle, DADS-U nominative, CNAS mensuelle, virements bancaires et déclarations ANEM.
           </p>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={!!busy}
+              onClick={() => void run('dadsu', async () => {
+                const annee = Number(periode.slice(0, 4));
+                const res = unwrapIpc(await ipcClient.rh.exportDadsUAnnuelle(annee));
+                if (res.filePath) alert(`DADS-U exportée : ${res.filePath}`);
+              })}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              DADS-U {periode.slice(0, 4)}
+            </Button>
             <Button
               variant="outline"
               disabled={!!busy}

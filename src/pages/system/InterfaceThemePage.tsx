@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Check, Layers, Maximize2, Minimize2, Minus } from 'lucide-react';
+import { Check, Layers, LayoutTemplate, Maximize2, Minimize2, Minus } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionBlock } from '@/components/common/SectionBlock';
 import { cn } from '@/lib/utils';
+import { saveUserUiPreferencesToServer } from '@/lib/userUiPreferencesSync';
+import { LAYOUT_PROFILES } from '@/shared/constants/layoutProfiles';
 import { useUiStore, type AccentColor, type Density } from '@/stores/ui.store';
 
 /* ── Palette ──────────────────────────────────────────── */
@@ -25,17 +27,34 @@ const DENSITY_OPTIONS: { key: Density; label: string; desc: string; icon: typeof
 
 /* ── Page ─────────────────────────────────────────────── */
 export function InterfaceThemePage() {
-  const { accentColor, density, sidebarCollapsed, setAccentColor, setDensity, setSidebarCollapsed } =
-    useUiStore();
+  const {
+    layoutProfileId,
+    accentColor,
+    density,
+    sidebarCollapsed,
+    applyLayoutProfile,
+    setAccentColor,
+    setDensity,
+    setSidebarCollapsed,
+  } = useUiStore();
   const [notice, setNotice] = useState('');
+
+  const notify = (message: string) => setNotice(message);
+
+  const persistPrefs = async (message: string) => {
+    try {
+      await saveUserUiPreferencesToServer();
+      notify(message);
+    } catch {
+      notify('Préférences locales appliquées (enregistrement serveur indisponible).');
+    }
+  };
 
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(''), 2200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-
-  const notify = (message: string) => setNotice(message);
 
   const current = ACCENT_OPTIONS.find((a) => a.key === accentColor) ?? ACCENT_OPTIONS[0];
 
@@ -53,6 +72,52 @@ export function InterfaceThemePage() {
         </p>
       )}
 
+      {/* ── Profils d'interface ─────────────────────────── */}
+      <SectionBlock
+        title="Profils d'interface"
+        description="Configurations enregistrées — sidebar, densité et couleur en un clic"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {LAYOUT_PROFILES.map((profile) => {
+            const isActive = layoutProfileId === profile.id;
+            return (
+              <button
+                key={profile.id}
+                type="button"
+                onClick={() => {
+                  applyLayoutProfile(profile.id);
+                  void persistPrefs(`Profil « ${profile.label} » enregistré.`);
+                }}
+                className={cn(
+                  'relative flex items-start gap-4 rounded-xl border-2 p-4 text-left transition-all duration-150 hover:shadow-card',
+                  isActive
+                    ? 'border-primary bg-primary/5 shadow-card'
+                    : 'border-border bg-card hover:border-primary/40',
+                )}
+              >
+                {isActive && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                    <Check className="h-3 w-3 text-primary-foreground" strokeWidth={2.5} />
+                  </span>
+                )}
+                <div
+                  className={cn(
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                    isActive ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground',
+                  )}
+                >
+                  <LayoutTemplate className="h-5 w-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className={cn('text-sm font-semibold', isActive && 'text-primary')}>{profile.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{profile.description}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </SectionBlock>
+
       {/* ── Couleur d'accentuation ──────────────────────── */}
       <SectionBlock
         title="Couleur d'accentuation"
@@ -67,7 +132,7 @@ export function InterfaceThemePage() {
                 type="button"
                 onClick={() => {
                   setAccentColor(opt.key);
-                  notify(`Couleur « ${opt.label} » appliquée.`);
+                  void persistPrefs(`Couleur « ${opt.label} » appliquée et enregistrée.`);
                 }}
                 className={cn(
                   'group flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-150 hover:shadow-card',
@@ -115,7 +180,7 @@ export function InterfaceThemePage() {
                 type="button"
                 onClick={() => {
                   setDensity(opt.key);
-                  notify(`Densité « ${opt.label} » appliquée.`);
+                  void persistPrefs(`Densité « ${opt.label} » enregistrée.`);
                 }}
                 className={cn(
                   'relative flex flex-col gap-3 rounded-xl border-2 p-5 text-left transition-all duration-150 hover:shadow-card',
@@ -171,7 +236,7 @@ export function InterfaceThemePage() {
                 type="button"
                 onClick={() => {
                   setSidebarCollapsed(val);
-                  notify(val ? 'Sidebar réduite par défaut.' : 'Sidebar étendue par défaut.');
+                  void persistPrefs(val ? 'Sidebar réduite enregistrée.' : 'Sidebar étendue enregistrée.');
                 }}
                 className={cn(
                   'relative flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all duration-150 hover:shadow-card',

@@ -241,23 +241,34 @@ export function sortirEmploye(actorUserId: number, id: number, input: SortirEmpl
 // ── Recrutements ──────────────────────────────────────────────────────────────
 
 const recrutementSql = `
-  SELECT r.*, p.nom AS poste_nom, d.nom AS departement_nom
+  SELECT r.*, p.nom AS poste_nom, d.nom AS departement_nom,
+         o.titre AS offre_titre
   FROM rh_recrutements r
   INNER JOIN rh_postes p ON p.id = r.poste_id
   INNER JOIN rh_departements d ON d.id = p.departement_id
+  LEFT JOIN rh_offres_emploi o ON o.id = r.offre_id
 `;
 
 function mapRecrutement(row: Record<string, unknown>): RhRecrutement {
+  return mapRecrutementRow(row);
+}
+
+export function mapRecrutementRow(row: Record<string, unknown>): RhRecrutement {
   return {
     id: row.id as number,
     posteId: row.poste_id as number,
     posteNom: row.poste_nom as string,
     departementNom: row.departement_nom as string,
+    offreId: (row.offre_id as number | null) ?? null,
+    offreTitre: (row.offre_titre as string | null) ?? null,
     candidatNom: row.candidat_nom as string,
     candidatPrenom: (row.candidat_prenom as string | null) ?? null,
     candidatEmail: (row.candidat_email as string | null) ?? null,
     candidatTelephone: (row.candidat_telephone as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
+    etape: ((row.etape as string) || 'candidature') as RhRecrutement['etape'],
+    source: (row.source as string | null) ?? null,
+    score: (row.score as number | null) ?? null,
     statut: row.statut as StatutRecrutement,
     employeCreeId: (row.employe_cree_id as number | null) ?? null,
     utilisateurCreeId: (row.utilisateur_cree_id as number | null) ?? null,
@@ -284,15 +295,20 @@ export function createRecrutement(actorUserId: number, input: CreateRecrutementI
   assertRhManage(actorUserId);
   const db = getDatabase();
   const result = db.prepare(`
-    INSERT INTO rh_recrutements (poste_id, candidat_nom, candidat_prenom, candidat_email, candidat_telephone, notes, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO rh_recrutements (
+      poste_id, offre_id, candidat_nom, candidat_prenom, candidat_email, candidat_telephone,
+      notes, source, score, etape, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'candidature', ?)
   `).run(
     input.posteId,
+    input.offreId ?? null,
     input.candidatNom.trim(),
     input.candidatPrenom?.trim() ?? null,
     input.candidatEmail?.trim() ?? null,
     input.candidatTelephone?.trim() ?? null,
     input.notes?.trim() ?? null,
+    input.source?.trim() ?? null,
+    input.score ?? null,
     actorUserId,
   );
   writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'rh', description: `Recrutement candidat ${input.candidatNom}` });
@@ -344,7 +360,7 @@ export function validerRecrutement(actorUserId: number, recrutementId: number): 
   `).run(employeId, rec.poste_id, (poste.salaire_min as number) ?? 0);
   db.prepare(`
     UPDATE rh_recrutements
-    SET statut = 'valide', employe_cree_id = ?, utilisateur_cree_id = ?, updated_at = datetime('now')
+    SET statut = 'valide', etape = 'embauche', employe_cree_id = ?, utilisateur_cree_id = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(employeId, userId, recrutementId);
 
@@ -362,7 +378,7 @@ export function refuserRecrutement(actorUserId: number, recrutementId: number, m
   assertRhManage(actorUserId);
   const db = getDatabase();
   db.prepare(`
-    UPDATE rh_recrutements SET statut = 'refuse', notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?
+    UPDATE rh_recrutements SET statut = 'refuse', etape = 'refuse', notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?
   `).run(motif ?? null, recrutementId);
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'rh', description: `Recrutement ${recrutementId} refusé` });
   return listRecrutements(actorUserId).find((r) => r.id === recrutementId)!;

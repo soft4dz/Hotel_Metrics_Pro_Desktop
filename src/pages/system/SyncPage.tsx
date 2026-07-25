@@ -17,6 +17,7 @@ export function SyncPage() {
   const [queue, setQueue] = useState<SyncQueueItem[]>([]);
   const [apiUrl, setApiUrl] = useState('');
   const [message, setMessage] = useState('');
+  const [messageIsWarning, setMessageIsWarning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
@@ -52,12 +53,15 @@ export function SyncPage() {
   const runSync = async () => {
     setSyncing(true);
     setMessage('');
+    setMessageIsWarning(false);
     try {
       const r = unwrapIpc(await ipcClient.sync.run());
       setMessage(r.message);
+      setMessageIsWarning(r.pulled > 0);
       await load();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Erreur');
+      setMessageIsWarning(true);
     } finally {
       setSyncing(false);
     }
@@ -150,10 +154,19 @@ export function SyncPage() {
           <Button type="button" variant="secondary" onClick={() => void saveConfig()}>
             Enregistrer l&apos;URL
           </Button>
+          <p className="text-xs text-muted-foreground">
+            Seul l&apos;envoi (push) vers l&apos;API centrale est appliqué automatiquement. Les
+            changements distants (pull) sont détectés mais pas encore appliqués à la base locale —
+            les données créées sur un autre poste n&apos;apparaissent donc pas ici pour l&apos;instant.
+          </p>
         </CardContent>
       </Card>
 
-      {message && <p className="text-sm text-brand-turquoise">{message}</p>}
+      {message && (
+        <p className={`text-sm ${messageIsWarning ? 'text-brand-warning' : 'text-brand-turquoise'}`}>
+          {message}
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>

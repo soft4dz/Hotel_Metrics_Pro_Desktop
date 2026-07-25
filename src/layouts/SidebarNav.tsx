@@ -370,7 +370,10 @@ export function SidebarNav({
         )}
       </div>
 
-      <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-2 py-3">
+      <nav
+        className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-2 py-3"
+        aria-label="Navigation principale"
+      >
         {modules.map((module) => (
           <ModuleDropdown
             key={module.id}

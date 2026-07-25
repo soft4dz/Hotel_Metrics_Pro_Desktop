@@ -37,6 +37,7 @@ import { registerPlageIpc } from './ipc/plage.ipc';
 import { registerStocksIpc } from './ipc/stocks.ipc';
 import { registerAchatsIpc } from './ipc/achats.ipc';
 import { registerMaintenanceIpc } from './ipc/maintenance.ipc';
+import { registerHousekeepingIpc } from './ipc/housekeeping.ipc';
 import { registerCommercialIpc } from './ipc/commercial.ipc';
 import { registerGedIpc } from './ipc/ged.ipc';
 import { registerReportsIpc } from './ipc/reports.ipc';
@@ -60,9 +61,12 @@ import { registerLicenseIpc } from './ipc/license.ipc';
 import { registerNotificationsIpc } from './ipc/notifications.ipc';
 import { registerContratsHotelIpc } from './ipc/contrats-hotel.ipc';
 import { registerCuisineIpc } from './ipc/cuisine.ipc';
+import { registerPosIpc } from './ipc/pos.ipc';
+import { registerGuideIpc } from './ipc/guide.ipc';
 import { ensureLicenseBootstrap } from './services/license.service';
 import { startPhase6BisScheduler } from './services/phase6-bis-scheduler.service';
 import { runPortSeedIfNeeded } from './database/portSeed';
+import { runProfileSeedIfNeeded } from './database/profileSeed';
 import { runPortMigrateV2 } from './database/portMigrateV2';
 import { logger } from './utils/logger';
 import { loadDotEnvFile } from './utils/loadEnv';
@@ -226,6 +230,7 @@ function bootstrap(): void {
 
     runSeedIfNeeded();
     ensureBootstrapAuthAccounts();
+    runProfileSeedIfNeeded();
     runPortSeedIfNeeded();
     runPortMigrateV2();
     ensureLogoDirectories();
@@ -261,6 +266,7 @@ function bootstrap(): void {
     registerStocksIpc();
     registerAchatsIpc();
     registerMaintenanceIpc();
+    registerHousekeepingIpc();
     registerCommercialIpc();
     registerGedIpc();
     registerReportsIpc();
@@ -284,6 +290,8 @@ function bootstrap(): void {
     registerNotificationsIpc();
     registerContratsHotelIpc();
     registerCuisineIpc();
+    registerPosIpc();
+    registerGuideIpc();
     startPhase6BisScheduler();
     createWindow();
   } catch (err) {

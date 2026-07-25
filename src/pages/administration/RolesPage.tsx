@@ -17,6 +17,17 @@ const MODULE_LABELS: Record<string, string> = {
   audit: 'Audit',
   sync: 'Synchronisation',
   rapports: 'Rapports',
+  rh: 'Ressources humaines',
+};
+
+const PROFILE_CATEGORY_LABELS: Record<string, string> = {
+  admin: 'Administration',
+  direction: 'Direction',
+  exploitation: 'Exploitation',
+  finance: 'Finances',
+  metier: 'Métier',
+  controle: 'Contrôle',
+  rh: 'RH',
 };
 
 function groupPermissions(perms: PermissionListItem[]): Map<string, PermissionListItem[]> {
@@ -140,10 +151,22 @@ export function RolesPage() {
                     <Shield className="h-5 w-5 shrink-0 text-brand-blue" />
                     <CardTitle className="text-base">{role.label}</CardTitle>
                   </div>
-                  <Badge variant="muted">{role.code}</Badge>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {role.profileCategory && (
+                      <Badge variant="accent" className="text-[10px]">
+                        {PROFILE_CATEGORY_LABELS[role.profileCategory] ?? role.profileCategory}
+                      </Badge>
+                    )}
+                    <Badge variant="muted">{role.code}</Badge>
+                  </div>
                 </div>
                 {role.description && (
                   <CardDescription>{role.description}</CardDescription>
+                )}
+                {role.profileGuideSlug && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Guide : <span className="font-mono">{role.profileGuideSlug}</span>
+                  </p>
                 )}
               </CardHeader>
 

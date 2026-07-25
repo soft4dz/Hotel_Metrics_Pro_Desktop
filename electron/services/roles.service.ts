@@ -6,6 +6,7 @@ import {
   PermissionError,
   userHasPermission,
 } from './permissions.service';
+import { getUserRoleProfile } from '../../src/shared/constants/userRoleProfiles';
 
 export interface RoleListItem {
   id: number;
@@ -16,6 +17,8 @@ export interface RoleListItem {
   permissionCodes: string[];
   userCount: number;
   editable: boolean;
+  profileCategory?: string;
+  profileGuideSlug?: string;
 }
 
 export interface PermissionListItem {
@@ -85,19 +88,24 @@ export function listRoles(actorUserId: number): RoleListItem[] {
     .all()
     .map((p) => (p as { code: string }).code);
 
-  return roles.map((r) => ({
-    id: r.id,
-    uuid: r.uuid,
-    code: r.code,
-    label: r.label,
-    description: r.description,
-    permissionCodes:
-      r.code === 'SUPERADMIN' || r.code === 'ADMIN_DEC'
-        ? allPermissionCodes
-        : permStmt.all(r.id).map((p) => (p as { code: string }).code),
-    userCount: (countStmt.get(r.id) as { c: number }).c,
-    editable: isRoleEditable(r.code),
-  }));
+  return roles.map((r) => {
+    const profile = getUserRoleProfile(r.code);
+    return {
+      id: r.id,
+      uuid: r.uuid,
+      code: r.code,
+      label: r.label,
+      description: profile?.description ?? r.description,
+      permissionCodes:
+        r.code === 'SUPERADMIN' || r.code === 'ADMIN_DEC'
+          ? allPermissionCodes
+          : permStmt.all(r.id).map((p) => (p as { code: string }).code),
+      userCount: (countStmt.get(r.id) as { c: number }).c,
+      editable: isRoleEditable(r.code),
+      profileCategory: profile?.category,
+      profileGuideSlug: profile?.guideSlug,
+    };
+  });
 }
 
 export function listPermissions(actorUserId: number): PermissionListItem[] {

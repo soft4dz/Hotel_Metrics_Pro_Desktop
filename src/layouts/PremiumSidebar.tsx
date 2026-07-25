@@ -14,7 +14,7 @@ export function PremiumSidebar() {
     >
       <SidebarNav
         collapsed={sidebarCollapsed}
-        showCollapseControl={!sidebarCollapsed}
+        showCollapseControl
         onToggleCollapse={toggleSidebar}
       />
     </aside>

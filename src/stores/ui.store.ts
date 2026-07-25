@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { applyUiTheme } from '@/lib/applyUiTheme';
+import type { LayoutProfileId } from '@/shared/constants/layoutProfiles';
+import { getLayoutProfile } from '@/shared/constants/layoutProfiles';
+import type { UserUiPreferencesDto } from '@/shared/types/uiPreferences';
 
 export type AccentColor = 'navy' | 'blue' | 'violet' | 'emerald' | 'rose' | 'amber' | 'cyan' | 'slate';
 export type Density     = 'compact' | 'comfortable' | 'spacious';
@@ -38,6 +41,7 @@ const DEFAULT_NOTIF: NotifPrefs = {
 };
 
 interface UiState {
+  layoutProfileId: LayoutProfileId;
   sidebarCollapsed: boolean;
   mobileNavOpen: boolean;
   accentColor: AccentColor;
@@ -51,11 +55,15 @@ interface UiState {
   setDensity: (density: Density) => void;
   setNotifPref: <K extends keyof NotifPrefs>(key: K, value: NotifPrefs[K]) => void;
   resetNotifPrefs: () => void;
+  applyLayoutProfile: (profileId: LayoutProfileId) => void;
+  importFromDto: (dto: UserUiPreferencesDto) => void;
+  exportDto: () => UserUiPreferencesDto;
 }
 
 export const useUiStore = create<UiState>()(
   persist(
     (set, get) => ({
+      layoutProfileId:  'standard' as LayoutProfileId,
       sidebarCollapsed: false,
       mobileNavOpen:    false,
       accentColor:      'navy',
@@ -77,10 +85,42 @@ export const useUiStore = create<UiState>()(
       setNotifPref:   (key, value)   =>
         set((state) => ({ notifPrefs: { ...state.notifPrefs, [key]: value } })),
       resetNotifPrefs: () => set({ notifPrefs: DEFAULT_NOTIF }),
+      applyLayoutProfile: (profileId) => {
+        const profile = getLayoutProfile(profileId);
+        if (!profile) return;
+        set({
+          layoutProfileId: profileId,
+          sidebarCollapsed: profile.sidebarCollapsed,
+          density: profile.density,
+          accentColor: profile.accentColor,
+        });
+        applyUiTheme(profile.accentColor, profile.density);
+      },
+      importFromDto: (dto) => {
+        set({
+          layoutProfileId: dto.layoutProfileId,
+          sidebarCollapsed: dto.sidebarCollapsed,
+          accentColor: dto.accentColor,
+          density: dto.density,
+          notifPrefs: { ...DEFAULT_NOTIF, ...dto.notifPrefs },
+        });
+        applyUiTheme(dto.accentColor, dto.density);
+      },
+      exportDto: () => {
+        const s = get();
+        return {
+          layoutProfileId: s.layoutProfileId,
+          sidebarCollapsed: s.sidebarCollapsed,
+          accentColor: s.accentColor,
+          density: s.density,
+          notifPrefs: s.notifPrefs,
+        };
+      },
     }),
     {
       name: 'hmp-ui-prefs',
       partialize: (state) => ({
+        layoutProfileId: state.layoutProfileId,
         sidebarCollapsed: state.sidebarCollapsed,
         accentColor:      state.accentColor,
         density:          state.density,

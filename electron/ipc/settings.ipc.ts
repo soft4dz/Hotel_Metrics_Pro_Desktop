@@ -1,6 +1,8 @@
 import Electron from '../lib/electronApi';
 import * as settingsService from '../services/settings.service';
+import * as userPreferencesService from '../services/user-preferences.service';
 import type { CompanyBrandAsset } from '../services/logo.service';
+import type { UserUiPreferencesDto } from '../../src/shared/types/uiPreferences';
 import { wrapIpc, wrapIpcAsync, wrapIpcPublic } from './ipcHelpers';
 
 export function registerSettingsIpc(): void {
@@ -28,5 +30,15 @@ export function registerSettingsIpc(): void {
     'settings:removeBrandAsset',
     (event, asset: CompanyBrandAsset) =>
       wrapIpc(event, (actorUserId) => settingsService.removeCompanyBrandAsset(actorUserId, asset)),
+  );
+
+  Electron.ipcMain.handle('settings:getUiPreferences', (event) =>
+    wrapIpc(event, (actorUserId) => userPreferencesService.getUserUiPreferences(actorUserId)),
+  );
+
+  Electron.ipcMain.handle(
+    'settings:saveUiPreferences',
+    (event, prefs: UserUiPreferencesDto) =>
+      wrapIpc(event, (actorUserId) => userPreferencesService.saveUserUiPreferences(actorUserId, prefs)),
   );
 }

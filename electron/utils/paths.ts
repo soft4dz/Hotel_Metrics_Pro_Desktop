@@ -42,3 +42,21 @@ export function resolveBundledLogosDirectory(): string {
 
   return path.join(process.cwd(), 'assets', 'logos');
 }
+
+/** Dossier des guides utilisateurs (dev, build, installateur). */
+export function resolveGuidesDirectory(): string {
+  const candidates = [
+    path.join(process.cwd(), 'docs', 'guides-utilisateurs'),
+    path.join(ELECTRON_MODULE_DIR, '..', '..', 'docs', 'guides-utilisateurs'),
+    path.join(ELECTRON_MODULE_DIR, '..', 'docs', 'guides-utilisateurs'),
+    path.join(process.resourcesPath, 'guides'),
+  ];
+
+  for (const dir of candidates) {
+    if (existsSync(dir)) return dir;
+  }
+
+  throw new Error(
+    `Dossier guides introuvable. Chemins testés : ${candidates.join(' | ')}`,
+  );
+}

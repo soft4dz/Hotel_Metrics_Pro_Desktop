@@ -1,5 +1,51 @@
 /** Moteur paie DZ — fonctions pures (CNAS / IRG), testables indépendamment. */
 
+/** Heures mensuelles de référence — 40 h/semaine (Loi 90-11). */
+export const HEURES_MENSUELLES_REF = 173.33;
+/** Majoration heures supplémentaires (+50 %). */
+export const MAJORATION_HS = 1.5;
+/** Jours ouvrables mensuels de référence pour retenue absence. */
+export const JOURS_MOIS_REF = 30;
+
+export interface BrutPaieMensuelInput {
+  salaireBrutContrat: number;
+  heuresTravaillees: number;
+  joursAbsenceNonRemuneree: number;
+  primesTotal: number;
+}
+
+export interface BrutPaieMensuelResult {
+  brutBase: number;
+  tauxHoraire: number;
+  heuresSup: number;
+  montantHs: number;
+  retenueAbsence: number;
+  primesTotal: number;
+  brut: number;
+}
+
+/** Calcule le brut mensuel avec HS (Loi 90-11) et retenues absence sans solde. */
+export function calculateBrutPaieMensuel(input: BrutPaieMensuelInput): BrutPaieMensuelResult {
+  const brutBase = Math.round(input.salaireBrutContrat * 100) / 100;
+  const tauxHoraire = brutBase > 0 ? brutBase / HEURES_MENSUELLES_REF : 0;
+  const heuresSup = Math.max(0, Math.round((input.heuresTravaillees - HEURES_MENSUELLES_REF) * 100) / 100);
+  const montantHs = Math.round(heuresSup * tauxHoraire * MAJORATION_HS * 100) / 100;
+  const retenueAbsence = Math.round(
+    Math.max(0, input.joursAbsenceNonRemuneree) * (brutBase / JOURS_MOIS_REF) * 100,
+  ) / 100;
+  const primesTotal = Math.round(input.primesTotal * 100) / 100;
+  const brut = Math.round((brutBase + montantHs + primesTotal - retenueAbsence) * 100) / 100;
+  return {
+    brutBase,
+    tauxHoraire: Math.round(tauxHoraire * 100) / 100,
+    heuresSup,
+    montantHs,
+    retenueAbsence,
+    primesTotal,
+    brut: Math.max(0, brut),
+  };
+}
+
 export const CNAS_SALARIE_TAUX = 0.09;
 export const CNAS_PATRON_TAUX = 0.26;
 export const SMIG_DZD = 20_000;

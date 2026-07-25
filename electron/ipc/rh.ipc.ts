@@ -16,6 +16,9 @@ import * as rhPaieCloture from '../services/rh-paie-cloture.service';
 import * as rhEgt from '../services/rh-organisation-egt.service';
 import * as rhPointeuse from '../services/rh-pointeuse.service';
 import * as rhPointeuseSync from '../services/rh-pointeuse-sync.service';
+import * as rhAts from '../services/rh-ats.service';
+import * as rhTemps from '../services/rh-temps-reconciliation.service';
+import * as rhGpec from '../services/rh-gpec.service';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -117,6 +120,67 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rh.validerRecrutement(uid, id)));
   Electron.ipcMain.handle('rh:recrutements:refuser', (event, id: number, motif?: string) =>
     wrapIpc(event, (uid) => rh.refuserRecrutement(uid, id, motif)));
+
+  Electron.ipcMain.handle('rh:ats:offres:list', (event, statut?: import('../../src/shared/types/rh').StatutOffreEmploi) =>
+    wrapIpc(event, (uid) => rhAts.listOffresEmploi(uid, statut)));
+  Electron.ipcMain.handle('rh:ats:offres:create', (event, input: import('../../src/shared/types/rh').CreateOffreEmploiInput) =>
+    wrapIpc(event, (uid) => rhAts.createOffreEmploi(uid, input)));
+  Electron.ipcMain.handle('rh:ats:offres:update', (event, id: number, input: import('../../src/shared/types/rh').UpdateOffreEmploiInput) =>
+    wrapIpc(event, (uid) => rhAts.updateOffreEmploi(uid, id, input)));
+  Electron.ipcMain.handle('rh:ats:pipeline', (event, offreId?: number) =>
+    wrapIpc(event, (uid) => rhAts.getPipelineRecrutement(uid, offreId)));
+  Electron.ipcMain.handle('rh:ats:candidatures:create', (event, input: CreateRecrutementInput) =>
+    wrapIpc(event, (uid) => rhAts.createCandidature(uid, input)));
+  Electron.ipcMain.handle('rh:ats:candidatures:avancer', (event, input: import('../../src/shared/types/rh').AvancerCandidatureInput) =>
+    wrapIpc(event, (uid) => rhAts.avancerCandidature(uid, input)));
+  Electron.ipcMain.handle('rh:ats:entretiens:list', (event, recrutementId: number) =>
+    wrapIpc(event, (uid) => rhAts.listEntretiensRecrutement(uid, recrutementId)));
+  Electron.ipcMain.handle('rh:ats:entretiens:create', (event, input: import('../../src/shared/types/rh').CreateEntretienRecrutementInput) =>
+    wrapIpc(event, (uid) => rhAts.createEntretienRecrutement(uid, input)));
+  Electron.ipcMain.handle('rh:ats:entretiens:update', (event, id: number, input: import('../../src/shared/types/rh').UpdateEntretienRecrutementInput) =>
+    wrapIpc(event, (uid) => rhAts.updateEntretienRecrutement(uid, id, input)));
+  Electron.ipcMain.handle('rh:ats:historique', (event, recrutementId: number) =>
+    wrapIpc(event, (uid) => rhAts.listHistoriqueCandidature(uid, recrutementId)));
+
+  Electron.ipcMain.handle('rh:temps:reconcilier', (event, dateDebut: string, dateFin: string, hotelId?: number) =>
+    wrapIpc(event, (uid) => rhTemps.runReconciliationTemps(uid, dateDebut, dateFin, hotelId)));
+  Electron.ipcMain.handle('rh:temps:reconciliations:list', (event, opts?: { dateDebut?: string; dateFin?: string; hotelId?: number; statut?: string }) =>
+    wrapIpc(event, (uid) => rhTemps.listReconciliationsTemps(uid, opts as Parameters<typeof rhTemps.listReconciliationsTemps>[1])));
+  Electron.ipcMain.handle('rh:temps:alertes:list', (event, statut?: string) =>
+    wrapIpc(event, (uid) => rhTemps.listTempsAlertes(uid, statut as import('../../src/shared/types/rh').StatutTempsAlerte | undefined)));
+  Electron.ipcMain.handle('rh:temps:alertes:traiter', (event, alerteId: number, action: 'traitee' | 'ignoree') =>
+    wrapIpc(event, (uid) => rhTemps.traiterTempsAlerte(uid, alerteId, action)));
+  Electron.ipcMain.handle('rh:temps:paie:reconciliation', (event, periode: string) =>
+    wrapIpc(event, (uid) => rhTemps.getReconciliationPaie(uid, periode)));
+  Electron.ipcMain.handle('rh:temps:paie:valider', (event, employeId: number, dateDebut: string, dateFin: string) =>
+    wrapIpc(event, (uid) => rhTemps.validerReconciliationPaie(uid, employeId, dateDebut, dateFin)));
+  Electron.ipcMain.handle('rh:temps:exportCsv', (event, dateDebut: string, dateFin: string) =>
+    wrapIpcAsync(event, (uid) => rhTemps.exportReconciliationCsv(uid, dateDebut, dateFin)));
+
+  Electron.ipcMain.handle('rh:gpec:employeCompetences:list', (event, employeId?: number) =>
+    wrapIpc(event, (uid) => rhGpec.listEmployeCompetences(uid, employeId)));
+  Electron.ipcMain.handle('rh:gpec:employeCompetences:set', (event, input: import('../../src/shared/types/rh').SetEmployeCompetenceInput) =>
+    wrapIpc(event, (uid) => rhGpec.setEmployeCompetence(uid, input)));
+  Electron.ipcMain.handle('rh:gpec:matrice', (event, employeId: number) =>
+    wrapIpc(event, (uid) => rhGpec.getMatriceGpec(uid, employeId)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:list', (event) =>
+    wrapIpc(event, (uid) => rhGpec.listCampagnesEvaluation(uid)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:create', (event, input: import('../../src/shared/types/rh').CreateCampagneEvaluationInput) =>
+    wrapIpc(event, (uid) => rhGpec.createCampagneEvaluation(uid, input)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:update', (event, id: number, input: import('../../src/shared/types/rh').UpdateCampagneEvaluationInput) =>
+    wrapIpc(event, (uid) => rhGpec.updateCampagneEvaluation(uid, id, input)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:lancer', (event, campagneId: number) =>
+    wrapIpc(event, (uid) => rhGpec.lancerCampagneEvaluation(uid, campagneId)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:cloturer', (event, campagneId: number) =>
+    wrapIpc(event, (uid) => rhGpec.cloturerCampagneEvaluation(uid, campagneId)));
+  Electron.ipcMain.handle('rh:gpec:campagnes:synthese', (event, campagneId: number) =>
+    wrapIpc(event, (uid) => rhGpec.getCampagneSynthese(uid, campagneId)));
+  Electron.ipcMain.handle('rh:gpec:evaluations:list', (event, campagneId: number, employeId?: number) =>
+    wrapIpc(event, (uid) => rhGpec.listCampagneEvaluations(uid, campagneId, employeId)));
+  Electron.ipcMain.handle('rh:gpec:evaluations:soumettre', (event, ligneId: number, input: import('../../src/shared/types/rh').SoumettreEvaluationInput) =>
+    wrapIpc(event, (uid) => rhGpec.soumettreEvaluationLigne(uid, ligneId, input)));
+  Electron.ipcMain.handle('rh:gpec:evaluations:valider', (event, ligneId: number) =>
+    wrapIpc(event, (uid) => rhGpec.validerEvaluationLigne(uid, ligneId)));
 
   Electron.ipcMain.handle('rh:contrats:list', (event, employeId: number) =>
     wrapIpc(event, (uid) => rh.listContrats(uid, employeId)));
@@ -450,6 +514,8 @@ export function registerRhIpc(): void {
     wrapIpcAsync(event, (uid) => rhDeclarations.exportVirementsPaie(uid, periode)));
   Electron.ipcMain.handle('rh:declarations:exportAnem', (event) =>
     wrapIpcAsync(event, (uid) => rhDeclarations.exportAnemEmbauches(uid)));
+  Electron.ipcMain.handle('rh:declarations:exportDadsU', (event, annee: number) =>
+    wrapIpcAsync(event, (uid) => rhDeclarations.exportDadsUAnnuelle(uid, annee)));
 
   Electron.ipcMain.handle('rh:egt:organigramme', (event, hotelId?: number) =>
     wrapIpc(event, (uid) => rhEgt.getOrganigrammeEgt(uid, hotelId)));

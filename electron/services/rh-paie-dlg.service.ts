@@ -7,6 +7,7 @@ import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
 import { calculatePaieDz } from './rh-conformite-dz.service';
+import { calculateBrutPaieMensuel } from './rh-paie-dz-engine';
 import { assertPeriodePaieModifiable } from './rh-paie-cloture.service';
 import { listEmployes } from './rh.service';
 import type {
@@ -115,6 +116,11 @@ function mapBulletin(row: Record<string, unknown>): RhBulletin {
     heuresTravaillees: row.heures_travaillees as number,
     joursAbsence: row.jours_absence as number,
     primesTotal: row.primes_total as number,
+    brutBase: (row.brut_base as number | undefined) ?? 0,
+    heuresSup: (row.heures_sup as number | undefined) ?? 0,
+    montantHs: (row.montant_hs as number | undefined) ?? 0,
+    retenueAbsence: (row.retenue_absence as number | undefined) ?? 0,
+    joursAbsenceNonRemuneree: (row.jours_absence_non_remuneree as number | undefined) ?? 0,
     statut: row.statut as RhBulletin['statut'],
     source: row.source as RhBulletin['source'],
     dlgReference: (row.dlg_reference as string | null) ?? null,
@@ -391,11 +397,24 @@ export function generatePrePaie(actorUserId: number, periode: string): RhBulleti
       WHERE employe_id = ? AND statut = 'approuvee' AND date_debut <= ? AND date_fin >= ?
     `).get(emp.id, fin, debut) as { j: number }).j;
 
+    const joursAbsNonRem = (db.prepare(`
+      SELECT COALESCE(SUM(CAST(julianday(date_fin) - julianday(date_debut) + 1 AS REAL)), 0) AS j
+      FROM rh_absences
+      WHERE employe_id = ? AND statut = 'approuvee' AND type = 'Sans_solde'
+        AND date_debut <= ? AND date_fin >= ?
+    `).get(emp.id, fin, debut) as { j: number }).j;
+
     const primesTotal = (db.prepare(`
       SELECT COALESCE(SUM(montant), 0) AS t FROM rh_primes WHERE employe_id = ? AND periode = ?
     `).get(emp.id, periode) as { t: number }).t;
 
-    const brut = contrat.salaire_brut + primesTotal;
+    const brutCalc = calculateBrutPaieMensuel({
+      salaireBrutContrat: contrat.salaire_brut,
+      heuresTravaillees: heures,
+      joursAbsenceNonRemuneree: joursAbsNonRem,
+      primesTotal,
+    });
+    const brut = brutCalc.brut;
     const empRow = db.prepare(`SELECT enfants_charge FROM rh_employes WHERE id = ?`).get(emp.id) as
       | { enfants_charge: number }
       | undefined;
@@ -405,8 +424,10 @@ export function generatePrePaie(actorUserId: number, periode: string): RhBulleti
 
     db.prepare(`
       INSERT INTO rh_bulletins (
-        employe_id, periode, brut, net, charges, heures_travaillees, jours_absence, primes_total, statut, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', 'local')
+        employe_id, periode, brut, net, charges, heures_travaillees, jours_absence, primes_total,
+        brut_base, heures_sup, montant_hs, retenue_absence, jours_absence_non_remuneree,
+        statut, source
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', 'local')
       ON CONFLICT(employe_id, periode) DO UPDATE SET
         brut = excluded.brut,
         net = excluded.net,
@@ -414,9 +435,17 @@ export function generatePrePaie(actorUserId: number, periode: string): RhBulleti
         heures_travaillees = excluded.heures_travaillees,
         jours_absence = excluded.jours_absence,
         primes_total = excluded.primes_total,
+        brut_base = excluded.brut_base,
+        heures_sup = excluded.heures_sup,
+        montant_hs = excluded.montant_hs,
+        retenue_absence = excluded.retenue_absence,
+        jours_absence_non_remuneree = excluded.jours_absence_non_remuneree,
         updated_at = datetime('now')
       WHERE rh_bulletins.statut IN ('brouillon', 'exporte')
-    `).run(emp.id, periode, brut, net, charges, heures, joursAbs, primesTotal);
+    `).run(
+      emp.id, periode, brut, net, charges, heures, joursAbs, primesTotal,
+      brutCalc.brutBase, brutCalc.heuresSup, brutCalc.montantHs, brutCalc.retenueAbsence, joursAbsNonRem,
+    );
   }
 
   writeAuditLog({
@@ -492,6 +521,19 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
     variablesLines.push(
       csvLine([matricule, 'HEURES_TRAVAILLEES', 'Heures travaillées', b.heuresTravaillees, 'H', periode]),
     );
+    if (b.heuresSup > 0) {
+      variablesLines.push(
+        csvLine([matricule, 'HEURES_SUP', 'Heures supplémentaires', b.heuresSup, 'H', periode]),
+      );
+      variablesLines.push(
+        csvLine([matricule, 'MONTANT_HS', 'Majoration HS', b.montantHs, 'M', periode]),
+      );
+    }
+    if (b.retenueAbsence > 0) {
+      variablesLines.push(
+        csvLine([matricule, 'RETENUE_ABSENCE', 'Retenue absence sans solde', b.retenueAbsence, 'M', periode]),
+      );
+    }
     if (b.joursAbsence > 0) {
       variablesLines.push(
         csvLine([matricule, 'ABSENCE_JOURS', 'Jours absence', b.joursAbsence, 'J', periode]),

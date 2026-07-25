@@ -3,6 +3,7 @@ import {
   calculateIrg,
   calculatePaieDz,
   calculateParafiscalesPatronales,
+  calculateBrutPaieMensuel,
   CNAS_SALARIE_TAUX,
   SMIG_DZD,
 } from './rh-paie-dz-engine';
@@ -58,5 +59,40 @@ describe('rh-paie-dz-engine — parafiscales', () => {
 describe('rh-paie-dz-engine — SMIG', () => {
   it('SMIG DZ défini à 20000', () => {
     expect(SMIG_DZD).toBe(20_000);
+  });
+});
+
+describe('rh-paie-dz-engine — brut mensuel HS et absences', () => {
+  it('calcule majoration HS au-delà de 173.33 h', () => {
+    const r = calculateBrutPaieMensuel({
+      salaireBrutContrat: 60_000,
+      heuresTravaillees: 185,
+      joursAbsenceNonRemuneree: 0,
+      primesTotal: 0,
+    });
+    expect(r.heuresSup).toBeCloseTo(11.67, 1);
+    expect(r.montantHs).toBeGreaterThan(0);
+    expect(r.brut).toBeGreaterThan(60_000);
+  });
+
+  it('applique retenue absence sans solde', () => {
+    const r = calculateBrutPaieMensuel({
+      salaireBrutContrat: 60_000,
+      heuresTravaillees: 173,
+      joursAbsenceNonRemuneree: 2,
+      primesTotal: 0,
+    });
+    expect(r.retenueAbsence).toBe(4000);
+    expect(r.brut).toBe(56_000);
+  });
+
+  it('ne descend pas brut sous zéro', () => {
+    const r = calculateBrutPaieMensuel({
+      salaireBrutContrat: 30_000,
+      heuresTravaillees: 160,
+      joursAbsenceNonRemuneree: 35,
+      primesTotal: 0,
+    });
+    expect(r.brut).toBe(0);
   });
 });

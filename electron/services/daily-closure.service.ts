@@ -3,6 +3,11 @@ import { writeAuditLog } from './audit.service';
 import { getActorContext, actorCanAccessHotel, isGlobalAdminRole } from './actorContext';
 import { createWorkflow, submitWorkflow, approveWorkflow, rejectWorkflow, findWorkflow } from './workflow.service';
 import { createDecAlertIfMissing } from './dec-cockpit.service';
+import { assertAllPosClosedForHotel, getPosClosureStatusForHotel } from './pos-recettes-sync.service';
+import { syncAllRecettesFromErp } from './recettes-auto-sync.service';
+
+export { getPosClosureStatusForHotel } from './pos-recettes-sync.service';
+export type { PosHotelClosureStatus } from './pos-recettes-sync.service';
 
 export type DailyClosureStatut = 'brouillon' | 'soumis' | 'valide_unite' | 'valide_dec' | 'refuse' | 'cloture';
 
@@ -95,6 +100,10 @@ export function prefillDailyClosure(actorUserId: number, closureId: number): Dai
   assertNotLocked(closure.statut);
   const db = getDatabase();
 
+  if (!isDateJournalLocked(closure.hotelId, closure.dateJournal)) {
+    syncAllRecettesFromErp(actorUserId, closure.hotelId, closure.dateJournal);
+  }
+
   const recettes = db.prepare(`
     SELECT COALESCE(SUM(montant), 0) as total FROM recettes_journalieres
     WHERE hotel_id = ? AND date_journal = ? AND deleted_at IS NULL
@@ -121,11 +130,26 @@ export function prefillDailyClosure(actorUserId: number, closureId: number): Dai
   `).run(ca, enc, cre, ecart, closureId);
 
   db.prepare('DELETE FROM daily_closure_items WHERE closure_id = ?').run(closureId);
-  const stmt = db.prepare(`INSERT INTO daily_closure_items (closure_id, rubrique, montant, source_module) VALUES (?, ?, ?, ?)`);
-  stmt.run(closureId, 'CA déclaré', ca, 'recettes');
-  stmt.run(closureId, 'Encaissements', enc, 'tresorerie');
-  stmt.run(closureId, 'Créances jour', cre, 'creances');
-  stmt.run(closureId, 'Écart', ecart, 'calcul');
+  const stmt = db.prepare(`INSERT INTO daily_closure_items (closure_id, rubrique, montant, source_module, observation) VALUES (?, ?, ?, ?, ?)`);
+
+  const posStatus = getPosClosureStatusForHotel(closure.hotelId, closure.dateJournal);
+  if (posStatus.required) {
+    for (const p of posStatus.points) {
+      stmt.run(
+        closureId,
+        `POS — ${p.nom}`,
+        p.totalVentes,
+        'pos',
+        p.closed ? 'Clôturé' : p.openSessions > 0 ? `${p.openSessions} session(s) ouverte(s)` : 'Non clôturé',
+      );
+    }
+    stmt.run(closureId, 'Statut POS global', posStatus.allClosed ? 1 : 0, 'pos', posStatus.allClosed ? 'OK' : 'Clôture POS requise');
+  }
+
+    stmt.run(closureId, 'CA déclaré (recettes)', ca, 'recettes', 'Consolidé automatiquement depuis l\'ERP');
+  stmt.run(closureId, 'Encaissements', enc, 'tresorerie', null);
+  stmt.run(closureId, 'Créances jour', cre, 'creances', null);
+  stmt.run(closureId, 'Écart', ecart, 'calcul', null);
 
   return getClosureById(closureId);
 }
@@ -134,6 +158,7 @@ export function submitDailyClosure(actorUserId: number, closureId: number): Dail
   const c = getClosureById(closureId);
   assertNotLocked(c.statut);
   if (c.statut !== 'brouillon' && c.statut !== 'refuse') throw new Error('Soumission impossible.');
+  assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
   const db = getDatabase();
   db.prepare(`UPDATE daily_closures SET statut='soumis', submitted_by=?, submitted_at=datetime('now'), updated_at=datetime('now') WHERE id=?`).run(actorUserId, closureId);
   const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
@@ -178,6 +203,7 @@ export function rejectDailyClosure(actorUserId: number, closureId: number, motif
 export function closeDailyClosure(actorUserId: number, closureId: number): DailyClosure {
   const c = getClosureById(closureId);
   if (c.statut !== 'valide_dec') throw new Error('Clôture finale : validation DEC requise.');
+  assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='cloture', closed_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(closureId);

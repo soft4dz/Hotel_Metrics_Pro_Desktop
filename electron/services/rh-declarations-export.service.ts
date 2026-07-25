@@ -36,7 +36,7 @@ export async function exportDasAnnuelle(actorUserId: number, annee: number): Pro
 
   const parafiscales = getPaieParams();
   for (const r of rows) {
-    const brut = Number(r.brut_annuel) + Number(r.primes_annuelles);
+    const brut = Number(r.brut_annuel);
     const paie = calculatePaieDz(brut, 0, parafiscales);
     const irgAnnuel = paie.irg * Number(r.nb_bulletins);
     const netAnnuel = paie.net * Number(r.nb_bulletins);
@@ -79,7 +79,7 @@ export async function exportCnasMensuelle(actorUserId: number, periode: string):
 
   const parafiscales = getPaieParams();
   for (const r of rows) {
-    const brut = Number(r.brut) + Number(r.primes_total);
+    const brut = Number(r.brut);
     const paie = calculatePaieDz(brut, 0, parafiscales);
     totalBrut += brut;
     totalCotSal += paie.cotisationSalarie;
@@ -151,4 +151,81 @@ export async function exportAnemEmbauches(actorUserId: number): Promise<RhExport
 
   writeAuditLog({ userId: actorUserId, action: 'EXPORT', module: 'rh', description: 'Export ANEM embauches' });
   return saveRhExportFile(Buffer.from(lines.join('\n'), 'utf-8'), `ANEM_embauches_${new Date().toISOString().slice(0, 10)}.csv`, 'csv');
+}
+
+/** DADS-U annuelle — déclaration nominative des salaires (format CSV pré-portail CNAS). */
+export async function exportDadsUAnnuelle(actorUserId: number, annee: number): Promise<RhExportResult> {
+  assertRhManage(actorUserId);
+  const emp = getEmployeurLegalInfo();
+  const rows = getDatabase().prepare(`
+    SELECT e.nin, e.nss, e.nom, e.prenom, e.dlg_matricule, e.date_embauche,
+           b.periode, b.brut_base, b.heures_sup, b.montant_hs, b.retenue_absence,
+           b.primes_total, b.brut, b.net, b.heures_travaillees, b.jours_absence
+    FROM rh_bulletins b
+    INNER JOIN rh_employes e ON e.id = b.employe_id AND e.deleted_at IS NULL
+    WHERE b.statut IN ('valide', 'importe') AND b.periode LIKE ?
+    ORDER BY e.nom, e.prenom, b.periode
+  `).all(`${annee}-%`) as Record<string, unknown>[];
+
+  const lines = [
+    csvLine([
+      'DADS-U',
+      annee,
+      emp.raisonSociale,
+      emp.nis ?? '',
+      emp.nssEmployeur ?? '',
+      emp.agenceCnas ?? '',
+    ]),
+    csvLine([
+      'NIN',
+      'NSS',
+      'Matricule',
+      'Nom',
+      'Prénom',
+      'Date embauche',
+      'Période',
+      'Brut base',
+      'Heures sup',
+      'Montant HS',
+      'Retenue absence',
+      'Primes',
+      'Brut imposable',
+      'CNAS salarié 9%',
+      'CNAS patronale 26%',
+      'IRG',
+      'Net',
+      'Heures travaillées',
+      'Jours absence',
+    ]),
+  ];
+
+  const parafiscales = getPaieParams();
+  for (const r of rows) {
+    const brut = Number(r.brut);
+    const paie = calculatePaieDz(brut, 0, parafiscales);
+    lines.push(csvLine([
+      String(r.nin ?? ''),
+      String(r.nss ?? ''),
+      String(r.dlg_matricule ?? ''),
+      String(r.nom),
+      String(r.prenom),
+      String(r.date_embauche ?? ''),
+      String(r.periode),
+      Number(r.brut_base ?? 0).toFixed(2),
+      Number(r.heures_sup ?? 0).toFixed(2),
+      Number(r.montant_hs ?? 0).toFixed(2),
+      Number(r.retenue_absence ?? 0).toFixed(2),
+      Number(r.primes_total ?? 0).toFixed(2),
+      brut.toFixed(2),
+      paie.cotisationSalarie.toFixed(2),
+      paie.cotisationPatronale.toFixed(2),
+      paie.irg.toFixed(2),
+      Number(r.net).toFixed(2),
+      Number(r.heures_travaillees ?? 0).toFixed(2),
+      Number(r.jours_absence ?? 0).toFixed(2),
+    ]));
+  }
+
+  writeAuditLog({ userId: actorUserId, action: 'EXPORT', module: 'rh', description: `Export DADS-U ${annee}` });
+  return saveRhExportFile(Buffer.from(lines.join('\n'), 'utf-8'), `DADS-U_${annee}.csv`, 'csv');
 }

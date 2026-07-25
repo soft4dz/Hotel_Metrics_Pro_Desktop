@@ -1,5 +1,20 @@
 export type StatutRh = 'actif' | 'inactif' | 'sorti';
 export type StatutRecrutement = 'en_cours' | 'valide' | 'refuse';
+
+export type EtapeRecrutement =
+  | 'candidature'
+  | 'preselection'
+  | 'entretien_rh'
+  | 'entretien_metier'
+  | 'proposition'
+  | 'embauche'
+  | 'refuse';
+
+export type StatutOffreEmploi = 'brouillon' | 'publiee' | 'pourvue' | 'archivee';
+
+export type TypeEntretienRecrutement = 'telephone' | 'rh' | 'technique' | 'direction' | 'autre';
+
+export type StatutEntretienRecrutement = 'planifie' | 'realise' | 'annule' | 'reporte';
 export type TypeContrat = 'CDI' | 'CDD' | 'Interim';
 export type StatutPointage = 'brouillon' | 'soumis' | 'valide' | 'refuse';
 export type TypeAbsence = 'CP' | 'Maladie' | 'RTT' | 'Sans_solde' | 'Autre';
@@ -118,14 +133,60 @@ export interface RhRecrutement {
   posteId: number;
   posteNom: string;
   departementNom: string;
+  offreId: number | null;
+  offreTitre: string | null;
   candidatNom: string;
   candidatPrenom: string | null;
   candidatEmail: string | null;
   candidatTelephone: string | null;
   notes: string | null;
+  etape: EtapeRecrutement;
+  source: string | null;
+  score: number | null;
   statut: StatutRecrutement;
   employeCreeId: number | null;
   utilisateurCreeId: number | null;
+  createdAt: string;
+}
+
+export interface RhOffreEmploi {
+  id: number;
+  posteId: number;
+  posteNom: string;
+  departementNom: string;
+  titre: string;
+  description: string | null;
+  statut: StatutOffreEmploi;
+  nbPostes: number;
+  dateOuverture: string | null;
+  dateCloture: string | null;
+  nbCandidatures: number;
+  createdAt: string;
+}
+
+export type RhPipelineRecrutement = Record<EtapeRecrutement, RhRecrutement[]>;
+
+export interface RhRecrutementEntretien {
+  id: number;
+  recrutementId: number;
+  type: TypeEntretienRecrutement;
+  dateHeure: string;
+  lieu: string | null;
+  intervieweurId: number | null;
+  intervieweurNom: string | null;
+  notes: string | null;
+  noteEvaluation: number | null;
+  statut: StatutEntretienRecrutement;
+  createdAt: string;
+}
+
+export interface RhRecrutementHistorique {
+  id: number;
+  recrutementId: number;
+  etapeAvant: string | null;
+  etapeApres: string;
+  commentaire: string | null;
+  createdByNom: string | null;
   createdAt: string;
 }
 
@@ -371,6 +432,153 @@ export interface RhSuggestionRenfort {
   message: string;
 }
 
+export type StatutReconciliation = 'ok' | 'ecart' | 'alerte' | 'sans_planning' | 'sans_pointage';
+export type TypeTempsAlerte = 'retard_h15' | 'absence_non_pointee' | 'pointage_sans_planning' | 'depassement_horaire' | 'ecart_heures';
+export type StatutTempsAlerte = 'ouverte' | 'traitee' | 'ignoree';
+
+export interface RhReconciliationJour {
+  id: number;
+  employeId: number;
+  employeNom: string;
+  hotelId: number | null;
+  hotelName: string | null;
+  date: string;
+  heuresPrevues: number;
+  heuresPointees: number;
+  ecartHeures: number;
+  retardMinutes: number;
+  statut: StatutReconciliation;
+  paieValide: boolean;
+}
+
+export interface RhTempsAlerte {
+  id: number;
+  employeId: number;
+  employeNom: string;
+  hotelId: number | null;
+  date: string;
+  type: TypeTempsAlerte;
+  message: string;
+  severite: 'info' | 'warning' | 'critique';
+  statut: StatutTempsAlerte;
+  createdAt: string;
+}
+
+export interface RhReconciliationPaie {
+  employeId: number;
+  employeNom: string;
+  heuresPrevues: number;
+  heuresPointees: number;
+  heuresPaieValidees: number;
+  joursAlerte: number;
+  joursReconcilies: number;
+  pretPaie: boolean;
+}
+
+export type StatutCampagneEvaluation = 'brouillon' | 'en_cours' | 'cloturee';
+export type StatutLigneEvaluation = 'brouillon' | 'soumis' | 'valide';
+export type SourceCompetenceEmploye = 'manuel' | 'evaluation' | 'formation';
+
+export interface RhEmployeCompetence {
+  id: number;
+  employeId: number;
+  employeNom: string;
+  competenceId: number;
+  competenceCode: string;
+  competenceLibelle: string;
+  niveauActuel: number;
+  niveauRequis: number | null;
+  ecart: number | null;
+  source: SourceCompetenceEmploye;
+  dateMaj: string;
+  commentaire: string | null;
+}
+
+export interface RhMatriceGpecLigne {
+  competenceId: number;
+  competenceCode: string;
+  competenceLibelle: string;
+  niveauRequis: number;
+  niveauActuel: number;
+  ecart: number;
+  statut: 'ok' | 'partiel' | 'manquant';
+}
+
+export interface RhMatriceGpec {
+  employeId: number;
+  employeNom: string;
+  posteNom: string | null;
+  lignes: RhMatriceGpecLigne[];
+  competencesExtra: RhEmployeCompetence[];
+  tauxCouverture: number;
+}
+
+export interface RhCampagneEvaluation {
+  id: number;
+  titre: string;
+  description: string | null;
+  periodeDebut: string;
+  periodeFin: string;
+  statut: StatutCampagneEvaluation;
+  nbEvaluations: number;
+  nbValidees: number;
+  createdAt: string;
+}
+
+export interface RhCampagneEvaluationLigne {
+  id: number;
+  campagneId: number;
+  employeId: number;
+  employeNom: string;
+  competenceId: number;
+  competenceCode: string;
+  competenceLibelle: string;
+  niveauRequis: number;
+  niveauObserve: number | null;
+  ecart: number | null;
+  commentaire: string | null;
+  evaluateurNom: string | null;
+  statut: StatutLigneEvaluation;
+}
+
+export interface RhCampagneSynthese {
+  campagne: RhCampagneEvaluation;
+  totalLignes: number;
+  soumis: number;
+  valides: number;
+  ecartsNegatifs: number;
+  tauxCompletion: number;
+}
+
+export interface SetEmployeCompetenceInput {
+  employeId: number;
+  competenceId: number;
+  niveauActuel: number;
+  source?: SourceCompetenceEmploye;
+  commentaire?: string | null;
+}
+
+export interface CreateCampagneEvaluationInput {
+  titre: string;
+  description?: string | null;
+  periodeDebut: string;
+  periodeFin: string;
+}
+
+export interface UpdateCampagneEvaluationInput {
+  titre?: string;
+  description?: string | null;
+  periodeDebut?: string;
+  periodeFin?: string;
+  statut?: StatutCampagneEvaluation;
+}
+
+export interface SoumettreEvaluationInput {
+  niveauObserve: number;
+  commentaire?: string | null;
+  evaluateurEmployeId?: number | null;
+}
+
 export interface RhEquipeMembre {
   id: number;
   chefEmployeId: number;
@@ -412,6 +620,11 @@ export interface RhBulletin {
   heuresTravaillees: number;
   joursAbsence: number;
   primesTotal: number;
+  brutBase: number;
+  heuresSup: number;
+  montantHs: number;
+  retenueAbsence: number;
+  joursAbsenceNonRemuneree: number;
   statut: StatutBulletin;
   source: 'local' | 'dlg';
   dlgReference: string | null;
@@ -543,11 +756,60 @@ export interface CreateEmployeWizardInput {
 
 export interface CreateRecrutementInput {
   posteId: number;
+  offreId?: number | null;
   candidatNom: string;
   candidatPrenom?: string | null;
   candidatEmail?: string | null;
   candidatTelephone?: string | null;
   notes?: string | null;
+  source?: string | null;
+  score?: number | null;
+}
+
+export interface CreateOffreEmploiInput {
+  posteId: number;
+  titre: string;
+  description?: string | null;
+  statut?: StatutOffreEmploi;
+  nbPostes?: number;
+  dateOuverture?: string | null;
+  dateCloture?: string | null;
+}
+
+export interface UpdateOffreEmploiInput {
+  titre?: string;
+  description?: string | null;
+  statut?: StatutOffreEmploi;
+  nbPostes?: number;
+  dateOuverture?: string | null;
+  dateCloture?: string | null;
+}
+
+export interface AvancerCandidatureInput {
+  recrutementId: number;
+  etape: EtapeRecrutement;
+  commentaire?: string | null;
+}
+
+export interface CreateEntretienRecrutementInput {
+  recrutementId: number;
+  type?: TypeEntretienRecrutement;
+  dateHeure: string;
+  lieu?: string | null;
+  intervieweurId?: number | null;
+  notes?: string | null;
+  noteEvaluation?: number | null;
+  statut?: StatutEntretienRecrutement;
+}
+
+export interface UpdateEntretienRecrutementInput {
+  type?: TypeEntretienRecrutement;
+  dateHeure?: string;
+  lieu?: string | null;
+  intervieweurId?: number | null;
+  notes?: string | null;
+  noteEvaluation?: number | null;
+  statut?: StatutEntretienRecrutement;
 }
 
 export interface CreateContratInput {

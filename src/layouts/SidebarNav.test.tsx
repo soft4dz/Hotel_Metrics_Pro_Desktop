@@ -64,6 +64,7 @@ describe('SidebarNav', () => {
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();
     expect(screen.getByText('Exploitation')).toBeInTheDocument();
+    expect(screen.getByText('Finances & comptabilité')).toBeInTheDocument();
     expect(screen.getByText('Karim Admin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replier le menu' })).toBeInTheDocument();
   });
@@ -194,10 +195,10 @@ describe('MobileNavDrawer', () => {
 
 describe('TopNavbar', () => {
   beforeEach(() => {
-    useUiStore.setState({ mobileNavOpen: false });
+    useUiStore.setState({ mobileNavOpen: false, sidebarCollapsed: false });
   });
 
-  it('utilise le shell navbar et affiche le branding', async () => {
+  it('utilise le shell navbar et affiche le branding mobile', async () => {
     const { container } = renderWithRouter(<TopNavbar />);
 
     await waitFor(() => {
@@ -206,14 +207,15 @@ describe('TopNavbar', () => {
 
     const header = container.querySelector('header');
     expect(header).toHaveClass('navbar-shell');
-    expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navigation principale' })).not.toBeInTheDocument();
   });
 
-  it('affiche le bouton menu sur mobile', async () => {
+  it('affiche le bouton menu sur mobile et le toggle sidebar sur desktop', async () => {
     renderWithRouter(<TopNavbar />);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Replier le menu latéral' })).toBeInTheDocument();
     });
   });
 });

@@ -12,8 +12,14 @@ export function useHotelsList() {
     staleTime: 60_000,
   });
 
-  const defaultHotelId =
-    user?.hotelId ?? (hotels.length === 1 ? hotels[0].id : hotels[0]?.id ?? 0);
+  /** Hôtels opérationnels (hors siège consolidation) */
+  const operationalHotels = hotels.filter((h) => h.code !== 'SIEGE');
 
-  return { hotels, loading, defaultHotelId, reload: () => { void refetch(); } };
+  const defaultHotelId =
+    user?.hotelId ??
+    (operationalHotels.length === 1
+      ? operationalHotels[0].id
+      : operationalHotels[0]?.id ?? hotels[0]?.id ?? 0);
+
+  return { hotels, operationalHotels, loading, defaultHotelId, reload: () => { void refetch(); } };
 }

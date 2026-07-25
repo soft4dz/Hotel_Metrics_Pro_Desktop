@@ -16,6 +16,16 @@ import type {
   CreateFormationCatalogInput,
   CreatePrimeInput,
   CreateRecrutementInput,
+  AvancerCandidatureInput,
+  CreateEntretienRecrutementInput,
+  CreateOffreEmploiInput,
+  UpdateEntretienRecrutementInput,
+  UpdateOffreEmploiInput,
+  RhOffreEmploi,
+  RhPipelineRecrutement,
+  RhRecrutementEntretien,
+  RhRecrutementHistorique,
+  StatutOffreEmploi,
   RhCompetence,
   RhDocument,
   RhEmployeFormation,
@@ -272,6 +282,9 @@ export interface IpcApi {
     getCurrentUser: () => Promise<AuthUserDto | null>;
     getProfile: () => Promise<UserProfileDto | null>;
     changePassword: (payload: ChangePasswordPayload) => Promise<ChangePasswordResult>;
+    listDemoAccounts: () => Promise<
+      Array<{ email: string; fullName: string; roleCode: string; roleLabel: string }>
+    >;
   };
   users: {
     list: (search?: string) => Promise<IpcResult<UserListItem[]>>;
@@ -490,7 +503,14 @@ export interface IpcApi {
     marquerRelanceEnvoyee: (id: number) => Promise<IpcResult<boolean>>;
   };
   settings: {
-    getBranding: () => Promise<IpcResult<{ companyName: string; companyLogoUrl: string | null }>>;
+    getBranding: () => Promise<IpcResult<{
+      companyName: string;
+      companyLogoUrl: string | null;
+      reportHeader: string;
+      reportFooter: string;
+      reportHeaderImageUrl: string | null;
+      reportFooterImageUrl: string | null;
+    }>>;
     getAppInfo: () => Promise<IpcResult<AppInfoDto>>;
     update: (
       input: Partial<AppSettingsDto>,
@@ -501,6 +521,10 @@ export interface IpcApi {
     removeBrandAsset: (
       asset: 'logo' | 'report-header' | 'report-footer',
     ) => Promise<IpcResult<AppSettingsDto>>;
+    getUiPreferences: () => Promise<IpcResult<import('./uiPreferences').UserUiPreferencesDto>>;
+    saveUiPreferences: (
+      prefs: import('./uiPreferences').UserUiPreferencesDto,
+    ) => Promise<IpcResult<import('./uiPreferences').UserUiPreferencesDto>>;
   };
   database: {
     getInfo: () => Promise<IpcResult<DatabaseInfoDto>>;
@@ -725,6 +749,35 @@ export interface IpcApi {
     createRecrutement: (input: CreateRecrutementInput) => Promise<IpcResult<RhRecrutement>>;
     validerRecrutement: (id: number) => Promise<IpcResult<RhRecrutement>>;
     refuserRecrutement: (id: number, motif?: string) => Promise<IpcResult<RhRecrutement>>;
+    listOffresEmploi: (statut?: StatutOffreEmploi) => Promise<IpcResult<RhOffreEmploi[]>>;
+    createOffreEmploi: (input: CreateOffreEmploiInput) => Promise<IpcResult<RhOffreEmploi>>;
+    updateOffreEmploi: (id: number, input: UpdateOffreEmploiInput) => Promise<IpcResult<RhOffreEmploi>>;
+    getPipelineRecrutement: (offreId?: number) => Promise<IpcResult<RhPipelineRecrutement>>;
+    createCandidature: (input: CreateRecrutementInput) => Promise<IpcResult<RhRecrutement>>;
+    avancerCandidature: (input: AvancerCandidatureInput) => Promise<IpcResult<RhRecrutement>>;
+    listEntretiensRecrutement: (recrutementId: number) => Promise<IpcResult<RhRecrutementEntretien[]>>;
+    createEntretienRecrutement: (input: CreateEntretienRecrutementInput) => Promise<IpcResult<RhRecrutementEntretien>>;
+    updateEntretienRecrutement: (id: number, input: UpdateEntretienRecrutementInput) => Promise<IpcResult<RhRecrutementEntretien>>;
+    listHistoriqueCandidature: (recrutementId: number) => Promise<IpcResult<RhRecrutementHistorique[]>>;
+    runReconciliationTemps: (dateDebut: string, dateFin: string, hotelId?: number) => Promise<IpcResult<{ reconciliees: number; alertesCrees: number }>>;
+    listReconciliationsTemps: (opts?: { dateDebut?: string; dateFin?: string; hotelId?: number; statut?: import('./rh').StatutReconciliation }) => Promise<IpcResult<import('./rh').RhReconciliationJour[]>>;
+    listTempsAlertes: (statut?: import('./rh').StatutTempsAlerte) => Promise<IpcResult<import('./rh').RhTempsAlerte[]>>;
+    traiterTempsAlerte: (alerteId: number, action: 'traitee' | 'ignoree') => Promise<IpcResult<import('./rh').RhTempsAlerte>>;
+    getReconciliationPaie: (periode: string) => Promise<IpcResult<import('./rh').RhReconciliationPaie[]>>;
+    validerReconciliationPaie: (employeId: number, dateDebut: string, dateFin: string) => Promise<IpcResult<number>>;
+    exportReconciliationCsv: (dateDebut: string, dateFin: string) => Promise<IpcResult<RhExportResult>>;
+    listEmployeCompetences: (employeId?: number) => Promise<IpcResult<import('./rh').RhEmployeCompetence[]>>;
+    setEmployeCompetence: (input: import('./rh').SetEmployeCompetenceInput) => Promise<IpcResult<import('./rh').RhEmployeCompetence>>;
+    getMatriceGpec: (employeId: number) => Promise<IpcResult<import('./rh').RhMatriceGpec>>;
+    listCampagnesEvaluation: () => Promise<IpcResult<import('./rh').RhCampagneEvaluation[]>>;
+    createCampagneEvaluation: (input: import('./rh').CreateCampagneEvaluationInput) => Promise<IpcResult<import('./rh').RhCampagneEvaluation>>;
+    updateCampagneEvaluation: (id: number, input: import('./rh').UpdateCampagneEvaluationInput) => Promise<IpcResult<import('./rh').RhCampagneEvaluation>>;
+    lancerCampagneEvaluation: (campagneId: number) => Promise<IpcResult<import('./rh').RhCampagneSynthese>>;
+    cloturerCampagneEvaluation: (campagneId: number) => Promise<IpcResult<import('./rh').RhCampagneEvaluation>>;
+    getCampagneSynthese: (campagneId: number) => Promise<IpcResult<import('./rh').RhCampagneSynthese>>;
+    listCampagneEvaluations: (campagneId: number, employeId?: number) => Promise<IpcResult<import('./rh').RhCampagneEvaluationLigne[]>>;
+    soumettreEvaluationLigne: (ligneId: number, input: import('./rh').SoumettreEvaluationInput) => Promise<IpcResult<import('./rh').RhCampagneEvaluationLigne>>;
+    validerEvaluationLigne: (ligneId: number) => Promise<IpcResult<import('./rh').RhCampagneEvaluationLigne>>;
     listContrats: (employeId: number) => Promise<IpcResult<RhContrat[]>>;
     createContrat: (input: CreateContratInput) => Promise<IpcResult<RhContrat>>;
     listAllContrats: () => Promise<IpcResult<RhContratListe[]>>;
@@ -854,6 +907,7 @@ export interface IpcApi {
     exportCnasMensuelle: (periode: string) => Promise<IpcResult<RhExportResult>>;
     exportVirementsPaie: (periode: string) => Promise<IpcResult<RhExportResult>>;
     exportAnemEmbauches: () => Promise<IpcResult<RhExportResult>>;
+    exportDadsUAnnuelle: (annee: number) => Promise<IpcResult<RhExportResult>>;
     getOrganigrammeEgt: (hotelId?: number) => Promise<IpcResult<OrganigrammeNode[]>>;
     getEffectifsEgt: (hotelId?: number) => Promise<IpcResult<EffectifEgtSummary[]>>;
     listFichesPoste: (posteId?: number) => Promise<IpcResult<FichePoste[]>>;
@@ -933,6 +987,25 @@ export interface IpcApi {
     listVentesPos: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineVentePos[]>>;
     enregistrerVentePos: (input: import('./cuisine').EnregistrerVentePosInput) => Promise<IpcResult<import('./cuisine').CuisineVentePos>>;
   };
+  pos: {
+    listPointsVente: (hotelId: number) => Promise<IpcResult<import('./pos').PosPointVente[]>>;
+    createPointVente: (input: import('./pos').CreatePointVenteInput) => Promise<IpcResult<import('./pos').PosPointVente>>;
+    listFactions: (pointVenteId: number) => Promise<IpcResult<import('./pos').PosFaction[]>>;
+    createFaction: (input: import('./pos').CreateFactionInput) => Promise<IpcResult<import('./pos').PosFaction>>;
+    listSessions: (pointVenteId: number, dateService?: string) => Promise<IpcResult<import('./pos').PosSession[]>>;
+    openSession: (input: import('./pos').OpenSessionInput) => Promise<IpcResult<import('./pos').PosSession>>;
+    getRapportSession: (sessionId: number) => Promise<IpcResult<import('./pos').PosRapportSession>>;
+    cloturerSession: (input: import('./pos').CloturerSessionInput) => Promise<IpcResult<import('./pos').PosRapportSession>>;
+    listTickets: (sessionId: number) => Promise<IpcResult<import('./pos').PosTicket[]>>;
+    createTicket: (input: import('./pos').CreateTicketInput) => Promise<IpcResult<import('./pos').PosTicket>>;
+    addTicketLigne: (input: import('./pos').AddTicketLigneInput) => Promise<IpcResult<import('./pos').PosTicket>>;
+    removeTicketLigne: (ligneId: number) => Promise<IpcResult<import('./pos').PosTicket>>;
+    validerTicket: (input: import('./pos').ValiderTicketInput) => Promise<IpcResult<import('./pos').PosTicket>>;
+    annulerTicket: (ticketId: number) => Promise<IpcResult<import('./pos').PosTicket>>;
+    listCloturesJournalieres: (pointVenteId: number) => Promise<IpcResult<import('./pos').PosClotureJournaliere[]>>;
+    cloturerJournee: (input: import('./pos').CloturerJourneeInput) => Promise<IpcResult<import('./pos').PosClotureJournaliere>>;
+    getHotelClosureStatus: (hotelId: number, dateJournal: string) => Promise<IpcResult<import('./pos').PosHotelClosureStatus>>;
+  };
   achats: {
     listFournisseurs: () => Promise<IpcResult<unknown[]>>;
     createFournisseur: (input: unknown) => Promise<IpcResult<unknown>>;
@@ -950,6 +1023,16 @@ export interface IpcApi {
     createIntervention: (input: unknown) => Promise<IpcResult<unknown>>;
     updateIntervention: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
     stats: (hotelId: number) => Promise<IpcResult<unknown>>;
+  };
+  housekeeping: {
+    listTaches: (hotelId: number, statut?: string, datePrevue?: string) => Promise<IpcResult<unknown[]>>;
+    createTache: (input: unknown) => Promise<IpcResult<unknown>>;
+    updateTache: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
+    listChecklistItems: (tacheId: number) => Promise<IpcResult<unknown[]>>;
+    updateChecklistItem: (itemId: number, input: unknown) => Promise<IpcResult<unknown>>;
+    stats: (hotelId: number) => Promise<IpcResult<unknown>>;
+    syncFromChambres: (hotelId: number) => Promise<IpcResult<number>>;
+    chambresMenageSansTache: (hotelId: number) => Promise<IpcResult<Array<{ id: number; numero: string; etage: number }>>>;
   };
   commercial: {
     listPartenaires: () => Promise<IpcResult<unknown[]>>;
@@ -985,6 +1068,7 @@ export interface IpcApi {
     reject: (closureId: number, motif: string) => Promise<IpcResult<DailyClosure>>;
     close: (closureId: number) => Promise<IpcResult<DailyClosure>>;
     list: (hotelId?: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<DailyClosure[]>>;
+    getPosStatus: (hotelId: number, dateJournal: string) => Promise<IpcResult<import('./pos').PosHotelClosureStatus>>;
   };
   reconciliation: {
     create: (hotelId: number, dateJournal: string) => Promise<IpcResult<FinanceReconciliation>>;
@@ -1100,6 +1184,14 @@ export interface IpcApi {
     exportAdHoc: (dataSource: string, columns: string[], filters?: import('./reports').ReportFilters, name?: string) => Promise<IpcResult<import('./reports').ReportExportResult>>;
     exportKpi: (kpiId: string, filters?: import('./reports').ReportFilters) => Promise<IpcResult<import('./reports').ReportExportResult>>;
     listRuns: (limit?: number) => Promise<IpcResult<import('./reports').ReportRunHistory[]>>;
+  };
+  guide: {
+    list: () => Promise<IpcResult<import('./guide').GuideArticle[]>>;
+    get: (slug: string) => Promise<IpcResult<import('./guide').GuideDetail>>;
+    search: (query: string) => Promise<IpcResult<import('./guide').GuideArticle[]>>;
+    sections: () => Promise<IpcResult<import('./guide').GuideSection[]>>;
+    suggested: () => Promise<IpcResult<string>>;
+    roleProfiles: () => Promise<IpcResult<import('../constants/userRoleProfiles').UserRoleProfile[]>>;
   };
 }
 

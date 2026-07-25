@@ -16,6 +16,10 @@ extraResources:
     to: migrations
     filter:
       - "**/*.sql"
+  - from: docs/guides-utilisateurs
+    to: guides
+    filter:
+      - "**/*.md"
   - from: assets/logos
     to: logos-default
     filter:

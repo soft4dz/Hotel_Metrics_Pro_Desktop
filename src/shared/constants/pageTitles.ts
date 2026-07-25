@@ -5,6 +5,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Applications',
     subtitle: 'Lanceur de modules — style pilotage centralisé',
   },
+  '/guide': {
+    title: 'Manuel d\'utilisation',
+    subtitle: 'Guides par profil — procédures et bonnes pratiques',
+  },
   '/rh': {
     title: 'RH & productivité',
     subtitle: 'Applications RH — pilotage, collaborateurs, paie et talents',
@@ -146,8 +150,8 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     subtitle: 'Arbre hiérarchique — catégories et sous-catégories de CA',
   },
   '/recettes/journalieres': {
-    title: 'Saisie journalière',
-    subtitle: 'Chiffre d\'affaires du jour',
+    title: 'CA journalier (ERP)',
+    subtitle: 'Chiffre d\'affaires consolidé automatiquement depuis l\'ERP',
   },
   '/recettes/historique': {
     title: 'Historique recettes',
@@ -392,6 +396,10 @@ export function getPageTitle(pathname: string): { title: string; subtitle?: stri
   }
   if (pathname === '/rh') {
     return { title: 'RH & productivité', subtitle: 'Applications RH — pilotage, collaborateurs, paie et talents' };
+  }
+  const guideMatch = pathname.match(/^\/guide\/([\w-]+)$/);
+  if (guideMatch) {
+    return { title: 'Guide utilisateur', subtitle: guideMatch[1].replace(/-/g, ' ') };
   }
   if (pathname === '/settings/rh-referentiel') {
     return { title: 'Référentiel RH', subtitle: 'Postes, départements et modèles de dossier' };

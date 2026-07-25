@@ -13,6 +13,7 @@ import {
 } from './actorContext';
 import { syncEncaissementRecetteJour } from './encaissement-sync.service';
 import { isDateJournalLocked } from './daily-closure.service';
+import { syncAllRecettesFromErp } from './recettes-auto-sync.service';
 
 export type RecetteStatut = 'brouillon' | 'soumis' | 'valide' | 'refuse';
 
@@ -200,6 +201,10 @@ export function getSaisieJournaliere(
   assertRecettesValidate(actor);
   const hid = resolveHotelId(actor, hotelId);
 
+  if (!isDateJournalLocked(hid, dateJournal)) {
+    syncAllRecettesFromErp(actorUserId, hid, dateJournal);
+  }
+
   const db = getDatabase();
   const hotel = db.prepare(`SELECT name FROM hotels WHERE id = ?`).get(hid) as { name: string };
 
@@ -226,10 +231,6 @@ export function getSaisieJournaliere(
 
   const byRub = new Map(existing.map((e) => [e.rubrique_id, e]));
   const statut = dayStatut(db, hid, dateJournal);
-  const locked = isMonthLocked(db, hid, dateJournal);
-  const canEdit =
-    !locked && (statut === 'brouillon' || statut === 'refuse' || existing.length === 0);
-
   let enc = 0;
   let ch = 0;
   let nu = 0;
@@ -267,104 +268,14 @@ export function getSaisieJournaliere(
     nuitees: nu,
     couverts: co,
     totalMontant,
-    canEdit:
-      canEdit &&
-      (assertCanSaisie(actor) || isGlobalAdminRole(actor.roleCode)) &&
-      (statut === 'brouillon' || statut === 'refuse' || existing.length === 0),
+    canEdit: false,
   };
 }
 
-function assertCanSaisie(actor: ActorContext): boolean {
-  try {
-    assertRecettesSaisie(actor);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function saveSaisieJournaliere(actorUserId: number, input: SaveSaisieInput): SaisieJournaliereDto {
-  const actor = getActorContext(actorUserId);
-  assertRecettesSaisie(actor);
-  const hid = resolveHotelId(actor, input.hotelId);
-
-  const db = getDatabase();
-  if (isDateJournalLocked(hid, input.dateJournal)) {
-    throw new Error('Journée clôturée. Modification des recettes impossible.');
-  }
-  if (isMonthLocked(db, hid, input.dateJournal)) {
-    throw new Error('Ce mois est verrouillé. Saisie impossible.');
-  }
-
-  const currentStatut = dayStatut(db, hid, input.dateJournal);
-  if (currentStatut === 'valide') {
-    throw new Error('Journée déjà validée. Modification impossible sans procédure admin.');
-  }
-  if (currentStatut === 'soumis' && input.statut === 'brouillon') {
-    throw new Error('Journée en attente de validation.');
-  }
-
-  const findLigne = db.prepare(`
-    SELECT id FROM recettes_journalieres
-    WHERE hotel_id = ? AND date_journal = ? AND rubrique_id = ? AND deleted_at IS NULL
-  `);
-  const insertLigne = db.prepare(`
-    INSERT INTO recettes_journalieres (
-      uuid, hotel_id, rubrique_id, date_journal, montant, observation, statut,
-      encaissement_ht, chambres, nuitees, couverts, created_by, updated_by, sync_status
-    ) VALUES (
-      @uuid, @hotel_id, @rubrique_id, @date_journal, @montant, @observation, @statut,
-      @encaissement_ht, @chambres, @nuitees, @couverts, @created_by, @updated_by, 'pending_update'
-    )
-  `);
-  const updateLigne = db.prepare(`
-    UPDATE recettes_journalieres SET
-      montant = @montant, observation = @observation, statut = @statut,
-      encaissement_ht = @encaissement_ht, chambres = @chambres, nuitees = @nuitees, couverts = @couverts,
-      updated_by = @updated_by, updated_at = datetime('now'), sync_status = 'pending_update'
-    WHERE id = @id
-  `);
-
-  const run = db.transaction(() => {
-    for (const ligne of input.lignes) {
-      if (ligne.montant < 0) throw new Error('Montant négatif interdit.');
-      const payload = {
-        hotel_id: hid,
-        rubrique_id: ligne.rubriqueId,
-        date_journal: input.dateJournal,
-        montant: ligne.montant,
-        observation: ligne.observation?.trim() || null,
-        statut: input.statut,
-        encaissement_ht: input.encaissementHt,
-        chambres: input.chambres,
-        nuitees: input.nuitees,
-        couverts: input.couverts,
-        created_by: actor.userId,
-        updated_by: actor.userId,
-      };
-      const found = findLigne.get(hid, input.dateJournal, ligne.rubriqueId) as
-        | { id: number }
-        | undefined;
-      if (found) {
-        updateLigne.run({ ...payload, id: found.id });
-      } else {
-        insertLigne.run({ ...payload, uuid: randomUUID() });
-      }
-    }
-  });
-  run();
-
-  writeAuditLog({
-    userId: actor.userId,
-    userEmail: actor.email,
-    roleCode: actor.roleCode,
-    action: input.statut === 'soumis' ? 'SUBMIT' : 'UPDATE',
-    module: 'recettes',
-    page: 'SaisieJournalierePage',
-    description: `Saisie journalière ${input.dateJournal} — hôtel ${hid} (${input.statut})`,
-  });
-
-  return getSaisieJournaliere(actorUserId, hid, input.dateJournal);
+export function saveSaisieJournaliere(_actorUserId: number, _input: SaveSaisieInput): SaisieJournaliereDto {
+  throw new Error(
+    'La saisie manuelle du chiffre d\'affaires est désactivée. Le CA est consolidé automatiquement depuis l\'ERP (hébergement, POS, facturation).',
+  );
 }
 
 export interface HistoriqueJourItem {

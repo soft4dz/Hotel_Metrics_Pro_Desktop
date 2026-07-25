@@ -6,7 +6,9 @@ import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import { formatMoney } from '@/lib/formatters';
 import type { DailyClosure } from '@/shared/types/phase2';
-import { CalendarCheck } from 'lucide-react';
+import type { PosHotelClosureStatus } from '@/shared/types/pos';
+import { CalendarCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -23,6 +25,13 @@ export default function ClotureJournalierePage() {
     queryKey: ['clotures', hotelId],
     queryFn: async () =>
       unwrapIpc(await ipcClient.cloture.list(hotelId, undefined, undefined)) as DailyClosure[],
+    enabled: hotelId > 0,
+  });
+
+  const { data: posStatus } = useQuery({
+    queryKey: ['cloture-pos-status', hotelId, dateJournal],
+    queryFn: async () =>
+      unwrapIpc(await ipcClient.cloture.getPosStatus(hotelId, dateJournal)) as PosHotelClosureStatus,
     enabled: hotelId > 0,
   });
 
@@ -76,7 +85,7 @@ export default function ClotureJournalierePage() {
         <CalendarCheck className="w-7 h-7 text-primary" />
         <div>
           <h1 className="text-2xl font-bold">Clôture journalière</h1>
-          <p className="text-sm text-muted-foreground">Création et validation des clôtures quotidiennes</p>
+          <p className="text-sm text-muted-foreground">Ordre requis : clôtures POS → préremplir → soumettre → valider → clôturer</p>
         </div>
       </div>
 
@@ -106,6 +115,28 @@ export default function ClotureJournalierePage() {
         </button>
       </div>
 
+      {posStatus?.required && (
+        <div className={`rounded-xl border p-4 text-sm space-y-2 ${posStatus.allClosed ? 'border-green-300 bg-green-50 dark:bg-green-950/20' : 'border-amber-300 bg-amber-50 dark:bg-amber-950/20'}`}>
+          <div className="flex items-center gap-2 font-medium">
+            {posStatus.allClosed ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <AlertTriangle className="w-4 h-4 text-amber-600" />}
+            Statut POS — {dateJournal}
+          </div>
+          <ul className="space-y-1">
+            {posStatus.points.map((p) => (
+              <li key={p.pointVenteId} className="flex justify-between gap-2">
+                <span>{p.nom}</span>
+                <Badge variant={p.closed && p.openSessions === 0 ? 'success' : 'danger'}>
+                  {p.closed ? (p.openSessions > 0 ? 'Session ouverte' : 'Clôturé') : 'Non clôturé'}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+          {!posStatus.allClosed && (
+            <p className="text-xs text-muted-foreground">La soumission / clôture hôtel est bloquée tant que tous les points de vente ne sont pas clôturés.</p>
+          )}
+        </div>
+      )}
+
       {selectedId && (
         <div className="flex flex-wrap gap-2">
           {[
@@ -128,11 +159,30 @@ export default function ClotureJournalierePage() {
       )}
 
       {selected && (
-        <div className="bg-card border rounded-xl p-4 text-sm grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><span className="text-muted-foreground">CA déclaré</span><p className="font-semibold">{formatMoney(selected.caDeclare)}</p></div>
-          <div><span className="text-muted-foreground">Encaissé</span><p className="font-semibold">{formatMoney(selected.montantEncaisse)}</p></div>
-          <div><span className="text-muted-foreground">Créances</span><p className="font-semibold">{formatMoney(selected.montantCreance)}</p></div>
-          <div><span className="text-muted-foreground">Écart</span><p className="font-semibold">{formatMoney(selected.ecart)}</p></div>
+        <div className="space-y-3">
+          <div className="bg-card border rounded-xl p-4 text-sm grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div><span className="text-muted-foreground">CA déclaré</span><p className="font-semibold">{formatMoney(selected.caDeclare)}</p></div>
+            <div><span className="text-muted-foreground">Encaissé</span><p className="font-semibold">{formatMoney(selected.encaissementsTotal ?? selected.montantEncaisse ?? 0)}</p></div>
+            <div><span className="text-muted-foreground">Créances</span><p className="font-semibold">{formatMoney(selected.creancesTotal ?? selected.montantCreance ?? 0)}</p></div>
+            <div><span className="text-muted-foreground">Écart</span><p className="font-semibold">{formatMoney(selected.ecartCaisse ?? selected.ecart ?? 0)}</p></div>
+          </div>
+          {(selected.items?.length ?? 0) > 0 && (
+            <div className="border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr><th className="p-2 text-left">Rubrique</th><th>Montant</th><th>Source</th><th>Obs.</th></tr></thead>
+                <tbody>
+                  {selected.items!.map((i) => (
+                    <tr key={i.id} className="border-t">
+                      <td className="p-2">{i.rubrique}</td>
+                      <td>{typeof i.montant === 'number' ? formatMoney(i.montant) : i.montant}</td>
+                      <td className="text-muted-foreground">{i.sourceModule ?? '—'}</td>
+                      <td className="text-xs text-muted-foreground">{i.observation ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

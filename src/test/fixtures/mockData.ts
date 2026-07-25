@@ -76,9 +76,11 @@ export const mockEnabledModuleIds = MODULES.map((m) => m.id);
 
 export const mockBranding = {
   companyName: 'Hotel Metrics Pro Test',
-  accentColor: '#2563eb',
-  logoUrl: null as string | null,
-  faviconUrl: null as string | null,
+  companyLogoUrl: null as string | null,
+  reportHeader: 'Hotel Metrics Pro - Rapport interne',
+  reportFooter: 'Document genere automatiquement',
+  reportHeaderImageUrl: null as string | null,
+  reportFooterImageUrl: null as string | null,
 };
 
 export const mockReportsCatalog = {

@@ -90,7 +90,7 @@ export function Sidebar() {
       items: [
         { label: 'Dashboard global', to: '/dashboard', icon: LayoutDashboard, visible: true },
         {
-          label: 'Saisie journalière',
+          label: 'CA journalier (ERP)',
           to: '/recettes/journalieres',
           icon: Receipt,
           visible: canSaisieRecettes(role),

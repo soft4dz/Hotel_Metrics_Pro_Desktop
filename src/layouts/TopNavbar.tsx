@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, LogOut, Menu, Settings } from 'lucide-react';
+import { CalendarDays, LogOut, Menu, PanelLeft, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SyncStatusBadge } from '@/components/common/SyncStatusBadge';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
-import { NavbarNav } from '@/layouts/NavbarNav';
 import { NavbarUserMenu } from '@/layouts/NavbarUserMenu';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
@@ -14,6 +13,8 @@ import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 export function TopNavbar() {
   const navigate = useNavigate();
   const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
+  const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const { user, logout } = useAuthStore();
   const { logoUrl, companyName } = useCompanyBranding();
 
@@ -50,9 +51,20 @@ export function TopNavbar() {
           <Menu className="h-5 w-5" />
         </Button>
 
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="hidden shrink-0 text-white/80 hover:bg-white/10 hover:text-white lg:inline-flex"
+          aria-label={sidebarCollapsed ? 'Déplier le menu latéral' : 'Replier le menu latéral'}
+          onClick={toggleSidebar}
+        >
+          <PanelLeft className="h-5 w-5" />
+        </Button>
+
         <Link
           to={DEFAULT_HOME_PATH}
-          className="flex shrink-0 items-center gap-2 rounded-lg py-1 pr-1 transition-colors hover:bg-white/5 sm:gap-2.5 sm:pr-2"
+          className="flex shrink-0 items-center gap-2 rounded-lg py-1 pr-1 transition-colors hover:bg-white/5 sm:gap-2.5 sm:pr-2 lg:hidden"
         >
           <img
             src={logoUrl}
@@ -68,10 +80,6 @@ export function TopNavbar() {
             </p>
           </div>
         </Link>
-
-        <div className="hidden min-w-0 flex-1 lg:flex">
-          <NavbarNav />
-        </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 md:gap-2">
           <SyncStatusBadge

@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { TopNavbar } from '@/layouts/TopNavbar';
-import { PageTitleBar } from '@/layouts/PageTitleBar';
+import { PrintLetterhead } from '@/components/common/PrintLetterhead';
+import { TopNavbar } from '@/layouts/TopNavbar';import { PageTitleBar } from '@/layouts/PageTitleBar';
 import { MobileNavDrawer } from '@/layouts/MobileNavDrawer';
+import { PremiumSidebar } from '@/layouts/PremiumSidebar';
 import { getPageTitle } from '@/shared/constants/pageTitles';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 
@@ -14,15 +15,18 @@ export function DashboardLayout() {
     pathname === '/portmaster';
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background">
-      <TopNavbar />
+    <div className="flex h-full overflow-hidden bg-background">
+      <PremiumSidebar />
       <MobileNavDrawer />
-      {!hidePageTitle ? <PageTitleBar title={title} subtitle={subtitle} /> : null}
-      <main className="page-mesh flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="layout-content-shell page-content min-h-0">
-          <Outlet />
-        </div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <TopNavbar />
+        {!hidePageTitle ? <PageTitleBar title={title} subtitle={subtitle} /> : null}
+        <main className="page-mesh flex-1 overflow-y-auto overflow-x-hidden">
+          <PrintLetterhead />
+          <div className="layout-content-shell page-content min-h-0">            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
