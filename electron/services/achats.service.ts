@@ -3,6 +3,7 @@ import { writeAuditLog } from './audit.service';
 import { createMouvement } from './stocks.service';
 import { registerTvaAchatFromBonLivraison } from './fiscalite-avancee.service';
 import { createWorkflow, submitWorkflow, findWorkflow } from './workflow.service';
+import { evaluateProcedureTrigger, isWorkflowApproved, resolveProcedureForEntity } from './workflow-procedure.service';
 
 export interface Fournisseur { id: number; uuid: string; code: string; raisonSociale: string; contactNom: string | null; email: string | null; telephone: string | null; adresse: string | null; rc: string | null; nif: string | null; nis: string | null; isActive: boolean; createdAt: string }
 export interface BonCommande { id: number; uuid: string; numero: string; hotelId: number; fournisseurId: number; fournisseurNom: string; statut: string; dateCommande: string; dateLivraisonPrevue: string | null; dateLivraisonEffective: string | null; montantHt: number; montantTva: number; montantTtc: number; notes: string | null; creePar: number | null; validePar: number | null; valideAt: string | null; createdAt: string }
@@ -121,10 +122,13 @@ export function validerBon(actorId: number, id: number): BonCommande {
   const bon = getBonRow(id);
   if (bon.statut !== 'brouillon') throw new Error('Seul un bon brouillon peut être validé.');
 
-  const seuilRow = db.prepare(`SELECT value FROM app_settings WHERE key='workflow_seuil_achat_ttc'`).get() as { value: string } | undefined;
-  const seuil = Number(seuilRow?.value ?? 200000);
   const montantTtc = Number(bon.montant_ttc);
-  if (montantTtc > seuil) {
+  const procedure = resolveProcedureForEntity('achats', 'bon_commande', bon.hotel_id as number);
+  const needsWorkflow = procedure
+    ? evaluateProcedureTrigger(procedure, { amountTtc: montantTtc })
+    : montantTtc > Number((db.prepare(`SELECT value FROM app_settings WHERE key='workflow_seuil_achat_ttc'`).get() as { value: string } | undefined)?.value ?? 200000);
+
+  if (needsWorkflow) {
     let wf = findWorkflow('achats', 'bon_commande', id);
     if (!wf) {
       wf = createWorkflow(actorId, {
@@ -134,9 +138,9 @@ export function validerBon(actorId: number, id: number): BonCommande {
         hotelId: bon.hotel_id as number,
         commentaire: `Validation BC ${bon.numero} — montant ${montantTtc} DA`,
       });
-      wf = submitWorkflow(actorId, wf.id);
+      if (wf.statut === 'brouillon') wf = submitWorkflow(actorId, wf.id);
     }
-    if (!['valide', 'valide_dec', 'cloture'].includes(wf.statut)) {
+    if (!isWorkflowApproved(procedure, wf)) {
       throw new Error('Ce bon d\'achat nécessite une approbation workflow (montant > seuil).');
     }
   }

@@ -1,6 +1,7 @@
 import Electron from '../lib/electronApi';
 import { wrapIpc } from './ipcHelpers';
 import * as svc from '../services/workflow.service';
+import * as proc from '../services/workflow-procedure.service';
 import { assertPositiveInteger, assertText } from './validation';
 
 export function registerWorkflowIpc(): void {
@@ -25,6 +26,18 @@ export function registerWorkflowIpc(): void {
   Electron.ipcMain.handle('workflow:listPending', (event, filters?: svc.WorkflowFilters) =>
     wrapIpc(event, (uid) => svc.listPendingWorkflows(uid, filters ?? {})));
 
+  Electron.ipcMain.handle('workflow:listPendingWithContext', (event, filters?: svc.WorkflowFilters) =>
+    wrapIpc(event, (uid) => svc.listPendingWorkflowsWithContext(uid, filters ?? {})));
+
   Electron.ipcMain.handle('workflow:find', (event, module: string, entityType: string, entityId: unknown) =>
     wrapIpc(event, () => svc.findWorkflow(module, entityType, assertPositiveInteger(entityId, 'entityId'))));
+
+  Electron.ipcMain.handle('workflowProcedures:list', (event) =>
+    wrapIpc(event, (uid) => proc.listWorkflowProcedures(uid)));
+
+  Electron.ipcMain.handle('workflowProcedures:update', (event, code: string, input: proc.UpdateWorkflowProcedureInput) =>
+    wrapIpc(event, (uid) => proc.updateWorkflowProcedure(uid, code, input)));
+
+  Electron.ipcMain.handle('workflowProcedures:updateStep', (event, stepId: number, input: proc.UpdateWorkflowStepInput) =>
+    wrapIpc(event, (uid) => proc.updateWorkflowProcedureStep(uid, assertPositiveInteger(stepId, 'stepId'), input)));
 }

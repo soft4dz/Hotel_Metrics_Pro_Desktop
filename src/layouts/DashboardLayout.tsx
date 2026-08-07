@@ -1,6 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { PrintLetterhead } from '@/components/common/PrintLetterhead';
-import { TopNavbar } from '@/layouts/TopNavbar';import { PageTitleBar } from '@/layouts/PageTitleBar';
+import { LicenseExpiryBanner } from '@/components/common/LicenseExpiryBanner';
+import { TopNavbar } from '@/layouts/TopNavbar';
+import { PageTitleBar } from '@/layouts/PageTitleBar';
 import { MobileNavDrawer } from '@/layouts/MobileNavDrawer';
 import { PremiumSidebar } from '@/layouts/PremiumSidebar';
 import { getPageTitle } from '@/shared/constants/pageTitles';
@@ -20,10 +22,12 @@ export function DashboardLayout() {
       <MobileNavDrawer />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopNavbar />
+        <LicenseExpiryBanner />
         {!hidePageTitle ? <PageTitleBar title={title} subtitle={subtitle} /> : null}
         <main className="page-mesh flex-1 overflow-y-auto overflow-x-hidden">
           <PrintLetterhead />
-          <div className="layout-content-shell page-content min-h-0">            <Outlet />
+          <div className="layout-content-shell page-content min-h-0">
+            <Outlet />
           </div>
         </main>
       </div>

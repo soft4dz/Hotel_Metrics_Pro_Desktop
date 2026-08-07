@@ -183,6 +183,7 @@ const api: IpcApi = {
   },
   settings: {
     getBranding: () => ipcRenderer.invoke('settings:getBranding'),
+    getBusinessSector: () => ipcRenderer.invoke('settings:getBusinessSector'),
     getAppInfo: () => ipcRenderer.invoke('settings:getAppInfo'),
     update: (input) => ipcRenderer.invoke('settings:update', input),
     pickBrandAsset: (asset) => ipcRenderer.invoke('settings:pickBrandAsset', asset),
@@ -759,7 +760,13 @@ const api: IpcApi = {
     reject: (workflowId, motif) => ipcRenderer.invoke('workflow:reject', workflowId, motif),
     history: (workflowId) => ipcRenderer.invoke('workflow:history', workflowId),
     listPending: (filters) => ipcRenderer.invoke('workflow:listPending', filters),
+    listPendingWithContext: (filters) => ipcRenderer.invoke('workflow:listPendingWithContext', filters),
     find: (module, entityType, entityId) => ipcRenderer.invoke('workflow:find', module, entityType, entityId),
+  },
+  workflowProcedures: {
+    list: () => ipcRenderer.invoke('workflowProcedures:list'),
+    update: (code, input) => ipcRenderer.invoke('workflowProcedures:update', code, input),
+    updateStep: (stepId, input) => ipcRenderer.invoke('workflowProcedures:updateStep', stepId, input),
   },
   cloture: {
     create: (hotelId, dateJournal) => ipcRenderer.invoke('cloture:create', hotelId, dateJournal),
@@ -814,8 +821,12 @@ const api: IpcApi = {
   license: {
     getStatus: () => ipcRenderer.invoke('license:getStatus'),
     getMachineId: () => ipcRenderer.invoke('license:getMachineId'),
+    getConfig: () => ipcRenderer.invoke('license:getConfig'),
+    updateConfig: (input) => ipcRenderer.invoke('license:updateConfig', input),
     activate: (key) => ipcRenderer.invoke('license:activate', key),
+    syncRemote: () => ipcRenderer.invoke('license:syncRemote'),
     clear: () => ipcRenderer.invoke('license:clear'),
+    getPack: () => ipcRenderer.invoke('license:getPack'),
   },
   notifications: {
     list: (unreadOnly?: boolean, limit?: number) => ipcRenderer.invoke('notifications:list', unreadOnly, limit),

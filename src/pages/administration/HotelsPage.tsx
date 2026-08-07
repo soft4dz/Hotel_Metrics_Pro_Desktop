@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
+import { useBusinessSector } from '@/hooks/useBusinessSector';
 import type { HotelListItem } from '@/shared/types/admin';
 
 export function HotelsPage() {
+  const { terminology } = useBusinessSector();
   const [hotels, setHotels] = useState<HotelListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -104,13 +106,13 @@ export function HotelsPage() {
   return (
     <div>
       <PageHeader
-        title="Hôtels et unités"
+        title={terminology.unitAdminTitle}
         description="Établissements gérés dans la plateforme"
         action={
           <Button asChild>
             <Link to="/admin/hotels/new">
               <Plus className="h-4 w-4" />
-              Nouvel hôtel
+              {terminology.newUnit}
             </Link>
           </Button>
         }
@@ -127,7 +129,7 @@ export function HotelsPage() {
         data={hotels}
         keyExtractor={(h) => h.id}
         loading={loading}
-        emptyMessage="Aucun hôtel"
+        emptyMessage={terminology.unitEmpty}
       />
     </div>
   );

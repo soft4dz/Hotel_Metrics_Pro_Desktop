@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Layers, Loader2, Search, Shield } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Layers, Loader2, Search, Shield, Lock } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,8 @@ import {
 } from '@/modules/moduleCatalog';
 import { PROTECTED_MODULE_IDS } from '@/shared/constants/configuredModules';
 import type { ConfiguredModuleId } from '@/shared/constants/configuredModules';
+import { ipcClient } from '@/lib/ipcClient';
+import { unwrapIpc } from '@/lib/ipcHelpers';
 
 type FilterMode = 'all' | 'enabled' | 'disabled';
 
@@ -23,6 +26,15 @@ export function ModulesAdminPage() {
   const [filter, setFilter] = useState<FilterMode>('all');
   const { data: config = [], isLoading, error } = useModulesConfig();
   const setEnabled = useSetModuleEnabled();
+  const { data: licensedPack } = useQuery({
+    queryKey: ['license-pack'],
+    queryFn: async () => unwrapIpc(await ipcClient.license.getPack()),
+  });
+  const licensedSet = useMemo(
+    () => new Set(licensedPack?.enabledModuleIds ?? []),
+    [licensedPack],
+  );
+  const packLocked = licensedPack != null;
   const configById = useMemo(() => moduleConfigMap(config), [config]);
 
   const stats = useMemo(() => {
@@ -76,8 +88,16 @@ export function ModulesAdminPage() {
     <div className="page-shell space-y-6">
       <PageHeader
         title="Modules activés"
-        description="Activez ou désactivez les modules métier pour cette installation. Les routes et menus des modules désactivés sont bloqués."
+        description="Activez ou désactivez les modules métier pour cette installation. Les modules hors pack licence sont verrouillés."
       />
+
+      {packLocked && licensedPack && (
+        <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <Lock className="h-4 w-4 shrink-0" />
+          Pack licence : <strong>{licensedPack.editionLabel}</strong> · {licensedPack.sectorLabel} —{' '}
+          {licensedPack.enabledCount} modules autorisés.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -162,6 +182,7 @@ export function ModulesAdminPage() {
               {modules.map((module) => {
                 const row = configById.get(module.id)!;
                 const protectedModule = PROTECTED_MODULE_IDS.has(module.id as ConfiguredModuleId);
+                const licensedModule = !packLocked || licensedSet.has(module.id as ConfiguredModuleId);
                 const busy = setEnabled.isPending && setEnabled.variables?.moduleId === module.id;
 
                 return (
@@ -179,6 +200,12 @@ export function ModulesAdminPage() {
                           <Badge variant="accent" className="gap-1 text-[10px]">
                             <Shield className="h-3 w-3" />
                             Socle
+                          </Badge>
+                        )}
+                        {packLocked && !licensedModule && (
+                          <Badge variant="muted" className="gap-1 text-[10px]">
+                            <Lock className="h-3 w-3" />
+                            Hors pack
                           </Badge>
                         )}
                       </div>
@@ -199,7 +226,7 @@ export function ModulesAdminPage() {
                       </span>
                       <Switch
                         checked={row.isEnabled}
-                        disabled={protectedModule || busy || setEnabled.isPending}
+                        disabled={protectedModule || !licensedModule || busy || setEnabled.isPending}
                         aria-label={`${row.isEnabled ? 'Désactiver' : 'Activer'} ${module.name}`}
                         onCheckedChange={(checked) => handleToggle(module.id, checked, module.name)}
                       />

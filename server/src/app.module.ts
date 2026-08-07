@@ -8,6 +8,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { FacturationModule } from './modules/facturation/facturation.module';
 import { TresorerieModule } from './modules/tresorerie/tresorerie.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { LicensesModule } from './modules/licenses/licenses.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuditModule } from './modules/audit/audit.module';
     FacturationModule,
     TresorerieModule,
     AuditModule,
+    LicensesModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

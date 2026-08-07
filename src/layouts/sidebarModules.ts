@@ -29,6 +29,11 @@ import {
   canViewObjectifs,
   canViewRecettes,
 } from '@/shared/permissions';
+import {
+  getBusinessSectorProfile,
+  normalizeBusinessSectorId,
+  type BusinessSectorId,
+} from '@/shared/constants/businessSectors';
 
 export type SidebarNavItem = {
   label: string;
@@ -51,7 +56,13 @@ export function buildSidebarModules(
   role: string | undefined,
   pendingUsers = 0,
   pendingValidationsN1 = 0,
+  sectorId: BusinessSectorId = 'hotel',
 ): SidebarModule[] {
+  const profile = getBusinessSectorProfile(normalizeBusinessSectorId(sectorId));
+  const hiddenRoutes = new Set(profile.hiddenRoutes);
+  const term = profile.terminology;
+  const routeVisible = (to: string, roleVisible = true) => roleVisible && !hiddenRoutes.has(to);
+
   return [
     {
       id: 'pilotage',
@@ -67,19 +78,19 @@ export function buildSidebarModules(
     },
     {
       id: 'exploitation',
-      title: 'Exploitation',
+      title: term.exploitationSection,
       icon: Building2,
       items: [
-        { label: 'Hébergement & occupation', to: '/hebergement' },
-        { label: 'Housekeeping', to: '/housekeeping' },
-        { label: 'Tarifs & conventions', to: '/tarifs' },
-        { label: 'CA journalier (ERP)', to: '/recettes/journalieres', visible: canViewRecettes(role) },
-        { label: 'Historique recettes', to: '/recettes/historique', visible: canViewRecettes(role) },
-        { label: 'Validation recettes', to: '/recettes/validation', visible: canValidateRecettes(role) },
-        { label: 'Clôture journalière', to: '/recettes/cloture', visible: canValidateRecettes(role) },
+        { label: 'Hébergement & occupation', to: '/hebergement', visible: routeVisible('/hebergement') },
+        { label: 'Housekeeping', to: '/housekeeping', visible: routeVisible('/housekeeping') },
+        { label: 'Tarifs & conventions', to: '/tarifs', visible: routeVisible('/tarifs') },
+        { label: term.dailyRevenue, to: '/recettes/journalieres', visible: routeVisible('/recettes/journalieres', canViewRecettes(role)) },
+        { label: 'Historique recettes', to: '/recettes/historique', visible: routeVisible('/recettes/historique', canViewRecettes(role)) },
+        { label: 'Validation recettes', to: '/recettes/validation', visible: routeVisible('/recettes/validation', canValidateRecettes(role)) },
+        { label: 'Clôture journalière', to: '/recettes/cloture', visible: routeVisible('/recettes/cloture', canValidateRecettes(role)) },
         { label: 'Clients', to: '/clients', visible: canManageClients(role) },
         { label: 'Facturation', to: '/facturation' },
-        { label: 'Conformité hôtelière', to: '/hotel-legal' },
+        { label: 'Conformité hôtelière', to: '/hotel-legal', visible: routeVisible('/hotel-legal') },
         { label: 'Données personnelles (18-07)', to: '/conformite/donnees-personnelles', visible: canManageUsers(role) },
         { label: 'Modules légaux', to: '/conformite/modules-legaux', visible: canManageUsers(role) },
       ],
@@ -104,12 +115,12 @@ export function buildSidebarModules(
       icon: Wrench,
       items: [
         { label: 'Stocks & consommations', to: '/stocks' },
-        { label: 'Production & fiches techniques', to: '/cuisine' },
-        { label: 'Points de vente (POS)', to: '/pos' },
+        { label: 'Production & fiches techniques', to: '/cuisine', visible: routeVisible('/cuisine') },
+        { label: 'Points de vente (POS)', to: '/pos', visible: routeVisible('/pos') },
         { label: 'Achats & fournisseurs', to: '/achats' },
         { label: 'Maintenance', to: '/maintenance' },
-        { label: 'Parking', to: '/parking' },
-        { label: 'Plage & piscine', to: '/plage' },
+        { label: 'Parking', to: '/parking', visible: routeVisible('/parking') },
+        { label: 'Plage & piscine', to: '/plage', visible: routeVisible('/plage') },
       ],
     },
     {
@@ -118,6 +129,7 @@ export function buildSidebarModules(
       icon: Shield,
       items: [
         { label: 'Workflows', to: '/workflows' },
+        { label: 'Procédures validation', to: '/workflows/procedures', visible: canManageUsers(role) },
         { label: 'Checklists', to: '/controle/checklists' },
       ],
     },
@@ -136,7 +148,7 @@ export function buildSidebarModules(
       title: 'Commercial & documents',
       icon: Handshake,
       items: [
-        { label: 'Commercial', to: '/commercial' },
+        { label: 'Commercial', to: '/commercial', visible: routeVisible('/commercial') },
         { label: 'Gestion documentaire', to: '/ged' },
         { label: 'Archivage légal GED', to: '/ged/archivage-legal' },
       ],
@@ -183,7 +195,7 @@ export function buildSidebarModules(
       title: 'Administration',
       icon: Building2,
       items: [
-        { label: 'Hôtels / unités', to: '/admin/hotels', visible: canManageHotels(role) },
+        { label: term.units, to: '/admin/hotels', visible: canManageHotels(role) },
         {
           label: 'Utilisateurs',
           to: '/admin/users',
@@ -210,6 +222,7 @@ export function buildSidebarModules(
         { label: 'Synchronisation', to: '/system/sync', visible: canManageSync(role) },
         { label: "Journal d'audit", to: '/audit/logs', visible: canReadAudit(role) },
         { label: 'Paramètres', to: '/settings' },
+        { label: 'Licence', to: '/settings/licence', visible: canManageUsers(role) },
         { label: 'Modules activés', to: '/settings/modules', visible: canManageUsers(role) },
         { label: 'Interface & thème', to: '/settings/interface' },
         { label: 'Notifications', to: '/settings/notifications' },

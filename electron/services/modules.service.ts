@@ -1,6 +1,7 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { assertPermission } from './permissions.service';
+import { isModuleAllowedByLicense, isPackLockedByLicense } from './license-pack.service';
 import {
   CONFIGURED_MODULE_IDS,
   CONFIGURED_MODULE_ID_SET,
@@ -64,6 +65,11 @@ export function setModuleEnabledForUser(
   }
   if (!enabled && PROTECTED_MODULE_IDS.has(moduleId as (typeof CONFIGURED_MODULE_IDS)[number])) {
     throw new Error('Ce module socle ne peut pas être désactivé.');
+  }
+  if (enabled && isPackLockedByLicense() && !isModuleAllowedByLicense(moduleId)) {
+    throw new Error(
+      'Ce module n\'est pas inclus dans votre pack licence (édition + secteur). Contactez Raqmi System.',
+    );
   }
 
   upsertModuleEnabled(moduleId, enabled);

@@ -103,6 +103,20 @@ export function createMockIpcClient(): IpcApi {
     }),
     settings: namespace({
       getBranding: ok(mockBranding),
+      getBusinessSector: ok({
+        sectorId: 'hotel' as const,
+        label: 'Hôtellerie & tourisme',
+        lockedByLicense: false,
+        terminology: {
+          unit: 'Hôtel',
+          units: 'Hôtels / unités',
+          unitAdminTitle: 'Hôtels et unités',
+          newUnit: 'Nouvel hôtel',
+          unitEmpty: 'Aucun hôtel',
+          dailyRevenue: 'CA journalier (ERP)',
+          exploitationSection: 'Exploitation hôtelière',
+        },
+      }),
       getAppInfo: ok({ version: '0.8.0-test', dbPath: '/tmp/test.db' }),
     }),
     database: namespace({
@@ -164,6 +178,39 @@ export function createMockIpcClient(): IpcApi {
       previewComposed: ok({ columns: [], rows: [] }),
     }),
     import: namespace({}),
+    license: namespace({
+      getStatus: ok({
+        state: 'development',
+        edition: 'DEVELOPMENT',
+        holder: null,
+        expiresAt: null,
+        daysRemaining: null,
+        machineId: 'TEST-MACHINE',
+        activatedAt: null,
+        message: 'Mode développement',
+        isPackaged: false,
+        licenseSource: 'development',
+        licenseMode: 'offline',
+        remoteServerUrl: null,
+        organizationCode: null,
+        lastRemoteSyncAt: null,
+        remoteServerReachable: null,
+        readOnlyMode: false,
+        alertLevel: 'none',
+        alertMessage: null,
+        businessSector: 'hotel',
+        businessSectorLabel: 'Hôtellerie & tourisme',
+        packLabel: null,
+        licensedModuleCount: null,
+      }),
+      getPack: ok(null),
+      getConfig: ok({
+        licenseMode: 'offline',
+        remoteServerUrl: '',
+        organizationCode: '',
+        remoteServerReachable: null,
+      }),
+    }),
   } as unknown as IpcApi;
 
   return client;

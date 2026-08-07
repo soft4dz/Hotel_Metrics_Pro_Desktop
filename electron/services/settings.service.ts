@@ -10,6 +10,8 @@ import {
   type CompanyBrandAsset,
 } from './logo.service';
 import { assertPermission, userHasPermission } from './permissions.service';
+import { getBusinessSectorId } from './business-sector.service';
+import { isBusinessSectorId, type BusinessSectorId } from '../../src/shared/constants/businessSectors';
 
 export interface AppSettingsDto {
   companyName: string;
@@ -38,6 +40,7 @@ export interface AppSettingsDto {
   tauxTvaPort: number;
   maxLoginAttempts: number;
   lockoutMinutes: number;
+  businessSector: BusinessSectorId;
 }
 
 export interface AppInfoDto {
@@ -115,6 +118,7 @@ function readAppSettings(): AppSettingsDto {
     tauxTvaPort: parseFloat(readSetting('port_taux_tva_default', '19')),
     maxLoginAttempts: parseInt(readSetting('max_login_attempts', '5'), 10),
     lockoutMinutes: parseInt(readSetting('lockout_minutes', '15'), 10),
+    businessSector: getBusinessSectorId(),
   };
 }
 
@@ -144,6 +148,7 @@ export function getCompanyBranding(): {
   reportFooter: string;
   reportHeaderImageUrl: string | null;
   reportFooterImageUrl: string | null;
+  businessSector: BusinessSectorId;
 } {
   const companyLogoFile = readOptionalSetting('company_logo_file');
   const reportHeaderImageFile = readOptionalSetting('report_header_image_file');
@@ -155,6 +160,7 @@ export function getCompanyBranding(): {
     reportFooter: readSetting('report_footer', 'Document généré automatiquement'),
     reportHeaderImageUrl: resolveCompanyBrandUrl(reportHeaderImageFile),
     reportFooterImageUrl: resolveCompanyBrandUrl(reportFooterImageFile),
+    businessSector: getBusinessSectorId(),
   };
 }
 
@@ -244,6 +250,16 @@ export function updateAppSettings(
     const v = Math.round(input.lockoutMinutes);
     if (v < 5 || v > 120) throw new Error('Verrouillage : entre 5 et 120 minutes.');
     writeSetting('lockout_minutes', String(v));
+  }
+  if (input.businessSector !== undefined) {
+    const locked = readSetting('business_sector_locked', '0') === '1';
+    if (locked) {
+      throw new Error('Le profil métier est défini par votre licence Raqmi et ne peut pas être modifié localement.');
+    }
+    if (!isBusinessSectorId(input.businessSector)) {
+      throw new Error('Secteur d\'activité invalide.');
+    }
+    writeSetting('business_sector', input.businessSector);
   }
 
   return readAppSettings();

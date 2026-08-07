@@ -188,7 +188,16 @@ export default function CuisinePage() {
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-muted-foreground border-b"><th className="py-2">Ingrédient</th><th>Qté</th><th>Coût</th><th /></tr></thead>
                   <tbody>
-                    {selected.lignes.map((l) => (
+                    {selected.lignes.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">
+                          Aucun ingrédient enregistré.
+                          {selected.statut === 'brouillon'
+                            ? ' Ajoutez des produits stock ci-dessous.'
+                            : ' Cette fiche a été validée sans détail ingrédients (données démo incomplètes).'}
+                        </td>
+                      </tr>
+                    ) : selected.lignes.map((l) => (
                       <tr key={l.id} className="border-b">
                         <td className="py-2">{l.produitDesignation}</td>
                         <td>{l.quantite} {l.unite}{l.tauxPerte > 0 ? ` (+${l.tauxPerte}% perte)` : ''}</td>

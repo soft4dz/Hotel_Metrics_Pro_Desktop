@@ -81,6 +81,7 @@ export const mockBranding = {
   reportFooter: 'Document genere automatiquement',
   reportHeaderImageUrl: null as string | null,
   reportFooterImageUrl: null as string | null,
+  businessSector: 'hotel' as const,
 };
 
 export const mockReportsCatalog = {

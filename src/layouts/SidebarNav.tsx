@@ -128,8 +128,8 @@ function CollapsedModuleFlyout({
         <div
           ref={panelRef}
           role="menu"
-          style={{ top: panelPos.top, left: panelPos.left }}
-          className="sidebar-flyout fixed z-[100] min-w-[240px] max-w-[min(320px,calc(100vw-5rem))] rounded-xl border border-white/15 p-2 shadow-elevated"
+          style={{ top: panelPos.top, left: panelPos.left, transformOrigin: 'left center' }}
+          className="sidebar-flyout fixed z-[100] min-w-[240px] max-w-[min(320px,calc(100vw-5rem))] animate-in rounded-xl border border-white/15 p-2 shadow-elevated fade-in-0 zoom-in-95 slide-in-from-left-1 duration-150"
         >
           <p className="sidebar-nav-label mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/50">
             {module.title}
@@ -276,13 +276,20 @@ function ModuleDropdown({
         />
       </button>
 
-      {isOpen && (
-        <div className="space-y-0.5 pb-1 pt-0.5">
-          {items.map((item) => (
-            <NavLeaf key={item.to} item={item} onNavigate={onNavigate} />
-          ))}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-0.5 pb-1 pt-0.5">
+            {items.map((item) => (
+              <NavLeaf key={item.to} item={item} onNavigate={onNavigate} />
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

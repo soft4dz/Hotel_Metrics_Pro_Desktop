@@ -6,6 +6,7 @@ import { writeAuditLog } from './audit.service';
 import { getActorContext, isGlobalAdminRole } from './actorContext';
 import { csvLine } from './rh-legal-export.util';
 import { createWorkflow } from './workflow.service';
+import { evaluateProcedureTrigger, resolveProcedureForEntity } from './workflow-procedure.service';
 
 export type InventaireStatut = 'en_cours' | 'cloture' | 'valide';
 
@@ -159,14 +160,17 @@ export function cloturerInventaireSession(actorUserId: number, sessionId: number
   const fresh = mapSession(db.prepare('SELECT * FROM inventaire_legal_sessions WHERE id = ?').get(sessionId) as Record<string, unknown>);
 
   if (Math.abs(fresh.ecartTotal) > 0.01) {
-    createWorkflow(actorUserId, {
-      module: 'inventaire_legal',
-      entityType: 'session',
-      entityId: sessionId,
-      priorite: 'normale',
-      commentaire: `Écart inventaire légal ${fresh.ecartTotal.toFixed(2)} DA — exercice ${fresh.exercice}`,
-      hotelId: fresh.hotelId,
-    });
+    const procedure = resolveProcedureForEntity('inventaire_legal', 'session', fresh.hotelId);
+    if (!procedure || evaluateProcedureTrigger(procedure, { ecartAmount: fresh.ecartTotal })) {
+      createWorkflow(actorUserId, {
+        module: 'inventaire_legal',
+        entityType: 'session',
+        entityId: sessionId,
+        priorite: 'normale',
+        commentaire: `Écart inventaire légal ${fresh.ecartTotal.toFixed(2)} DA — exercice ${fresh.exercice}`,
+        hotelId: fresh.hotelId,
+      });
+    }
   }
 
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'inventaire_legal', description: `Inventaire légal clôturé #${sessionId}` });

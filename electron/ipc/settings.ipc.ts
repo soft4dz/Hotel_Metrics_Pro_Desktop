@@ -1,11 +1,16 @@
 import Electron from '../lib/electronApi';
 import * as settingsService from '../services/settings.service';
+import * as businessSectorService from '../services/business-sector.service';
 import * as userPreferencesService from '../services/user-preferences.service';
 import type { CompanyBrandAsset } from '../services/logo.service';
 import type { UserUiPreferencesDto } from '../../src/shared/types/uiPreferences';
 import { wrapIpc, wrapIpcAsync, wrapIpcPublic } from './ipcHelpers';
 
 export function registerSettingsIpc(): void {
+  Electron.ipcMain.handle('settings:getBusinessSector', () =>
+    wrapIpcPublic(() => businessSectorService.getBusinessSectorPublicInfo()),
+  );
+
   Electron.ipcMain.handle('settings:getBranding', () =>
     wrapIpcPublic(() => settingsService.getCompanyBranding()),
   );

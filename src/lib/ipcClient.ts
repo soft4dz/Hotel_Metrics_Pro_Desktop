@@ -158,6 +158,7 @@ export const ipcClient: IpcApi = {
   },
   settings: {
     getBranding: () => api().settings.getBranding(),
+    getBusinessSector: () => api().settings.getBusinessSector(),
     getAppInfo: () => api().settings.getAppInfo(),
     update: (input) => api().settings.update(input),
     pickBrandAsset: (asset) => api().settings.pickBrandAsset(asset),
@@ -685,7 +686,13 @@ export const ipcClient: IpcApi = {
     reject: (workflowId, motif) => api().workflow.reject(workflowId, motif),
     history: (workflowId) => api().workflow.history(workflowId),
     listPending: (filters) => api().workflow.listPending(filters),
+    listPendingWithContext: (filters) => api().workflow.listPendingWithContext(filters),
     find: (module, entityType, entityId) => api().workflow.find(module, entityType, entityId),
+  },
+  workflowProcedures: {
+    list: () => api().workflowProcedures.list(),
+    update: (code, input) => api().workflowProcedures.update(code, input),
+    updateStep: (stepId, input) => api().workflowProcedures.updateStep(stepId, input),
   },
   cloture: {
     create: (hotelId, dateJournal) => api().cloture.create(hotelId, dateJournal),
@@ -764,8 +771,12 @@ export const ipcClient: IpcApi = {
   license: {
     getStatus: () => api().license.getStatus(),
     getMachineId: () => api().license.getMachineId(),
+    getConfig: () => api().license.getConfig(),
+    updateConfig: (input) => api().license.updateConfig(input),
     activate: (key) => api().license.activate(key),
+    syncRemote: () => api().license.syncRemote(),
     clear: () => api().license.clear(),
+    getPack: () => api().license.getPack(),
   },
   notifications: {
     list: (unreadOnly?, limit?) => api().notifications.list(unreadOnly, limit),

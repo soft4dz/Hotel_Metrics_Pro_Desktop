@@ -4,6 +4,7 @@ import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { useBusinessSector } from '@/hooks/useBusinessSector';
 import { useEnabledModules } from '@/hooks/useEnabledModules';
 import { canManageRh, canManageUsers, canValidateRhTeam } from '@/shared/permissions';
 import {
@@ -16,6 +17,7 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
   const autoExpandOnNavigate = options?.autoExpandOnNavigate ?? false;
   const role = useAuthStore((state) => state.user?.role);
   const enabledModules = useEnabledModules();
+  const { sectorId } = useBusinessSector();
   const { pathname } = useLocation();
   const { logoUrl: brandLogoUrl } = useCompanyBranding();
   const [pendingUsers, setPendingUsers] = useState(0);
@@ -26,12 +28,12 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
 
   const modules = useMemo(
     () =>
-      buildSidebarModules(role, pendingUsers, pendingValidationsN1).filter((mod) => {
+      buildSidebarModules(role, pendingUsers, pendingValidationsN1, sectorId).filter((mod) => {
         if (mod.visible === false) return false;
         if (mod.moduleId && enabledModules.size > 0 && !enabledModules.has(mod.moduleId)) return false;
         return mod.items.some((item) => item.visible !== false);
       }),
-    [role, pendingUsers, pendingValidationsN1, enabledModules],
+    [role, pendingUsers, pendingValidationsN1, enabledModules, sectorId],
   );
 
   useEffect(() => {

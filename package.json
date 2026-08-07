@@ -34,6 +34,9 @@
     "validate:packaging": "node scripts/validate-packaging.mjs",
     "validate:certification": "npm test && npm run audit:ipc && npm run validate:packaging && tsc --noEmit",
     "generate:license": "node scripts/generate-license-key.mjs",
+    "license-manager:install": "cd license-manager && npm install",
+    "license-manager:dev": "cd license-manager && npm run dev",
+    "license-manager:build": "cd license-manager && npm run build",
     "seed:pms": "electron scripts/seed-pms-demo.mjs",
     "seed:demo": "electron scripts/seed-demo-full.mjs",
     "reset:db": "electron scripts/reset-db-superadmin.mjs"
@@ -69,6 +72,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.185.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -81,6 +85,7 @@
     "@types/node": "^22.13.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "^4.1.8",
     "autoprefixer": "^10.4.20",

@@ -454,7 +454,12 @@ function ensureGedCategories(db) {
 
 function seedGed(db, hotels, adminId) {
   ensureGedCategories(db);
+  if (force) db.exec(`DELETE FROM ged_documents WHERE chemin LIKE 'ged/demo/%'`);
   if (count(db, 'ged_documents') >= 3 && !force) return;
+
+  const uploadedBy = adminId && db.prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`).get(adminId)?.id
+    ? adminId
+    : null;
 
   const catId =
     db.prepare(`SELECT id FROM ged_categories WHERE code = 'contrats'`).get()?.id ??
@@ -477,7 +482,7 @@ function seedGed(db, hotels, adminId) {
     const [titre, fichier] = docs[i];
     const exists = db.prepare(`SELECT id FROM ged_documents WHERE titre = ?`).get(titre);
     if (!exists) {
-      ins.run(hotels[i % hotels.length].id, catId, titre, fichier, `ged/demo/${fichier}`, 125000, 'application/pdf', adminId, today(-i * 10));
+      ins.run(hotels[i % hotels.length].id, catId, titre, fichier, `ged/demo/${fichier}`, 125000, 'application/pdf', uploadedBy, today(-i * 10));
     }
   }
   console.log(`GED: ${count(db, 'ged_documents')} documents`);
@@ -552,11 +557,42 @@ function seedCreances(db, hotels, clients) {
 }
 
 function seedCuisine(db, hotels, adminId) {
-  if (count(db, 'cuisine_recettes') >= 3 && !force) {
-    console.log(`Cuisine: déjà ${count(db, 'cuisine_recettes')} recettes — ignoré`);
+  const recetteCount = count(db, 'cuisine_recettes');
+  const ligneCount = count(db, 'cuisine_recette_lignes');
+  if (recetteCount >= 3 && ligneCount > 0 && !force) {
+    console.log(`Cuisine: déjà ${recetteCount} recettes (${ligneCount} lignes) — ignoré`);
     return;
   }
   if (force) db.exec(`DELETE FROM cuisine_recette_lignes; DELETE FROM cuisine_recettes WHERE code LIKE 'DEMO-%'`);
+
+  // Produits alimentaires pour les fiches techniques (si absents)
+  let catAlim = db.prepare(`SELECT id FROM stock_categories WHERE code = 'ALIM'`).get()?.id;
+  if (!catAlim) catAlim = db.prepare(`INSERT INTO stock_categories (code, label) VALUES ('ALIM', 'Alimentaire')`).run().lastInsertRowid;
+
+  const aliments = [
+    ['ALIM-COUSCOUS', 'Semoule couscous', 'kg', 450, 25],
+    ['ALIM-LEGUMES', 'Légumes couscous (carotte, courgette)', 'kg', 320, 20],
+    ['ALIM-VIAN', 'Viande agneau', 'kg', 2800, 15],
+    ['ALIM-POISSON', 'Filet poisson blanc', 'kg', 2200, 12],
+    ['ALIM-SALADE', 'Salade verte', 'kg', 380, 10],
+    ['ALIM-TOMATE', 'Tomate', 'kg', 250, 15],
+    ['ALIM-DATTE', 'Pâte dattes', 'kg', 1200, 8],
+    ['ALIM-FARINE', 'Farine semoule', 'kg', 180, 20],
+  ];
+  const insProd = db.prepare(`
+    INSERT OR IGNORE INTO stock_produits (code, designation, categorie_id, unite, prix_unitaire, seuil_alerte)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const prodIds = {};
+  for (const [code, des, unite, prix, seuil] of aliments) {
+    insProd.run(code, des, catAlim, unite, prix, seuil);
+    prodIds[code] = db.prepare(`SELECT id FROM stock_produits WHERE code = ?`).get(code).id;
+    for (const hotel of hotels) {
+      db.prepare(`
+        INSERT OR IGNORE INTO stock_niveaux (hotel_id, produit_id, quantite) VALUES (?, ?, ?)
+      `).run(hotel.id, prodIds[code], 30);
+    }
+  }
 
   const ins = db.prepare(`
     INSERT INTO cuisine_recettes (uuid, hotel_id, code, nom, portions, prix_vente, cout_revient, statut, valide_par, valide_at, cree_par)
@@ -568,13 +604,46 @@ function seedCuisine(db, hotels, adminId) {
     ['DEMO-SALADE', 'Salade méditerranéenne', 1500, 600],
     ['DEMO-DESSERT', 'Makroud aux dattes', 900, 350],
   ];
+  const insLigne = db.prepare(`
+    INSERT INTO cuisine_recette_lignes (recette_id, produit_id, quantite, unite, taux_perte, ordre)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const lignesParPlat = {
+    'DEMO-COUSCOUS': [
+      ['ALIM-COUSCOUS', 0.18, 'kg', 2, 1],
+      ['ALIM-LEGUMES', 0.25, 'kg', 5, 2],
+      ['ALIM-VIAN', 0.15, 'kg', 8, 3],
+    ],
+    'DEMO-POISSON': [
+      ['ALIM-POISSON', 0.22, 'kg', 3, 1],
+      ['ALIM-LEGUMES', 0.1, 'kg', 5, 2],
+    ],
+    'DEMO-SALADE': [
+      ['ALIM-SALADE', 0.12, 'kg', 5, 1],
+      ['ALIM-TOMATE', 0.08, 'kg', 3, 2],
+    ],
+    'DEMO-DESSERT': [
+      ['ALIM-DATTE', 0.1, 'kg', 2, 1],
+      ['ALIM-FARINE', 0.08, 'kg', 0, 2],
+    ],
+  };
+
   for (const hotel of hotels) {
     for (const [code, nom, prix, cout] of plats) {
-      const exists = db.prepare(`SELECT id FROM cuisine_recettes WHERE hotel_id = ? AND code = ?`).get(hotel.id, code);
-      if (!exists) ins.run(randomUUID(), hotel.id, code, nom, prix, cout, adminId, adminId);
+      let recetteId = db.prepare(`SELECT id FROM cuisine_recettes WHERE hotel_id = ? AND code = ?`).get(hotel.id, code)?.id;
+      if (!recetteId) {
+        ins.run(randomUUID(), hotel.id, code, nom, prix, cout, adminId, adminId);
+        recetteId = db.prepare(`SELECT id FROM cuisine_recettes WHERE hotel_id = ? AND code = ?`).get(hotel.id, code).id;
+      }
+      const existingLignes = db.prepare(`SELECT COUNT(*) AS c FROM cuisine_recette_lignes WHERE recette_id = ?`).get(recetteId).c;
+      if (existingLignes === 0) {
+        for (const [prodCode, qte, unite, perte, ordre] of lignesParPlat[code] ?? []) {
+          insLigne.run(recetteId, prodIds[prodCode], qte, unite, perte, ordre);
+        }
+      }
     }
   }
-  console.log(`Cuisine: ${count(db, 'cuisine_recettes')} recettes`);
+  console.log(`Cuisine: ${count(db, 'cuisine_recettes')} recettes, ${count(db, 'cuisine_recette_lignes')} lignes`);
 }
 
 const POS_FACTIONS = [
@@ -728,8 +797,8 @@ console.log('DB:', dbPath);
 const db = new Database(dbPath);
 applyMigrations(db);
 
-const admin = db.prepare(`SELECT id FROM users WHERE email = 'admin@hotelmetrics.local' COLLATE NOCASE`).get();
-const adminId = admin?.id ?? 1;
+const admin = db.prepare(`SELECT id FROM users WHERE email = 'admin@hotelmetrics.local' COLLATE NOCASE AND deleted_at IS NULL`).get();
+const adminId = admin?.id ?? db.prepare(`SELECT id FROM users WHERE deleted_at IS NULL AND is_active = 1 ORDER BY id LIMIT 1`).get()?.id ?? null;
 
 console.log('\n=== Seed démo complet ===\n');
 

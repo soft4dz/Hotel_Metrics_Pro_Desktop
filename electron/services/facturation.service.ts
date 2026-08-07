@@ -12,6 +12,7 @@ import { syncEncaissementFacturePaiement } from './encaissement-sync.service';
 import { genererEcritureFacture, hashDocument, getExerciceOuvert } from './comptabilite.service';
 import { enregistrerTvaVente } from './fiscalite-dz.service';
 import { createWorkflow, submitWorkflow, findWorkflow } from './workflow.service';
+import { evaluateProcedureTrigger, isWorkflowApproved, resolveProcedureForEntity } from './workflow-procedure.service';
 import { createCreanceFromFacture } from './creances.service';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -578,19 +579,22 @@ export function validerFacture(uid: number, id: number): FactureDetail {
     throw new Error(`Transition invalide : ${row.statut} → validee`);
   }
 
-  const seuilRow = db.prepare(`SELECT value FROM app_settings WHERE key='workflow_seuil_facture_ttc'`).get() as { value: string } | undefined;
-  const seuil = Number(seuilRow?.value ?? 500000);
   const clientType = row.clientId
     ? (db.prepare('SELECT type FROM clients_facturation WHERE id=?').get(row.clientId) as { type: string } | undefined)?.type
     : null;
-  const needsWorkflow = row.montantTtc > seuil || clientType === 'entreprise';
+  const procedure = resolveProcedureForEntity('facturation', 'facture', row.hotelId);
+  const needsWorkflow = procedure
+    ? evaluateProcedureTrigger(procedure, { amountTtc: row.montantTtc, clientType })
+    : row.montantTtc > Number((db.prepare(`SELECT value FROM app_settings WHERE key='workflow_seuil_facture_ttc'`).get() as { value: string } | undefined)?.value ?? 500000)
+      || clientType === 'entreprise';
+
   if (needsWorkflow) {
     let wf = findWorkflow('facturation', 'facture', id);
     if (!wf) {
       wf = createWorkflow(uid, { module: 'facturation', entityType: 'facture', entityId: id, hotelId: row.hotelId, commentaire: 'Validation facture soumise au workflow' });
-      wf = submitWorkflow(uid, wf.id, 'Soumission automatique — seuil ou client entreprise');
+      if (wf.statut === 'brouillon') wf = submitWorkflow(uid, wf.id, 'Soumission automatique — seuil ou client entreprise');
     }
-    if (!['valide', 'valide_dec', 'cloture'].includes(wf.statut)) {
+    if (!isWorkflowApproved(procedure, wf)) {
       throw new Error('Cette facture nécessite une approbation workflow avant validation finale.');
     }
   }

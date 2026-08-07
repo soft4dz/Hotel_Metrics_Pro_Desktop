@@ -1,3 +1,5 @@
+import type { BusinessSectorId } from './businessSector';
+
 export interface AppSettingsDto {
   companyName: string;
   companyLegalName: string;
@@ -25,6 +27,7 @@ export interface AppSettingsDto {
   tauxTvaPort: number;
   maxLoginAttempts: number;
   lockoutMinutes: number;
+  businessSector: BusinessSectorId;
 }
 
 export interface AppInfoDto {

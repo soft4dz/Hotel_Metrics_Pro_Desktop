@@ -1,41 +1,24 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, LogOut, Menu, PanelLeft, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Menu, PanelLeft } from 'lucide-react';
 import { SyncStatusBadge } from '@/components/common/SyncStatusBadge';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
-import { NavbarUserMenu } from '@/layouts/NavbarUserMenu';
-import { useAuthStore } from '@/stores/auth.store';
+import { LanguageSwitcher } from '@/layouts/LanguageSwitcher';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 import { useUiStore } from '@/stores/ui.store';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 
 export function TopNavbar() {
-  const navigate = useNavigate();
   const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
-  const { user, logout } = useAuthStore();
   const { logoUrl, companyName } = useCompanyBranding();
-
-  const initials =
-    user?.fullName
-      ?.split(' ')
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ?? 'U';
 
   const today = new Intl.DateTimeFormat('fr-DZ', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   }).format(new Date());
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
 
   return (
     <header className="navbar-shell sticky top-0 z-30 shrink-0 border-b border-white/10 shadow-sm safe-top">
@@ -96,39 +79,7 @@ export function TopNavbar() {
             <span className="lg:hidden">{today.split(' ')[0]}</span>
           </div>
 
-          <NavbarUserMenu initials={initials} />
-
-          <div className="hidden items-center gap-0.5 rounded-lg border border-white/15 bg-white/5 p-0.5 sm:flex sm:gap-1 sm:p-1">
-            <div className="hidden px-1 text-right md:block md:px-2">
-              <p className="max-w-[88px] truncate text-xs font-semibold text-white lg:max-w-[120px] 2xl:max-w-[180px] 2xl:text-sm">
-                {user?.fullName ?? 'Utilisateur'}
-              </p>
-              <p className="hidden text-[10px] text-white/50 xl:block 2xl:text-[11px]">
-                {user?.roleLabel ?? user?.role ?? '—'}
-              </p>
-            </div>
-            <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-gold to-amber-600 text-[10px] font-bold text-white sm:flex md:h-9 md:w-9">
-              {initials}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white/70 hover:bg-white/10 hover:text-white md:h-9 md:w-9"
-              onClick={() => navigate('/settings')}
-              aria-label="Paramètres"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white/70 hover:bg-red-500/20 hover:text-red-200 md:h-9 md:w-9"
-              onClick={() => void handleLogout()}
-              aria-label="Déconnexion"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          <LanguageSwitcher />
         </div>
       </div>
     </header>

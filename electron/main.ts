@@ -6,6 +6,7 @@ import { closeDatabase, initDatabase } from './database/sqlite';
 import { runSeedIfNeeded } from './database/seed';
 import { ensureBootstrapAuthAccounts } from './database/authBootstrap';
 import { importLegacyDatabase } from './database/importLegacyData';
+import { installLicenseWriteGuard } from './ipc/installLicenseWriteGuard';
 import { registerAuthIpc } from './ipc/auth.ipc';
 import { registerUsersIpc } from './ipc/users.ipc';
 import { registerHotelsIpc } from './ipc/hotels.ipc';
@@ -235,6 +236,7 @@ function bootstrap(): void {
     runPortMigrateV2();
     ensureLogoDirectories();
     ensureLicenseBootstrap();
+    installLicenseWriteGuard();
     registerAuthIpc();
     registerUsersIpc();
     registerHotelsIpc();

@@ -1,7 +1,7 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { getActorContext, actorCanAccessHotel, isGlobalAdminRole } from './actorContext';
-import { createWorkflow, submitWorkflow, approveWorkflow, rejectWorkflow, findWorkflow } from './workflow.service';
+import { createWorkflow, submitWorkflow, findWorkflow, syncWorkflowStatutOnly } from './workflow.service';
 import { createDecAlertIfMissing } from './dec-cockpit.service';
 import { assertAllPosClosedForHotel, getPosClosureStatusForHotel } from './pos-recettes-sync.service';
 import { syncAllRecettesFromErp } from './recettes-auto-sync.service';
@@ -167,18 +167,20 @@ export function submitDailyClosure(actorUserId: number, closureId: number): Dail
   return getClosureById(closureId);
 }
 
-export function validateDailyClosureUnit(actorUserId: number, closureId: number): DailyClosure {
+export function validateDailyClosureUnit(actorUserId: number, closureId: number, opts?: { syncWorkflow?: boolean }): DailyClosure {
   const c = getClosureById(closureId);
   if (c.statut !== 'soumis') throw new Error('Validation unité : statut soumis requis.');
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='valide_unite', validated_unite_by=?, validated_unite_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(actorUserId, closureId);
-  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
-  if (wf) approveWorkflow(actorUserId, wf.id, 'valide_unite');
+  if (opts?.syncWorkflow !== false) {
+    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+    if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'valide_unite');
+  }
   return getClosureById(closureId);
 }
 
-export function validateDailyClosureDec(actorUserId: number, closureId: number): DailyClosure {
+export function validateDailyClosureDec(actorUserId: number, closureId: number, opts?: { syncWorkflow?: boolean }): DailyClosure {
   const actor = getActorContext(actorUserId);
   if (!isGlobalAdminRole(actor.roleCode)) throw new Error('Validation DEC réservée aux administrateurs.');
   const c = getClosureById(closureId);
@@ -186,29 +188,35 @@ export function validateDailyClosureDec(actorUserId: number, closureId: number):
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='valide_dec', validated_dec_by=?, validated_dec_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(actorUserId, closureId);
-  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
-  if (wf) approveWorkflow(actorUserId, wf.id, 'valide_dec');
+  if (opts?.syncWorkflow !== false) {
+    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+    if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'valide_dec');
+  }
   return getClosureById(closureId);
 }
 
-export function rejectDailyClosure(actorUserId: number, closureId: number, motif: string): DailyClosure {
+export function rejectDailyClosure(actorUserId: number, closureId: number, motif: string, opts?: { syncWorkflow?: boolean }): DailyClosure {
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='refuse', observations=?, updated_at=datetime('now') WHERE id=?
   `).run(motif, closureId);
-  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
-  if (wf) rejectWorkflow(actorUserId, wf.id, motif);
+  if (opts?.syncWorkflow !== false) {
+    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+    if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'refuse', 'reject', motif);
+  }
   return getClosureById(closureId);
 }
 
-export function closeDailyClosure(actorUserId: number, closureId: number): DailyClosure {
+export function closeDailyClosure(actorUserId: number, closureId: number, opts?: { syncWorkflow?: boolean }): DailyClosure {
   const c = getClosureById(closureId);
   if (c.statut !== 'valide_dec') throw new Error('Clôture finale : validation DEC requise.');
   assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='cloture', closed_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(closureId);
-  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
-  if (wf) approveWorkflow(actorUserId, wf.id, 'cloture');
+  if (opts?.syncWorkflow !== false) {
+    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+    if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'cloture');
+  }
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'cloture', description: `Clôture #${closureId} clôturée définitivement` });
   return getClosureById(closureId);
 }

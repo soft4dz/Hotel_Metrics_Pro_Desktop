@@ -7,6 +7,7 @@ import type { UserUiPreferencesDto } from '@/shared/types/uiPreferences';
 
 export type AccentColor = 'navy' | 'blue' | 'violet' | 'emerald' | 'rose' | 'amber' | 'cyan' | 'slate';
 export type Density     = 'compact' | 'comfortable' | 'spacious';
+export type Locale      = 'fr' | 'ar' | 'en';
 
 export interface NotifPrefs {
   // Alertes dashboard
@@ -47,12 +48,14 @@ interface UiState {
   accentColor: AccentColor;
   density:     Density;
   notifPrefs:  NotifPrefs;
+  locale:      Locale;
 
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setMobileNavOpen: (open: boolean) => void;
   setAccentColor: (color: AccentColor) => void;
   setDensity: (density: Density) => void;
+  setLocale: (locale: Locale) => void;
   setNotifPref: <K extends keyof NotifPrefs>(key: K, value: NotifPrefs[K]) => void;
   resetNotifPrefs: () => void;
   applyLayoutProfile: (profileId: LayoutProfileId) => void;
@@ -69,6 +72,7 @@ export const useUiStore = create<UiState>()(
       accentColor:      'navy',
       density:          'comfortable',
       notifPrefs:        DEFAULT_NOTIF,
+      locale:           'fr',
 
       toggleSidebar: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -82,6 +86,7 @@ export const useUiStore = create<UiState>()(
         set({ density });
         applyUiTheme(get().accentColor, density);
       },
+      setLocale: (locale) => set({ locale }),
       setNotifPref:   (key, value)   =>
         set((state) => ({ notifPrefs: { ...state.notifPrefs, [key]: value } })),
       resetNotifPrefs: () => set({ notifPrefs: DEFAULT_NOTIF }),
@@ -125,6 +130,7 @@ export const useUiStore = create<UiState>()(
         accentColor:      state.accentColor,
         density:          state.density,
         notifPrefs:       state.notifPrefs,
+        locale:           state.locale,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

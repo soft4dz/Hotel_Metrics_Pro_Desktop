@@ -510,7 +510,9 @@ export interface IpcApi {
       reportFooter: string;
       reportHeaderImageUrl: string | null;
       reportFooterImageUrl: string | null;
+      businessSector: import('./businessSector').BusinessSectorId;
     }>>;
+    getBusinessSector: () => Promise<IpcResult<import('./businessSector').BusinessSectorPublicDto>>;
     getAppInfo: () => Promise<IpcResult<AppInfoDto>>;
     update: (
       input: Partial<AppSettingsDto>,
@@ -1057,7 +1059,13 @@ export interface IpcApi {
     reject: (workflowId: number, motif: string) => Promise<IpcResult<WorkflowInstance>>;
     history: (workflowId: number) => Promise<IpcResult<WorkflowHistoryEntry[]>>;
     listPending: (filters?: WorkflowFilters) => Promise<IpcResult<WorkflowInstance[]>>;
+    listPendingWithContext: (filters?: WorkflowFilters) => Promise<IpcResult<import('./workflowProcedure').WorkflowPendingItem[]>>;
     find: (module: string, entityType: string, entityId: number) => Promise<IpcResult<WorkflowInstance | null>>;
+  };
+  workflowProcedures: {
+    list: () => Promise<IpcResult<import('./workflowProcedure').WorkflowProcedureDto[]>>;
+    update: (code: string, input: import('./workflowProcedure').UpdateWorkflowProcedureInput) => Promise<IpcResult<import('./workflowProcedure').WorkflowProcedureDto>>;
+    updateStep: (stepId: number, input: import('./workflowProcedure').UpdateWorkflowStepInput) => Promise<IpcResult<import('./workflowProcedure').WorkflowProcedureStepDto>>;
   };
   cloture: {
     create: (hotelId: number, dateJournal: string) => Promise<IpcResult<DailyClosure>>;
@@ -1136,8 +1144,14 @@ export interface IpcApi {
   license: {
     getStatus: () => Promise<IpcResult<import('./license').LicenseStatusDto>>;
     getMachineId: () => Promise<IpcResult<string>>;
+    getConfig: () => Promise<IpcResult<import('./license').LicenseConfigDto>>;
+    updateConfig: (
+      input: Partial<import('./license').LicenseConfigDto>,
+    ) => Promise<IpcResult<import('./license').LicenseConfigDto>>;
     activate: (key: string) => Promise<IpcResult<import('./license').LicenseStatusDto>>;
+    syncRemote: () => Promise<IpcResult<import('./license').LicenseStatusDto>>;
     clear: () => Promise<IpcResult<import('./license').LicenseStatusDto>>;
+    getPack: () => Promise<IpcResult<import('../constants/licensePackResolver').LicensePackSummary | null>>;
   };
   notifications: {
     list: (unreadOnly?: boolean, limit?: number) => Promise<IpcResult<import('./notifications').NotificationItem[]>>;

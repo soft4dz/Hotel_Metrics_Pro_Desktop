@@ -404,8 +404,56 @@ model AuditLog {
 }
 
 // ─────────────────────────────────────────────
-// SYNC / APPAREILS
+// LICENCES MULTI-SOCIÉTÉS (serveur Raqmi)
 // ─────────────────────────────────────────────
+
+model LicenseOrganization {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  legalName String   @map("legal_name")
+  email     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  licenses LicenseRecord[]
+
+  @@map("license_organizations")
+}
+
+model LicenseRecord {
+  id             Int      @id @default(autoincrement())
+  licenseKey     String   @unique @map("license_key")
+  organizationId Int      @map("organization_id")
+  edition        String
+  businessSector String   @default("hotel") @map("business_sector")
+  expiresAt      DateTime @map("expires_at")
+  maxActivations Int      @default(1) @map("max_activations")
+  status         String   @default("active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization LicenseOrganization @relation(fields: [organizationId], references: [id])
+  activations  LicenseActivation[]
+
+  @@index([organizationId])
+  @@map("license_records")
+}
+
+model LicenseActivation {
+  id          Int       @id @default(autoincrement())
+  licenseId   Int       @map("license_id")
+  machineId   String    @map("machine_id")
+  deviceLabel String?   @map("device_label")
+  activatedAt DateTime  @default(now()) @map("activated_at")
+  lastSeenAt  DateTime  @updatedAt @map("last_seen_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  license LicenseRecord @relation(fields: [licenseId], references: [id])
+
+  @@unique([licenseId, machineId])
+  @@map("license_activations")
+}
+
 
 model Device {
   id          Int      @id @default(autoincrement())

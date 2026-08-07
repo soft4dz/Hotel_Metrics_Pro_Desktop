@@ -1,6 +1,15 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { getActorContext, isGlobalAdminRole } from './actorContext';
+import { executeWorkflowModuleAction } from './workflow-module-handlers';
+import {
+  canActorApproveStep,
+  getCurrentStep,
+  getWorkflowPendingContext,
+  resolveApprovalTargetStatut,
+  resolveProcedureForEntity,
+} from './workflow-procedure.service';
+import type { WorkflowPendingItem, WorkflowPendingContext } from '../../src/shared/types/workflowProcedure';
 
 export type WorkflowStatut =
   | 'brouillon'
@@ -117,6 +126,11 @@ export function createWorkflow(actorUserId: number, input: CreateWorkflowInput):
   const wf = getWorkflowById(Number(r.lastInsertRowid));
   appendHistory(wf.id, 'create', null, 'brouillon', actorUserId, undefined, input.commentaire);
   writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'workflow', description: `Workflow ${input.module}/${input.entityType}#${input.entityId}` });
+
+  const procedure = resolveProcedureForEntity(input.module, input.entityType, input.hotelId);
+  if (procedure?.autoSubmit) {
+    return submitWorkflow(actorUserId, wf.id, input.commentaire);
+  }
   return wf;
 }
 
@@ -133,11 +147,54 @@ export function submitWorkflow(actorUserId: number, workflowId: number, commenta
   return getWorkflowById(workflowId);
 }
 
+export function syncWorkflowStatutOnly(
+  actorUserId: number,
+  workflowId: number,
+  nouveauStatut: WorkflowStatut,
+  action: 'approve' | 'reject' = 'approve',
+  motif?: string,
+): WorkflowInstance {
+  const wf = getWorkflowById(workflowId);
+  if (action === 'reject') {
+    if (!motif?.trim()) throw new Error('Motif de refus obligatoire.');
+    getDatabase().prepare(`
+      UPDATE workflow_instances SET statut='refuse', motif_refus=?, validateur_user_id=?, completed_at=datetime('now'), updated_at=datetime('now')
+      WHERE id=?
+    `).run(motif, actorUserId, workflowId);
+    appendHistory(workflowId, 'reject', wf.statut, 'refuse', actorUserId, motif);
+    return getWorkflowById(workflowId);
+  }
+  const completed = ['valide', 'valide_dec', 'cloture'].includes(nouveauStatut);
+  getDatabase().prepare(`
+    UPDATE workflow_instances SET statut=?, validateur_user_id=?, niveau_validation=niveau_validation+1,
+      completed_at=${completed ? "datetime('now')" : 'completed_at'}, updated_at=datetime('now')
+    WHERE id=?
+  `).run(nouveauStatut, actorUserId, workflowId);
+  appendHistory(workflowId, 'approve', wf.statut, nouveauStatut, actorUserId);
+  return getWorkflowById(workflowId);
+}
+
 export function approveWorkflow(actorUserId: number, workflowId: number, nouveauStatut: WorkflowStatut = 'valide', commentaire?: string): WorkflowInstance {
   const wf = getWorkflowById(workflowId);
-  if (!['soumis', 'en_validation', 'valide_unite'].includes(wf.statut)) {
+  if (!['soumis', 'en_validation', 'valide_unite', 'valide_dec'].includes(wf.statut)) {
     throw new Error(`Approbation impossible depuis statut ${wf.statut}.`);
   }
+
+  const procedure = resolveProcedureForEntity(wf.module, wf.entityType, wf.hotelId);
+  if (procedure) {
+    if (procedure.approvalMode === 'module_only') {
+      throw new Error(`Cette procédure se traite dans l'écran métier (${procedure.moduleRoute ?? 'module dédié'}).`);
+    }
+    if (!canActorApproveStep(actorUserId, procedure, wf)) {
+      throw new Error('Vous n\'êtes pas habilité à valider cette étape.');
+    }
+    const step = getCurrentStep(procedure, wf);
+    if (step?.moduleAction) {
+      executeWorkflowModuleAction(step.moduleAction, actorUserId, wf.entityId);
+    }
+    nouveauStatut = resolveApprovalTargetStatut(procedure, wf);
+  }
+
   const db = getDatabase();
   const completed = ['valide', 'valide_dec', 'cloture'].includes(nouveauStatut);
   db.prepare(`
@@ -154,6 +211,20 @@ export function rejectWorkflow(actorUserId: number, workflowId: number, motif: s
   if (!motif?.trim()) throw new Error('Motif de refus obligatoire.');
   const wf = getWorkflowById(workflowId);
   if (['refuse', 'cloture', 'annule'].includes(wf.statut)) throw new Error('Workflow déjà terminé.');
+
+  const procedure = resolveProcedureForEntity(wf.module, wf.entityType, wf.hotelId);
+  if (procedure?.approvalMode === 'module_only') {
+    throw new Error(`Refusez cette demande depuis l'écran métier (${procedure.moduleRoute ?? 'module dédié'}).`);
+  }
+  if (procedure && !canActorApproveStep(actorUserId, procedure, wf)) {
+    throw new Error('Vous n\'êtes pas habilité à refuser cette étape.');
+  }
+
+  const step = procedure ? getCurrentStep(procedure, wf) : null;
+  if (step?.moduleAction) {
+    executeWorkflowModuleAction(step.moduleAction, actorUserId, wf.entityId);
+  }
+
   getDatabase().prepare(`
     UPDATE workflow_instances SET statut='refuse', motif_refus=?, validateur_user_id=?, completed_at=datetime('now'), updated_at=datetime('now')
     WHERE id=?
@@ -215,9 +286,13 @@ export function findWorkflow(module: string, entityType: string, entityId: numbe
   return row ? mapWorkflow(row) : null;
 }
 
-export function syncEntityStatutFromWorkflow(module: string, entityType: string, entityId: number, statut: WorkflowStatut): void {
-  const wf = findWorkflow(module, entityType, entityId);
-  if (wf && wf.statut !== statut) {
-    getDatabase().prepare(`UPDATE workflow_instances SET statut=?, updated_at=datetime('now') WHERE id=?`).run(statut, wf.id);
-  }
+export function listPendingWorkflowsWithContext(actorUserId: number, filters: WorkflowFilters = {}): WorkflowPendingItem[] {
+  return listPendingWorkflows(actorUserId, filters).map((workflow) => ({
+    workflow,
+    context: getWorkflowPendingContext(actorUserId, workflow),
+  }));
+}
+
+export function getPendingContext(actorUserId: number, workflowId: number): WorkflowPendingContext {
+  return getWorkflowPendingContext(actorUserId, getWorkflowById(workflowId));
 }

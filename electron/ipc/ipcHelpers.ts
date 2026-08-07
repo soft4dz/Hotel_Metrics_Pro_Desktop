@@ -9,7 +9,7 @@ import {
 } from '../services/session.service';
 import { IpcValidationError } from './validation';
 
-export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'SERVER_ERROR';
+export type IpcErrorCode = 'FORBIDDEN' | 'SESSION_EXPIRED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'LICENSE_READONLY' | 'SERVER_ERROR';
 
 export interface IpcErrorResult {
   ok: false;
@@ -19,7 +19,10 @@ export interface IpcErrorResult {
 
 export type IpcResult<T> = { ok: true; data: T } | IpcErrorResult;
 
+import { LicenseReadOnlyError } from '../services/license.service';
+
 function classifyError(err: Error): IpcErrorCode {
+  if (err instanceof LicenseReadOnlyError) return 'LICENSE_READONLY';
   if (err instanceof PermissionError) return 'FORBIDDEN';
   if (err instanceof SessionError) return 'SESSION_EXPIRED';
   if (err instanceof IpcValidationError) return 'VALIDATION_ERROR';

@@ -48,6 +48,7 @@ import { RapportsPage } from '@/pages/rapports/RapportsPage';
 import { RequireReportsExport } from '@/routes/RequireReportsExport';
 import { SyncPage } from '@/pages/system/SyncPage';
 import { SettingsPage } from '@/pages/system/SettingsPage';
+import { LicenseSettingsPage } from '@/pages/system/LicenseSettingsPage';
 import { DatabasePage } from '@/pages/system/DatabasePage';
 import { BackupPage } from '@/pages/system/BackupPage';
 import { InterfaceThemePage } from '@/pages/system/InterfaceThemePage';
@@ -87,6 +88,7 @@ import { SifecHubPage } from '@/pages/fiscalite/sifec/SifecHubPage';
 import { SifecFacturesPage } from '@/pages/fiscalite/sifec/SifecFacturesPage';
 import { SifecConfigPage } from '@/pages/fiscalite/sifec/SifecConfigPage';
 import WorkflowsPage from '@/pages/workflows/WorkflowsPage';
+import WorkflowProceduresPage from '@/pages/workflows/WorkflowProceduresPage';
 import ClotureJournalierePage from '@/pages/recettes/ClotureJournalierePage';
 import RapprochementsPage from '@/pages/finance/RapprochementsPage';
 import CreancesPage from '@/pages/creances/CreancesPage';
@@ -254,6 +256,7 @@ export function AppRoutes() {
             </Route>
 
             <Route path="/workflows" element={<WorkflowsPage />} />
+            <Route path="/workflows/procedures" element={<WorkflowProceduresPage />} />
             <Route path="/recettes/cloture" element={<ClotureJournalierePage />} />
             <Route path="/finance/rapprochements" element={<RapprochementsPage />} />
             <Route path="/creances" element={<CreancesPage />} />
@@ -315,6 +318,9 @@ export function AppRoutes() {
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/guide/:slug" element={<GuidePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/licence" element={<RequireSystemAdmin><LicenseSettingsPage /></RequireSystemAdmin>} />
+            <Route path="/settings/profil-metier" element={<Navigate to="/settings/licence" replace />} />
+            <Route path="/settings/deploiement" element={<Navigate to="/settings/licence" replace />} />
             <Route path="/settings/modules" element={<RequireSystemAdmin><ModulesAdminPage /></RequireSystemAdmin>} />
             <Route element={<RequireRh />}>
               <Route path="/settings/rh-referentiel" element={<RhReferentielPage />} />

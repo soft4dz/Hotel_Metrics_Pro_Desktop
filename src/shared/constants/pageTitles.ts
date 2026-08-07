@@ -297,6 +297,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> =
     title: 'Workflows',
     subtitle: 'File d\'attente des validations transverses',
   },
+  '/workflows/procedures': {
+    title: 'Procédures de validation',
+    subtitle: 'Paramétrage des circuits — qui, quoi, quand, comment',
+  },
   '/recettes/cloture': {
     title: 'Clôture journalière',
     subtitle: 'Contrôle CA, encaissements et créances par unité',
