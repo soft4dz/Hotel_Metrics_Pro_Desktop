@@ -15,7 +15,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
+      - run: node node_modules/electron/install.js
       - run: npm run rebuild:native
       - run: npm test
       - run: npm run audit:ipc

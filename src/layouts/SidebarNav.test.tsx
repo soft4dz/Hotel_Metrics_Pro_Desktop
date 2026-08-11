@@ -11,6 +11,22 @@ vi.mock('@/lib/ipcClient', () => ({
   ipcClient: {
     settings: {
       getBranding: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      getBusinessSector: vi.fn().mockResolvedValue({
+        ok: true,
+        data: {
+          sectorId: 'hotel',
+          label: 'Hôtellerie & tourisme',
+          terminology: {
+            unit: 'Hôtel',
+            units: 'Hôtels / unités',
+            unitAdminTitle: 'Hôtels et unités',
+            newUnit: 'Nouvel hôtel',
+            unitEmpty: 'Aucun hôtel',
+            dailyRevenue: 'CA journalier (ERP)',
+            exploitationSection: 'Exploitation hôtelière',
+          },
+        },
+      }),
     },
     users: {
       pendingCount: vi.fn().mockResolvedValue({ ok: true, data: 0 }),
@@ -63,7 +79,7 @@ describe('SidebarNav', () => {
     });
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();
-    expect(screen.getByText('Exploitation')).toBeInTheDocument();
+    expect(screen.getByText('Exploitation hôtelière')).toBeInTheDocument();
     expect(screen.getByText('Finances & comptabilité')).toBeInTheDocument();
     expect(screen.getByText('Karim Admin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replier le menu' })).toBeInTheDocument();
@@ -87,10 +103,10 @@ describe('SidebarNav', () => {
     renderWithRouter(<SidebarNav collapsed={false} />, '/dashboard');
 
     await waitFor(() => {
-      expect(screen.getByText('Exploitation')).toBeInTheDocument();
+      expect(screen.getByText('Exploitation hôtelière')).toBeInTheDocument();
     });
 
-    const exploitationBtn = screen.getByRole('button', { name: /Exploitation/i });
+    const exploitationBtn = screen.getByRole('button', { name: /Exploitation hôtelière/i });
     expect(exploitationBtn).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(exploitationBtn);

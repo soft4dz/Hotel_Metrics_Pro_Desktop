@@ -55,26 +55,26 @@ echo.
 if not exist "node_modules\" (
     echo [INFO] Premiere execution — installation des dependances...
     echo.
-    call npm install
+    call npm install --ignore-scripts
     if errorlevel 1 (
         echo [ERREUR] npm install a echoue.
         pause
         exit /b 1
     )
     echo.
-) else (
-    echo [INFO] Verification du module SQLite natif ^(better-sqlite3^)...
-    call npm run rebuild:native
-    if errorlevel 1 (
-        echo.
-        echo [ERREUR] better-sqlite3 non compile pour Electron.
-        echo          Fermez l'application Electron si elle tourne, puis relancez dev.bat.
-        echo          Ou : set FORCE_REBUILD_NATIVE=1 ^&^& npm run rebuild:native
-        pause
-        exit /b 1
-    )
-    echo.
 )
+
+echo [INFO] Verification du module SQLite natif ^(better-sqlite3^)...
+call npm run rebuild:native
+if errorlevel 1 (
+    echo.
+    echo [ERREUR] better-sqlite3 non compile pour Electron.
+    echo          Fermez l'application Electron si elle tourne, puis relancez dev.bat.
+    echo          Ou : set FORCE_REBUILD_NATIVE=1 ^&^& npm run rebuild:native
+    pause
+    exit /b 1
+)
+echo.
 
 if defined ELECTRON_RUN_AS_NODE (
     echo [INFO] ELECTRON_RUN_AS_NODE detecte — sera ignore pour Electron ^(API cassee sinon^).

@@ -230,7 +230,7 @@ function bootstrap(): void {
     }
 
     runSeedIfNeeded();
-    ensureBootstrapAuthAccounts();
+    ensureBootstrapAuthAccounts(isDev);
     runProfileSeedIfNeeded();
     runPortSeedIfNeeded();
     runPortMigrateV2();

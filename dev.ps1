@@ -24,16 +24,23 @@ Write-Host ""
 
 if (-not (Test-Path "node_modules")) {
     Write-Host "[INFO] Installation des dépendances (première fois)..." -ForegroundColor Yellow
-    npm install
+    npm install --ignore-scripts
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Write-Host ""
 }
+ 
+Write-Host "[INFO] Vérification du module SQLite natif..." -ForegroundColor Yellow
+npm run rebuild:native
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "[INFO] Démarrage Electron + Vite..." -ForegroundColor Yellow
+$env:VITE_AUTO_LOGIN = "true"
+$env:HMP_DEV_AUTO_ADMIN = "1"
+
+Write-Host "[INFO] Démarrage Electron + Vite avec auto-connexion admin..." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  - Fenetre Electron = application complete"
 Write-Host "  - Connexion test  : admin@hotelmetrics.local"
-Write-Host "  - Mot de passe    : libre (démo Phase 1)"
+Write-Host "  - Auto-connexion  : admin@hotelmetrics.local"
 Write-Host "  - Arrêt           : fermer Electron ou Ctrl+C"
 Write-Host ""
 
