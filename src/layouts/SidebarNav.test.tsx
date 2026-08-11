@@ -79,7 +79,7 @@ describe('SidebarNav', () => {
     });
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();
-    expect(screen.getByText('Exploitation')).toBeInTheDocument();
+    expect(screen.getByText('Exploitation hôtelière')).toBeInTheDocument();
     expect(screen.getByText('Finances & comptabilité')).toBeInTheDocument();
     expect(screen.getByText('Karim Admin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replier le menu' })).toBeInTheDocument();
@@ -103,10 +103,10 @@ describe('SidebarNav', () => {
     renderWithRouter(<SidebarNav collapsed={false} />, '/dashboard');
 
     await waitFor(() => {
-      expect(screen.getByText('Exploitation')).toBeInTheDocument();
+      expect(screen.getByText('Exploitation hôtelière')).toBeInTheDocument();
     });
 
-    const exploitationBtn = screen.getByRole('button', { name: /Exploitation/i });
+    const exploitationBtn = screen.getByRole('button', { name: /Exploitation hôtelière/i });
     expect(exploitationBtn).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(exploitationBtn);
