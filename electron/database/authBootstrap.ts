@@ -5,7 +5,7 @@ import { getDatabase } from './sqlite';
 import { DEFAULT_ADMIN_PASSWORD } from './seed';
 import { logger } from '../utils/logger';
 
-/** Comptes garantis après chaque démarrage (mot de passe connu si hash invalide). */
+/** Comptes de confort réservés au développement local. */
 const BOOTSTRAP_ACCOUNTS: Array<{
   email: string;
   password: string;
@@ -77,9 +77,15 @@ function ensureUserExists(
 }
 
 /**
- * Garantit que les comptes admin/dec existent, sont déverrouillés et acceptent le mot de passe documenté.
+ * En développement uniquement, garantit que le compte administrateur reste disponible
+ * avec le mot de passe documenté afin de ne pas bloquer les travaux en cours.
  */
-export function ensureBootstrapAuthAccounts(): void {
+export function ensureBootstrapAuthAccounts(developmentMode: boolean): void {
+  if (!developmentMode) {
+    logger.debug('Bootstrap administrateur ignoré dans une application packagée.');
+    return;
+  }
+
   const db = getDatabase();
 
   for (const spec of BOOTSTRAP_ACCOUNTS) {
