@@ -11,6 +11,7 @@ vi.mock('@/lib/ipcClient', () => ({
   ipcClient: {
     settings: {
       getBranding: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      getBusinessSector: vi.fn().mockResolvedValue({ ok: true, data: { sector: 'HOTELLERIE' } }),
     },
     users: {
       pendingCount: vi.fn().mockResolvedValue({ ok: true, data: 0 }),
