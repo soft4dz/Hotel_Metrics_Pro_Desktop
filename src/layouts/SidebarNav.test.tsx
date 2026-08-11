@@ -11,7 +11,22 @@ vi.mock('@/lib/ipcClient', () => ({
   ipcClient: {
     settings: {
       getBranding: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-      getBusinessSector: vi.fn().mockResolvedValue({ ok: true, data: { sector: 'HOTELLERIE' } }),
+      getBusinessSector: vi.fn().mockResolvedValue({
+        ok: true,
+        data: {
+          sectorId: 'hotel',
+          label: 'Hôtellerie & tourisme',
+          terminology: {
+            unit: 'Hôtel',
+            units: 'Hôtels / unités',
+            unitAdminTitle: 'Hôtels et unités',
+            newUnit: 'Nouvel hôtel',
+            unitEmpty: 'Aucun hôtel',
+            dailyRevenue: 'CA journalier (ERP)',
+            exploitationSection: 'Exploitation hôtelière',
+          },
+        },
+      }),
     },
     users: {
       pendingCount: vi.fn().mockResolvedValue({ ok: true, data: 0 }),
