@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Store, Plus, Play, Lock, Receipt, CalendarCheck } from 'lucide-react';
+import { Store, Plus, Play, Lock, Receipt, CalendarCheck, ExternalLink } from 'lucide-react';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
@@ -17,6 +18,12 @@ import type {
   PosModePaiement,
 } from '@/shared/types/pos';
 import type { CuisineRecette } from '@/shared/types/cuisine';
+import {
+  POS_POINT_VENTE_TYPE_LABELS,
+  isAnnexPosType,
+  POS_ANNEX_OPERATIONAL_ROUTES,
+  type PosPointVenteType,
+} from '@/shared/constants/posPointVenteTypes';
 
 type Tab = 'parametrage' | 'caisse' | 'clotures';
 
@@ -30,7 +37,11 @@ export default function PosPage() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [activeTicketId, setActiveTicketId] = useState<number | null>(null);
   const [dateService] = useState(new Date().toISOString().slice(0, 10));
-  const [newPv, setNewPv] = useState({ code: '', nom: '', type: 'restaurant' as const });
+  const [newPv, setNewPv] = useState<{ code: string; nom: string; type: PosPointVenteType }>({
+    code: '',
+    nom: '',
+    type: 'restaurant',
+  });
   const [openSessionForm, setOpenSessionForm] = useState({ fondCaisse: '0' });
   const [ligneForm, setLigneForm] = useState({ recetteId: 0, quantite: 1 });
   const [modePaiement, setModePaiement] = useState<PosModePaiement>('especes');
@@ -43,6 +54,9 @@ export default function PosPage() {
   });
 
   const pvId = pointVenteId ?? pointsVente[0]?.id ?? null;
+  const selectedPv = pointsVente.find((p) => p.id === pvId) ?? null;
+  const annexPv = selectedPv ? isAnnexPosType(selectedPv.type) : false;
+  const annexRoute = selectedPv ? POS_ANNEX_OPERATIONAL_ROUTES[selectedPv.type] : undefined;
 
   const { data: factions = [] } = useQuery({
     queryKey: ['pos-factions', pvId],
@@ -186,23 +200,48 @@ export default function PosPage() {
         <Store className="w-8 h-8 text-orange-600" />
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Points de vente</h1>
-          <p className="text-sm text-muted-foreground">Caisse, factions (services), clôture Z et clôture journalière — puis clôture hôtel.</p>
+          <p className="text-sm text-muted-foreground">Caisse, factions, clôture Z et clôture journalière — plage, piscine et parking inclus.</p>
         </div>
         <select value={hotelId} onChange={(e) => setHotelId(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-background">
           {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
         {pointsVente.length > 0 && (
           <select value={pvId ?? ''} onChange={(e) => setPointVenteId(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-background">
-            {pointsVente.map((p) => <option key={p.id} value={p.id}>{p.nom} ({p.code})</option>)}
+            {pointsVente.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nom} ({p.code}) — {POS_POINT_VENTE_TYPE_LABELS[p.type]}
+              </option>
+            ))}
           </select>
         )}
       </div>
 
+      {annexPv && annexRoute && (
+        <div className="border rounded-xl p-4 bg-sky-50/80 text-sm flex flex-wrap items-center gap-3">
+          <span>
+            Point de vente <strong>{selectedPv?.nom}</strong> — opérations via le module métier.
+          </span>
+          <Link to={annexRoute} className="inline-flex items-center gap-1 text-sky-700 font-medium hover:underline">
+            Ouvrir le module <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       <ol className="text-sm border rounded-xl p-4 space-y-1 list-decimal list-inside bg-muted/30">
-        <li>Ouvrir session faction → encaisser tickets</li>
-        <li>Clôturer chaque faction (rapport Z)</li>
-        <li>Clôturer journée POS (verrouille le PDV)</li>
-        <li>Clôture journalière hôtel (/recettes/cloture) — CA restauration auto-sync</li>
+        {annexPv ? (
+          <>
+            <li>Saisir les opérations dans le module dédié (entrées, tickets…)</li>
+            <li>Clôturer la journée POS (CA consolidé automatiquement)</li>
+            <li>Clôture journalière hôtel (/recettes/cloture)</li>
+          </>
+        ) : (
+          <>
+            <li>Ouvrir session faction → encaisser tickets</li>
+            <li>Clôturer chaque faction (rapport Z)</li>
+            <li>Clôturer journée POS (verrouille le PDV)</li>
+            <li>Clôture journalière hôtel (/recettes/cloture) — CA restauration auto-sync</li>
+          </>
+        )}
       </ol>
 
       <div className="flex gap-2 border-b pb-2">
@@ -219,8 +258,10 @@ export default function PosPage() {
           <div className="flex flex-wrap gap-3 items-end">
             <div><label className="text-xs text-muted-foreground">Code</label><input value={newPv.code} onChange={(e) => setNewPv({ ...newPv, code: e.target.value })} className="block border rounded px-2 py-1.5 text-sm mt-1" /></div>
             <div><label className="text-xs text-muted-foreground">Nom</label><input value={newPv.nom} onChange={(e) => setNewPv({ ...newPv, nom: e.target.value })} className="block border rounded px-2 py-1.5 text-sm mt-1" /></div>
-            <select value={newPv.type} onChange={(e) => setNewPv({ ...newPv, type: e.target.value as typeof newPv.type })} className="border rounded px-2 py-1.5 text-sm">
-              <option value="restaurant">Restaurant</option><option value="bar">Bar</option><option value="room_service">Room service</option><option value="autre">Autre</option>
+            <select value={newPv.type} onChange={(e) => setNewPv({ ...newPv, type: e.target.value as PosPointVenteType })} className="border rounded px-2 py-1.5 text-sm">
+              {(Object.keys(POS_POINT_VENTE_TYPE_LABELS) as PosPointVenteType[]).map((type) => (
+                <option key={type} value={type}>{POS_POINT_VENTE_TYPE_LABELS[type]}</option>
+              ))}
             </select>
             <Button disabled={!newPv.code || !newPv.nom} onClick={() => createPv.mutate()}><Plus className="w-4 h-4 mr-1" />Créer</Button>
           </div>
@@ -242,6 +283,21 @@ export default function PosPage() {
 
       {tab === 'caisse' && (
         <div className="grid md:grid-cols-2 gap-6">
+          {annexPv ? (
+            <div className="border rounded-xl p-4 space-y-3 md:col-span-2">
+              <h2 className="font-semibold">Caisse — point de vente annexé</h2>
+              <p className="text-sm text-muted-foreground">
+                Les encaissements {selectedPv?.nom} sont saisis dans le module opérationnel.
+                La clôture journalière POS consolide le CA du jour automatiquement.
+              </p>
+              {annexRoute && (
+                <Button asChild variant="outline">
+                  <Link to={annexRoute}>Aller au module {selectedPv?.nom}</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+          <>
           <div className="space-y-4 border rounded-xl p-4">
             <h2 className="font-semibold flex items-center gap-2"><Play className="w-4 h-4" /> Session faction</h2>
             {!sessionActive ? (
@@ -297,11 +353,14 @@ export default function PosPage() {
               </>
             )}
           </div>
+          </>
+          )}
         </div>
       )}
 
       {tab === 'clotures' && (
         <div className="grid md:grid-cols-2 gap-6">
+          {!annexPv && (
           <div className="border rounded-xl p-4 space-y-3">
             <h2 className="font-semibold flex items-center gap-2"><Lock className="w-4 h-4" /> Clôture faction (fin de service)</h2>
             <p className="text-xs text-muted-foreground">Rapport Z — comptez la caisse et saisissez le fond réel.</p>
@@ -316,9 +375,13 @@ export default function PosPage() {
               <p className="text-sm text-muted-foreground">Aucune session ouverte.</p>
             )}
           </div>
-          <div className="border rounded-xl p-4 space-y-3">
+          )}
+          <div className={`border rounded-xl p-4 space-y-3 ${annexPv ? 'md:col-span-2' : ''}`}>
             <h2 className="font-semibold flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Clôture journalière</h2>
-            <p className="text-xs text-muted-foreground">Date : {dateService} — toutes les factions doivent être clôturées.</p>
+            <p className="text-xs text-muted-foreground">
+              Date : {dateService}
+              {annexPv ? ' — CA calculé depuis les opérations du module.' : ' — toutes les factions doivent être clôturées.'}
+            </p>
             <input placeholder="Observations" value={clotureJour.observations} onChange={(e) => setClotureJour({ observations: e.target.value })} className="w-full border rounded px-2 py-1.5 text-sm" />
             <Button variant="destructive" onClick={() => cloturerJourMut.mutate()} disabled={!pvId}>Clôturer la journée POS</Button>
             <div className="mt-4">

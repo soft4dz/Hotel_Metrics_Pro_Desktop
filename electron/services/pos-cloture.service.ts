@@ -10,6 +10,9 @@ import type {
   CloturerJourneeInput,
 } from '../../src/shared/types/pos';
 import { syncPosCaToRecettesJournalieres } from './pos-recettes-sync.service';
+import { computeAnnexCaTotals } from './pos-annex.service';
+import { isAnnexPosType } from '../../src/shared/constants/posPointVenteTypes';
+import type { PosPointVenteType } from '../../src/shared/types/pos';
 
 export { getPosClosureStatusForHotel, assertAllPosClosedForHotel } from './pos-recettes-sync.service';
 export type { PosHotelClosureStatus, PosPointVenteClosureStatus } from './pos-recettes-sync.service';
@@ -134,28 +137,48 @@ export function cloturerJourneePos(actorUserId: number, input: CloturerJourneeIn
     throw new Error('Journée déjà clôturée pour ce point de vente.');
   }
 
-  const sessionsOuvertes = db.prepare(`
-    SELECT COUNT(*) as c FROM pos_sessions WHERE point_vente_id = ? AND date_service = ? AND statut = 'ouverte'
-  `).get(input.pointVenteId, input.dateJournal) as { c: number };
-  if ((sessionsOuvertes.c ?? 0) > 0) {
-    throw new Error('Sessions encore ouvertes — clôturez toutes les factions avant la clôture journalière.');
+  const pvType = pv.type as PosPointVenteType;
+  const annexType = isAnnexPosType(pvType);
+
+  if (!annexType) {
+    const sessionsOuvertes = db.prepare(`
+      SELECT COUNT(*) as c FROM pos_sessions WHERE point_vente_id = ? AND date_service = ? AND statut = 'ouverte'
+    `).get(input.pointVenteId, input.dateJournal) as { c: number };
+    if ((sessionsOuvertes.c ?? 0) > 0) {
+      throw new Error('Sessions encore ouvertes — clôturez toutes les factions avant la clôture journalière.');
+    }
   }
 
-  const agg = db.prepare(`
-    SELECT
-      COALESCE(SUM(total_ventes), 0) as total_ventes,
-      COALESCE(SUM(total_especes), 0) as total_especes,
-      COALESCE(SUM(total_carte), 0) as total_carte,
-      COALESCE(SUM(ecart_caisse), 0) as ecart_caisse,
-      COUNT(*) as nb_sessions
-    FROM pos_sessions WHERE point_vente_id = ? AND date_service = ?
-  `).get(input.pointVenteId, input.dateJournal) as Record<string, number>;
+  let agg: Record<string, number>;
+  let nbTickets: { c: number };
 
-  const nbTickets = db.prepare(`
-    SELECT COUNT(*) as c FROM pos_tickets t
-    JOIN pos_sessions s ON s.id = t.session_id
-    WHERE s.point_vente_id = ? AND s.date_service = ? AND t.statut = 'valide'
-  `).get(input.pointVenteId, input.dateJournal) as { c: number };
+  if (annexType) {
+    const annex = computeAnnexCaTotals(pvType, pv.hotel_id as number, input.dateJournal);
+    agg = {
+      total_ventes: annex.totalVentes,
+      total_especes: annex.totalVentes,
+      total_carte: 0,
+      ecart_caisse: 0,
+      nb_sessions: 0,
+    };
+    nbTickets = { c: annex.nbOperations };
+  } else {
+    agg = db.prepare(`
+      SELECT
+        COALESCE(SUM(total_ventes), 0) as total_ventes,
+        COALESCE(SUM(total_especes), 0) as total_especes,
+        COALESCE(SUM(total_carte), 0) as total_carte,
+        COALESCE(SUM(ecart_caisse), 0) as ecart_caisse,
+        COUNT(*) as nb_sessions
+      FROM pos_sessions WHERE point_vente_id = ? AND date_service = ?
+    `).get(input.pointVenteId, input.dateJournal) as Record<string, number>;
+
+    nbTickets = db.prepare(`
+      SELECT COUNT(*) as c FROM pos_tickets t
+      JOIN pos_sessions s ON s.id = t.session_id
+      WHERE s.point_vente_id = ? AND s.date_service = ? AND t.statut = 'valide'
+    `).get(input.pointVenteId, input.dateJournal) as { c: number };
+  }
 
   const existing = db.prepare(`
     SELECT id FROM pos_clotures_journalieres WHERE point_vente_id = ? AND date_journal = ?

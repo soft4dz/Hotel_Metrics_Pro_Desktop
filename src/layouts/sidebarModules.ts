@@ -117,10 +117,10 @@ export function buildSidebarModules(
         { label: 'Stocks & consommations', to: '/stocks' },
         { label: 'Production & fiches techniques', to: '/cuisine', visible: routeVisible('/cuisine') },
         { label: 'Points de vente (POS)', to: '/pos', visible: routeVisible('/pos') },
+        { label: 'Parking (PDV)', to: '/parking', visible: routeVisible('/parking') },
+        { label: 'Plage & piscine (PDV)', to: '/plage', visible: routeVisible('/plage') },
         { label: 'Achats & fournisseurs', to: '/achats' },
         { label: 'Maintenance', to: '/maintenance' },
-        { label: 'Parking', to: '/parking', visible: routeVisible('/parking') },
-        { label: 'Plage & piscine', to: '/plage', visible: routeVisible('/plage') },
       ],
     },
     {

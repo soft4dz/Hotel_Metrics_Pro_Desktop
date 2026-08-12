@@ -1,4 +1,5 @@
-export type PosPointVenteType = 'restaurant' | 'bar' | 'room_service' | 'autre';
+export type { PosPointVenteType } from '../constants/posPointVenteTypes';
+import type { PosPointVenteType } from '../constants/posPointVenteTypes';
 export type PosSessionStatut = 'ouverte' | 'cloturee';
 export type PosTicketStatut = 'brouillon' | 'valide' | 'annule';
 export type PosClotureStatut = 'brouillon' | 'cloturee';
