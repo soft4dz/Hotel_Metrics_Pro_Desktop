@@ -95,6 +95,77 @@ export const USER_ROLE_PROFILES: UserRoleProfile[] = [
     guideSlug: 'receptionniste',
     category: 'exploitation',
   },
+  // ── Scénario 3 (rapport organisation cible EGT Sidi Fredj, Mai 2026) ──────
+  {
+    code: 'DGA',
+    label: 'Directeur Général Adjoint',
+    description: 'Coordination des directions fonctionnelles — Finance, RH, Commerce, Maintenance, Qualité, SI',
+    guideSlug: 'manuel-general',
+    category: 'direction',
+  },
+  {
+    code: 'DIRECTEUR_UNITES_TOURISTIQUES',
+    label: 'Directeur des Unités touristiques',
+    description: 'Pilotage transversal des 5 unités, pivot entre le DGA et les directeurs de site',
+    guideSlug: 'manuel-general',
+    category: 'direction',
+  },
+  {
+    code: 'DIRECTEUR_QUALITE',
+    label: 'Directeur Qualité',
+    description: 'Standards de service, écoute client, audits qualité, hygiène et conformité',
+    guideSlug: 'manuel-general',
+    category: 'controle',
+  },
+  {
+    code: 'DIRECTEUR_COMMERCIAL',
+    label: 'Directeur Commerce & Marketing',
+    description: 'Stratégie commerciale, marketing, communication digitale et partenariats',
+    guideSlug: 'manuel-general',
+    category: 'metier',
+  },
+  {
+    code: 'DIRECTEUR_MAINTENANCE',
+    label: 'Directeur Équipement & Maintenance',
+    description: 'Planification maintenance, travaux et investissements, contrôle technique',
+    guideSlug: 'manuel-general',
+    category: 'exploitation',
+  },
+  {
+    code: 'DIRECTEUR_SI',
+    label: 'Directeur Informatique (DSI)',
+    description: 'Schéma directeur informatique, cybersécurité, support et digitalisation',
+    guideSlug: 'manuel-general',
+    category: 'metier',
+  },
+  {
+    code: 'RESPONSABLE_SECURITE',
+    label: 'Responsable Sécurité',
+    description: 'Sécurité des personnes et des biens, cartographie des risques, coordination sécurité',
+    guideSlug: 'manuel-general',
+    category: 'controle',
+  },
+  {
+    code: 'RESPONSABLE_JURIDIQUE',
+    label: 'Responsable Juridique',
+    description: 'Contrats, contentieux, conformité et protection des données personnelles',
+    guideSlug: 'manuel-general',
+    category: 'controle',
+  },
+  {
+    code: 'RESPONSABLE_ACHATS',
+    label: 'Responsable Achats',
+    description: 'Stratégie d\'achat, appels d\'offres, négociation et suivi fournisseurs',
+    guideSlug: 'manuel-general',
+    category: 'exploitation',
+  },
+  {
+    code: 'CONTROLEUR_GESTION',
+    label: 'Contrôleur de Gestion',
+    description: 'Budget consolidé, analyse des écarts, tableaux de bord multi-sites',
+    guideSlug: 'manuel-general',
+    category: 'finance',
+  },
 ];
 
 const BY_CODE = new Map(USER_ROLE_PROFILES.map((p) => [p.code, p]));

@@ -178,6 +178,16 @@ npm run seed:pms           # chambres, tarifs, clients PMS uniquement
 | `CHEF_DEPARTEMENT` | Chef de département | Validation équipe |
 | `RECEPTIONNISTE` | Réceptionniste | Hébergement, self-service RH |
 | `LECTURE_SEULE` | Lecture seule | Consultation sans modification |
+| `DGA` | Directeur Général Adjoint | Coordination des directions fonctionnelles (Scénario 3) |
+| `DIRECTEUR_UNITES_TOURISTIQUES` | Directeur des Unités touristiques | Pilotage transversal des 5 unités (Scénario 3) |
+| `DIRECTEUR_QUALITE` | Directeur Qualité | Standards, écoute client, audits qualité |
+| `DIRECTEUR_COMMERCIAL` | Directeur Commerce & Marketing | Stratégie commerciale, marketing, partenariats |
+| `DIRECTEUR_MAINTENANCE` | Directeur Équipement & Maintenance | Planification maintenance, travaux, investissements |
+| `DIRECTEUR_SI` | Directeur Informatique (DSI) | Schéma directeur IT, cybersécurité, support |
+| `RESPONSABLE_SECURITE` | Responsable Sécurité | Sécurité des personnes et des biens |
+| `RESPONSABLE_JURIDIQUE` | Responsable Juridique | Contrats, contentieux, conformité RGPD |
+| `RESPONSABLE_ACHATS` | Responsable Achats | Appels d'offres, négociation, fournisseurs |
+| `CONTROLEUR_GESTION` | Contrôleur de Gestion | Budget consolidé, écarts, tableaux de bord |
 
 Les comptes utilisateurs se créent dans **Administration → Utilisateurs** (`/admin/users`).
 
