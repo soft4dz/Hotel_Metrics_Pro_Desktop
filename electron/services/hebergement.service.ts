@@ -3,7 +3,7 @@ import { writeAuditLog } from './audit.service';
 import { getActorContext, applyActorHotelFilter, isGlobalAdminRole } from './actorContext';
 import { simulerPrix } from './tarifs.service';
 import { createFacture } from './facturation.service';
-import { createFichePoliceFromReservation, calculerTaxeSejour } from './hotel-legal.service';
+import { createFichePoliceFromReservation, checkoutFichePolice, calculerTaxeSejour } from './hotel-legal.service';
 import { syncHebergementCaFromErp } from './recettes-auto-sync.service';
 import { createTacheFromDepart, ensureTacheForChambreMenage, cancelOpenTachesForChambre } from './housekeeping.service';
 import type {
@@ -393,6 +393,19 @@ export function createFactureFromReservation(actorUserId: number, reservationId:
 export function updateReservationStatut(actorUserId: number, id: number, statut: StatutReservation): Reservation {
   const db = getDatabase();
   const res = getReservation(actorUserId, id);
+
+  // Une arrivée ne doit jamais être validée sans registre hôtelier. La fiche est
+  // créée avant le changement de statut afin qu'une erreur légale bloque le
+  // check-in au lieu d'être masquée et de laisser une réservation partiellement traitée.
+  if (statut === 'arrivee') {
+    createFichePoliceFromReservation(actorUserId, id);
+  }
+  if (statut === 'depart') {
+    const fiche = db.prepare(`SELECT id FROM fiche_police WHERE reservation_id=? LIMIT 1`).get(id) as { id: number } | undefined;
+    const ficheId = fiche?.id ?? createFichePoliceFromReservation(actorUserId, id).id;
+    checkoutFichePolice(actorUserId, ficheId, res.dateDepart);
+  }
+
   db.prepare(`UPDATE reservations SET statut=?, updated_at=datetime('now') WHERE id=?`).run(statut, id);
 
   // Sync statut chambre
@@ -405,7 +418,6 @@ export function updateReservationStatut(actorUserId: number, id: number, statut:
   }
 
   if (statut === 'arrivee') {
-    try { createFichePoliceFromReservation(actorUserId, id); } catch { /* déjà créée ou données incomplètes */ }
     try { createFolioFromReservation(actorUserId, id); } catch { /* folio existant */ }
   }
   if (statut === 'depart') {

@@ -5,9 +5,27 @@ import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import type { FichePolice } from '@/shared/types/phase2';
-import { Shield, FileText, Calculator, MapPin } from 'lucide-react';
+import { Shield, FileText, Calculator, MapPin, Plus, Pencil } from 'lucide-react';
 
 type Tab = 'police' | 'taxe' | 'tourisme';
+type FicheForm = {
+  nom: string;
+  prenom: string;
+  dateNaissance: string;
+  lieuNaissance: string;
+  nationalite: string;
+  typePiece: FichePolice['typePiece'];
+  numeroPiece: string;
+  dateEntree: string;
+  dateSortiePrevue: string;
+  chambreNumero: string;
+};
+
+const emptyFicheForm = (): FicheForm => ({
+  nom: '', prenom: '', dateNaissance: '', lieuNaissance: '', nationalite: '',
+  typePiece: 'cni', numeroPiece: '', dateEntree: new Date().toISOString().slice(0, 10),
+  dateSortiePrevue: '', chambreNumero: '',
+});
 
 function currentPeriode() {
   const d = new Date();
@@ -22,6 +40,9 @@ export default function HotelLegalPage() {
   const [periode, setPeriode] = useState(currentPeriode());
   const [tauxTaxe, setTauxTaxe] = useState('200');
   const [taxeResult, setTaxeResult] = useState<unknown>(null);
+  const [showFicheForm, setShowFicheForm] = useState(false);
+  const [editingFicheId, setEditingFicheId] = useState<number | null>(null);
+  const [ficheForm, setFicheForm] = useState<FicheForm>(emptyFicheForm);
 
   const { data: fiches = [], isLoading: loadingFiches } = useQuery({
     queryKey: ['fiches-police', hotelId],
@@ -54,6 +75,53 @@ export default function HotelLegalPage() {
     },
     onError: () => notify.error('Erreur génération rapport'),
   });
+
+  const saveFiche = useMutation({
+    mutationFn: async () => {
+      const input = {
+        ...ficheForm,
+        dateNaissance: ficheForm.dateNaissance || null,
+        lieuNaissance: ficheForm.lieuNaissance || null,
+        nationalite: ficheForm.nationalite || null,
+        dateSortiePrevue: ficheForm.dateSortiePrevue || null,
+        chambreNumero: ficheForm.chambreNumero || null,
+      };
+      return editingFicheId
+        ? unwrapIpc(await ipcClient.hotelLegal.updateFichePolice(editingFicheId, input))
+        : unwrapIpc(await ipcClient.hotelLegal.createFichePolice({ hotelId, ...input }));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['fiches-police'] });
+      setShowFicheForm(false);
+      setEditingFicheId(null);
+      setFicheForm(emptyFicheForm());
+      notify.success('Fiche police enregistrée');
+    },
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Erreur fiche police'),
+  });
+
+  const openCreateFiche = () => {
+    setEditingFicheId(null);
+    setFicheForm(emptyFicheForm());
+    setShowFicheForm(true);
+  };
+
+  const openEditFiche = (fiche: FichePolice) => {
+    setEditingFicheId(fiche.id);
+    setFicheForm({
+      nom: fiche.nom,
+      prenom: fiche.prenom,
+      dateNaissance: fiche.dateNaissance ?? '',
+      lieuNaissance: fiche.lieuNaissance ?? '',
+      nationalite: fiche.nationalite ?? '',
+      typePiece: fiche.typePiece,
+      numeroPiece: fiche.numeroPiece === 'A COMPLETER' ? '' : fiche.numeroPiece,
+      dateEntree: fiche.dateEntree,
+      dateSortiePrevue: fiche.dateSortiePrevue ?? '',
+      chambreNumero: fiche.chambreNumero ?? '',
+    });
+    setShowFicheForm(true);
+  };
 
   const tabs: { id: Tab; label: string; icon: typeof Shield }[] = [
     { id: 'police', label: 'Fiches police', icon: FileText },
@@ -97,20 +165,33 @@ export default function HotelLegalPage() {
 
       {tab === 'police' && (
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <button onClick={openCreateFiche} disabled={!hotelId} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+              <Plus className="w-4 h-4" /> Nouvelle fiche
+            </button>
+          </div>
           {loadingFiches ? (
             <div className="h-40 rounded-xl bg-muted animate-pulse" />
           ) : fiches.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune fiche police.</p>
           ) : (
             fiches.map((f) => (
-              <div key={f.id} className="bg-card border rounded-xl p-4">
-                <div className="font-semibold text-sm">{f.nom} {f.prenom}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Pièce {f.numeroPiece} · Entrée {f.dateEntree}
-                  {f.chambreNumero && ` · Ch. ${f.chambreNumero}`}
-                  {f.nationalite && ` · ${f.nationalite}`}
+              <div key={f.id} className="bg-card border rounded-xl p-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="font-semibold text-sm">{f.nom} {f.prenom}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {f.typePiece.toUpperCase()} {f.numeroPiece} · Entrée {f.dateEntree}
+                    {f.chambreNumero && ` · Ch. ${f.chambreNumero}`}
+                    {f.nationalite && ` · ${f.nationalite}`}
+                  </div>
+                  {(!f.dateNaissance || !f.nationalite || f.numeroPiece === 'A COMPLETER') && (
+                    <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 mt-2 inline-block">À compléter</span>
+                  )}
+                  <span className="text-xs capitalize mt-1 ml-2 inline-block">{f.statut}</span>
                 </div>
-                <span className="text-xs capitalize mt-1 inline-block">{f.statut}</span>
+                <button onClick={() => openEditFiche(f)} className="flex items-center gap-1 text-xs border rounded-lg px-3 py-1.5 hover:bg-muted">
+                  <Pencil className="w-3.5 h-3.5" /> Modifier
+                </button>
               </div>
             ))
           )}
@@ -171,6 +252,35 @@ export default function HotelLegalPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {showFicheForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold">{editingFicheId ? 'Compléter la fiche police' : 'Nouvelle fiche police'}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input placeholder="Nom *" value={ficheForm.nom} onChange={(e) => setFicheForm((f) => ({ ...f, nom: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Prénom *" value={ficheForm.prenom} onChange={(e) => setFicheForm((f) => ({ ...f, prenom: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
+              <label className="text-xs text-muted-foreground">Date de naissance<input type="date" value={ficheForm.dateNaissance} onChange={(e) => setFicheForm((f) => ({ ...f, dateNaissance: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-background text-foreground" /></label>
+              <input placeholder="Lieu de naissance" value={ficheForm.lieuNaissance} onChange={(e) => setFicheForm((f) => ({ ...f, lieuNaissance: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background self-end" />
+              <input placeholder="Nationalité" value={ficheForm.nationalite} onChange={(e) => setFicheForm((f) => ({ ...f, nationalite: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
+              <select value={ficheForm.typePiece} onChange={(e) => setFicheForm((f) => ({ ...f, typePiece: e.target.value as FichePolice['typePiece'] }))} className="border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="cni">Carte nationale d’identité</option>
+                <option value="passeport">Passeport</option>
+                <option value="permis_sejour">Permis de séjour</option>
+                <option value="autre">Autre pièce</option>
+              </select>
+              <input placeholder="Numéro de pièce *" value={ficheForm.numeroPiece} onChange={(e) => setFicheForm((f) => ({ ...f, numeroPiece: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Numéro de chambre" value={ficheForm.chambreNumero} onChange={(e) => setFicheForm((f) => ({ ...f, chambreNumero: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
+              <label className="text-xs text-muted-foreground">Date d’entrée<input type="date" value={ficheForm.dateEntree} onChange={(e) => setFicheForm((f) => ({ ...f, dateEntree: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-background text-foreground" /></label>
+              <label className="text-xs text-muted-foreground">Sortie prévue<input type="date" value={ficheForm.dateSortiePrevue} onChange={(e) => setFicheForm((f) => ({ ...f, dateSortiePrevue: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-background text-foreground" /></label>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowFicheForm(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
+              <button onClick={() => saveFiche.mutate()} disabled={!ficheForm.nom.trim() || !ficheForm.prenom.trim() || !ficheForm.numeroPiece.trim() || !ficheForm.dateEntree || saveFiche.isPending} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground disabled:opacity-50">Enregistrer</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

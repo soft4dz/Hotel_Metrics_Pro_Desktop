@@ -770,6 +770,7 @@ export const ipcClient: IpcApi = {
   hotelLegal: {
     listFichesPolice: (hotelId, statut) => api().hotelLegal.listFichesPolice(hotelId, statut),
     createFichePolice: (input) => api().hotelLegal.createFichePolice(input),
+    updateFichePolice: (ficheId, input) => api().hotelLegal.updateFichePolice(ficheId, input),
     checkoutFichePolice: (ficheId, dateSortie) => api().hotelLegal.checkoutFichePolice(ficheId, dateSortie),
     calculerTaxeSejour: (hotelId, periode, taux) => api().hotelLegal.calculerTaxeSejour(hotelId, periode, taux),
     genererRapportTourisme: (hotelId, periode) => api().hotelLegal.genererRapportTourisme(hotelId, periode),

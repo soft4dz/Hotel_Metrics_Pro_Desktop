@@ -24,6 +24,11 @@ export default function MaintenancePage() {
   const [form, setForm] = useState({ titre: '', typeIntervention: 'corrective', priorite: 'normale', description: '', datePlanifiee: '', equipementId: 0, coutPieces: 0, coutMainOeuvre: 0, rapport: '' });
   const [equipForm, setEquipForm] = useState({ code: '', designation: '', categorie: 'autre', localisation: '', marque: '', dateAchat: '' });
 
+  const refreshMaintenance = () => {
+    qc.invalidateQueries({ queryKey: ['maintenance-interventions'] });
+    qc.invalidateQueries({ queryKey: ['maintenance-stats'] });
+  };
+
   const { data: equipements = [] } = useQuery({
     queryKey: ['maintenance-equipements', hotelId],
     queryFn: async () => unwrapIpc(await ipcClient.maintenance.listEquipements(hotelId)) as Equipement[],
@@ -54,8 +59,8 @@ export default function MaintenancePage() {
       datePlanifiee: form.datePlanifiee || undefined,
       equipementId: form.equipementId || undefined,
     })),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); setShowForm(false); notify.success('Intervention créée'); },
-    onError: () => notify.error('Erreur'),
+    onSuccess: () => { refreshMaintenance(); setShowForm(false); notify.success('Intervention créée'); },
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Erreur'),
   });
 
   const terminer = useMutation({
@@ -66,12 +71,14 @@ export default function MaintenancePage() {
       coutMainOeuvre: form.coutMainOeuvre,
       rapport: form.rapport || undefined,
     })),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); notify.success('Intervention terminée'); },
+    onSuccess: () => { refreshMaintenance(); notify.success('Intervention terminée'); },
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Erreur'),
   });
 
   const commencer = useMutation({
     mutationFn: async (id: number) => unwrapIpc(await ipcClient.maintenance.updateIntervention(id, { statut: 'en_cours', dateDebut: new Date().toISOString().slice(0, 10) })),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['maintenance'] }); },
+    onSuccess: () => { refreshMaintenance(); notify.success('Intervention démarrée'); },
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Erreur'),
   });
 
   const openInterventionFromEquip = (equipId: number, designation: string) => {
@@ -147,7 +154,7 @@ export default function MaintenancePage() {
       ) : (
         <>
           <div className="flex gap-1 flex-wrap">
-            {[{ value: '', label: 'Toutes' }, { value: 'ouverte', label: 'Ouvertes' }, { value: 'en_cours', label: 'En cours' }, { value: 'planifiee', label: 'Planifiées' }, { value: 'terminee', label: 'Terminées' }].map(s => (
+            {[{ value: '', label: 'Toutes' }, { value: 'demandee', label: 'Demandées' }, { value: 'planifiee', label: 'Planifiées' }, { value: 'en_cours', label: 'En cours' }, { value: 'terminee', label: 'Terminées' }, { value: 'annulee', label: 'Annulées' }].map(s => (
               <button key={s.value} onClick={() => setStatutFilter(s.value)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statutFilter === s.value ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}>{s.label}</button>
             ))}
           </div>
@@ -170,7 +177,7 @@ export default function MaintenancePage() {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {i.statut === 'ouverte' && <button onClick={() => commencer.mutate(i.id)} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg">Commencer</button>}
+                    {(['demandee', 'planifiee'].includes(i.statut)) && <button onClick={() => commencer.mutate(i.id)} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg">Commencer</button>}
                     {i.statut === 'en_cours' && <button onClick={() => terminer.mutate(i.id)} className="text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg">Terminer</button>}
                   </div>
                 </div>
@@ -190,6 +197,20 @@ export default function MaintenancePage() {
                 <option value="">Équipement (optionnel)</option>
                 {equipements.map(eq => <option key={eq.id} value={eq.id}>{eq.designation}</option>)}
               </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select value={form.typeIntervention} onChange={e => setForm(f => ({ ...f, typeIntervention: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+                  <option value="corrective">Corrective</option>
+                  <option value="preventive">Préventive</option>
+                  <option value="ameliorative">Améliorative</option>
+                </select>
+                <select value={form.priorite} onChange={e => setForm(f => ({ ...f, priorite: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+                  <option value="basse">Basse</option>
+                  <option value="normale">Normale</option>
+                  <option value="haute">Haute</option>
+                  <option value="urgente">Urgente</option>
+                </select>
+              </div>
+              <label className="text-xs text-muted-foreground">Date planifiée<input type="date" value={form.datePlanifiee} onChange={e => setForm(f => ({ ...f, datePlanifiee: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-background text-foreground" /></label>
               <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm bg-background resize-none" />
             </div>
             <div className="flex gap-3 justify-end">
@@ -221,4 +242,3 @@ export default function MaintenancePage() {
     </div>
   );
 }
-
