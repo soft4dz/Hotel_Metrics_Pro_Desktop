@@ -4,6 +4,10 @@ const mockDb = { prepare: vi.fn() };
 
 vi.mock('../database/sqlite', () => ({ getDatabase: () => mockDb }));
 vi.mock('./audit.service', () => ({ writeAuditLog: vi.fn() }));
+vi.mock('./actorContext', () => ({
+  getActorContext: () => ({ userId: 1, roleCode: 'ADMIN_DEC', hotelIds: [], allHotelsAccess: true }),
+  actorCanAccessHotel: () => true,
+}));
 
 function chain(rows?: Record<string, unknown>[] | Record<string, unknown>) {
   return {
@@ -38,7 +42,7 @@ describe('Phase 5 — services satellite MVP', () => {
       return chain(undefined);
     });
     const svc = await import('./maintenance.service');
-    const eq = svc.createEquipement({ hotelId: 1, code: 'CLIM-01', designation: 'Climatiseur' });
+    const eq = svc.createEquipement(1, { hotelId: 1, code: 'CLIM-01', designation: 'Climatiseur' });
     expect(eq.designation).toBe('Climatiseur');
   });
 });

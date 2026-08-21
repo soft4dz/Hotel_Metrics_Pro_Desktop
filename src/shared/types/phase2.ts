@@ -243,9 +243,13 @@ export interface FichePolice {
   reservationId: number | null;
   nom: string;
   prenom: string;
+  dateNaissance: string | null;
+  lieuNaissance: string | null;
   nationalite: string | null;
+  typePiece: 'cni' | 'passeport' | 'permis_sejour' | 'autre';
   numeroPiece: string;
   dateEntree: string;
+  dateSortiePrevue: string | null;
   dateSortieReelle: string | null;
   chambreNumero: string | null;
   statut: string;

@@ -1149,6 +1149,7 @@ export interface IpcApi {
   hotelLegal: {
     listFichesPolice: (hotelId?: number, statut?: string) => Promise<IpcResult<FichePolice[]>>;
     createFichePolice: (input: unknown) => Promise<IpcResult<FichePolice>>;
+    updateFichePolice: (ficheId: number, input: unknown) => Promise<IpcResult<FichePolice>>;
     checkoutFichePolice: (ficheId: number, dateSortie: string) => Promise<IpcResult<FichePolice>>;
     calculerTaxeSejour: (hotelId: number, periode: string, taux?: number) => Promise<IpcResult<unknown>>;
     genererRapportTourisme: (hotelId: number, periode: string) => Promise<IpcResult<unknown>>;

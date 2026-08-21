@@ -883,6 +883,7 @@ const api: IpcApi = {
   hotelLegal: {
     listFichesPolice: (hotelId, statut) => ipcRenderer.invoke('hotelLegal:fichePolice:list', hotelId, statut),
     createFichePolice: (input) => ipcRenderer.invoke('hotelLegal:fichePolice:create', input),
+    updateFichePolice: (ficheId, input) => ipcRenderer.invoke('hotelLegal:fichePolice:update', ficheId, input),
     checkoutFichePolice: (ficheId, dateSortie) => ipcRenderer.invoke('hotelLegal:fichePolice:checkout', ficheId, dateSortie),
     calculerTaxeSejour: (hotelId, periode, taux) => ipcRenderer.invoke('hotelLegal:taxeSejour:calculer', hotelId, periode, taux),
     genererRapportTourisme: (hotelId, periode) => ipcRenderer.invoke('hotelLegal:tourisme:generer', hotelId, periode),
