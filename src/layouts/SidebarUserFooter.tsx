@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { clampMenuPosition } from '@/lib/clampMenuPosition';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUiStore } from '@/stores/ui.store';
+import { translate } from '@/lib/localization';
 
 interface SidebarUserFooterProps {
   collapsed: boolean;
@@ -14,6 +16,7 @@ interface SidebarUserFooterProps {
 export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const locale = useUiStore((state) => state.locale);
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -82,7 +85,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{user?.fullName ?? 'Utilisateur'}</p>
+              <p className="truncate text-sm font-semibold text-white">{user?.fullName ?? translate(locale, 'Utilisateur')}</p>
               <p className="truncate text-xs text-white/50">{user?.roleLabel ?? user?.role ?? '—'}</p>
             </div>
           </div>
@@ -94,7 +97,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
             onClick={() => goTo('/settings')}
           >
             <Settings className="h-4 w-4" strokeWidth={1.75} />
-            Paramètres
+            {translate(locale, 'Paramètres')}
           </button>
           <button
             type="button"
@@ -103,7 +106,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
             onClick={() => goTo('/settings/securite')}
           >
             <KeyRound className="h-4 w-4" strokeWidth={1.75} />
-            Changer le mot de passe
+            {translate(locale, 'Changer le mot de passe')}
           </button>
 
           <div className="my-1 h-px bg-white/10" />
@@ -115,7 +118,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
             onClick={() => void handleLogout()}
           >
             <LogOut className="h-4 w-4" strokeWidth={1.75} />
-            Déconnexion
+            {translate(locale, 'Déconnexion')}
           </button>
         </div>,
         document.body,
@@ -127,7 +130,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Menu utilisateur"
+        aria-label={translate(locale, 'Menu utilisateur')}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
@@ -139,14 +142,14 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
       >
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-gold to-amber-600 text-xs font-bold text-white shadow-sm"
-          title={user?.fullName ?? 'Utilisateur'}
+          title={user?.fullName ?? translate(locale, 'Utilisateur')}
         >
           {initials}
         </div>
 
         {!collapsed && (
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-sm font-medium text-white">{user?.fullName ?? 'Utilisateur'}</p>
+            <p className="truncate text-sm font-medium text-white">{user?.fullName ?? translate(locale, 'Utilisateur')}</p>
             <p className="truncate text-[11px] text-white/50">
               {user?.roleLabel ?? user?.role ?? '—'}
             </p>

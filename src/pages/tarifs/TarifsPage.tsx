@@ -5,12 +5,14 @@ import { GrilleTarifaire } from './GrilleTarifaire';
 import { PromotionsPage } from './PromotionsPage';
 import { ConventionsPage } from './ConventionsPage';
 import { SimulateurTarifPage } from './SimulateurTarifPage';
+import { YieldManagement } from './YieldManagement';
 
-type Tab = 'plans' | 'grille' | 'promotions' | 'conventions' | 'simulateur';
+type Tab = 'plans' | 'grille' | 'promotions' | 'conventions' | 'simulateur' | 'yield';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'plans',       label: 'Plans & Formules' },
   { id: 'grille',      label: 'Grille tarifaire' },
+  { id: 'yield',       label: 'Yield management' },
   { id: 'promotions',  label: 'Promotions' },
   { id: 'conventions', label: 'Conventions client' },
   { id: 'simulateur',  label: 'Simulateur' },
@@ -43,6 +45,7 @@ export function TarifsPage() {
       <div>
         {active === 'plans'       && <PlansFormules />}
         {active === 'grille'      && <GrilleTarifaire />}
+        {active === 'yield'       && <YieldManagement />}
         {active === 'promotions'  && <PromotionsPage />}
         {active === 'conventions' && <ConventionsPage />}
         {active === 'simulateur'  && <SimulateurTarifPage />}

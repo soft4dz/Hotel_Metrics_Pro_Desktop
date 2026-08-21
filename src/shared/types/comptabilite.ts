@@ -73,3 +73,28 @@ export interface EcritureFilters {
   dateFin?: string;
   statut?: EcritureStatut;
 }
+
+export interface LigneLettrable {
+  ligneId: number;
+  ecritureId: number;
+  compteNumero: string;
+  compteLibelle: string;
+  dateEcriture: string;
+  piece: string | null;
+  libelle: string;
+  debit: number;
+  credit: number;
+  hotelId: number | null;
+}
+
+export interface LettrageComptable {
+  id: number;
+  code: string;
+  compteNumero: string;
+  totalDebit: number;
+  totalCredit: number;
+  ecart: number;
+  statut: 'valide' | 'annule';
+  createdAt: string;
+  lignesCount: number;
+}

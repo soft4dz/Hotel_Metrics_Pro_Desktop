@@ -1,7 +1,8 @@
 import { getDatabase } from '../database/sqlite';
 import Electron from '../lib/electronApi';
 import path from '../lib/nodePath';
-import { existsSync, copyFileSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, copyFileSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { assertDocumentLegallyProtected } from './ged-archivage.service';
 import { writeAuditLog } from './audit.service';
 
@@ -49,9 +50,10 @@ export async function uploadDocument(actorId: number, input: UploadDocumentInput
   const destPath = path.join(getGedRoot(), destNom);
   copyFileSync(srcPath, destPath);
   const taille = statSync(destPath).size;
+  const contentHash = createHash('sha256').update(readFileSync(destPath)).digest('hex');
   const db = getDatabase();
-  const res = db.prepare(`INSERT INTO ged_documents (hotel_id,categorie_id,titre,description,nom_fichier,chemin,taille_octets,tags,version,confidentiel,uploaded_by,date_document,date_expiration) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`)
-    .get(input.hotelId ?? null, input.categorieId ?? null, input.titre, input.description ?? null, nomFichier, destPath, taille, JSON.stringify(input.tags ?? []), input.version ?? '1.0', input.confidentiel ? 1 : 0, actorId, input.dateDocument ?? null, input.dateExpiration ?? null) as { id: number };
+  const res = db.prepare(`INSERT INTO ged_documents (hotel_id,categorie_id,titre,description,nom_fichier,chemin,taille_octets,tags,version,confidentiel,uploaded_by,date_document,date_expiration,content_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`)
+    .get(input.hotelId ?? null, input.categorieId ?? null, input.titre, input.description ?? null, nomFichier, destPath, taille, JSON.stringify(input.tags ?? []), input.version ?? '1.0', input.confidentiel ? 1 : 0, actorId, input.dateDocument ?? null, input.dateExpiration ?? null, contentHash) as { id: number };
   return listDocuments().find(d => d.id === res.id)!;
 }
 

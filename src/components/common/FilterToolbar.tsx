@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Calendar } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface FilterToolbarProps {
   annee: number;
@@ -22,6 +23,7 @@ export function FilterToolbar({
   children,
   className,
 }: FilterToolbarProps) {
+  const { t } = useTranslation();
   const years = anneeOptions ?? [new Date().getFullYear(), new Date().getFullYear() - 1];
 
   return (
@@ -34,12 +36,12 @@ export function FilterToolbar({
       <div className="flex items-center gap-2 text-foreground">
         <Calendar className="h-4 w-4 text-primary" strokeWidth={1.75} />
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Période
+          {t('Période')}
         </span>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label className="text-[11px] font-medium text-muted-foreground">Année</Label>
+          <Label className="text-[11px] font-medium text-muted-foreground">{t('Année')}</Label>
           <select
             className="app-input min-w-[88px] cursor-pointer"
             value={annee}
@@ -53,7 +55,7 @@ export function FilterToolbar({
           </select>
         </div>
         <div className="space-y-1">
-          <Label className="text-[11px] font-medium text-muted-foreground">Mois</Label>
+          <Label className="text-[11px] font-medium text-muted-foreground">{t('Mois')}</Label>
           <select
             className="app-input min-w-[88px] cursor-pointer"
             value={mois}

@@ -110,6 +110,96 @@ export interface EcritureFilters {
   hotelId?: number;
 }
 
+export interface LigneLettrable {
+  ligneId: number; ecritureId: number; compteNumero: string; compteLibelle: string;
+  dateEcriture: string; piece: string | null; libelle: string; debit: number; credit: number;
+  hotelId: number | null;
+}
+
+export interface LettrageComptable {
+  id: number; code: string; compteNumero: string; totalDebit: number; totalCredit: number;
+  ecart: number; statut: 'valide' | 'annule'; createdAt: string; lignesCount: number;
+}
+
+export function listLignesLettrables(actorUserId: number, compteNumero: string): LigneLettrable[] {
+  getActorContext(actorUserId);
+  if (!/^(401|411)\d*$/.test(compteNumero)) throw new Error('Le lettrage est réservé aux comptes tiers 401 et 411.');
+  return (getDatabase().prepare(`
+    SELECT l.id AS ligne_id, e.id AS ecriture_id, c.numero AS compte_numero, c.libelle AS compte_libelle,
+           e.date_ecriture, e.piece, COALESCE(l.libelle, e.libelle) AS libelle,
+           l.debit, l.credit, l.hotel_id
+    FROM lignes_ecriture l
+    JOIN ecritures_comptables e ON e.id = l.ecriture_id AND e.statut = 'valide'
+    JOIN comptes c ON c.id = l.compte_id
+    WHERE c.numero = ? AND NOT EXISTS (
+      SELECT 1 FROM compta_lettrage_lignes ll
+      JOIN compta_lettrages lt ON lt.id = ll.lettrage_id
+      WHERE ll.ligne_ecriture_id = l.id AND lt.statut = 'valide'
+    )
+    ORDER BY e.date_ecriture, e.id, l.id LIMIT 500
+  `).all(compteNumero) as Record<string, unknown>[]).map((r) => ({
+    ligneId: Number(r.ligne_id), ecritureId: Number(r.ecriture_id), compteNumero: String(r.compte_numero),
+    compteLibelle: String(r.compte_libelle), dateEcriture: String(r.date_ecriture), piece: r.piece ? String(r.piece) : null,
+    libelle: String(r.libelle), debit: Number(r.debit), credit: Number(r.credit), hotelId: r.hotel_id == null ? null : Number(r.hotel_id),
+  }));
+}
+
+export function creerLettrage(actorUserId: number, ligneIds: number[]): LettrageComptable {
+  const actor = getActorContext(actorUserId);
+  const ids = [...new Set(ligneIds)];
+  if (ids.length < 2 || ids.length > 100) throw new Error('Sélectionnez entre 2 et 100 lignes.');
+  const db = getDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  return db.transaction(() => {
+    const rows = db.prepare(`
+      SELECT l.id, l.debit, l.credit, l.hotel_id, l.compte_id, c.numero,
+             EXISTS(SELECT 1 FROM compta_lettrage_lignes ll JOIN compta_lettrages lt ON lt.id=ll.lettrage_id WHERE ll.ligne_ecriture_id=l.id AND lt.statut='valide') AS deja_lettree
+      FROM lignes_ecriture l JOIN comptes c ON c.id=l.compte_id
+      JOIN ecritures_comptables e ON e.id=l.ecriture_id AND e.statut='valide'
+      WHERE l.id IN (${placeholders})
+    `).all(...ids) as Array<{ id:number; debit:number; credit:number; hotel_id:number|null; compte_id:number; numero:string; deja_lettree:number }>;
+    if (rows.length !== ids.length) throw new Error('Une ou plusieurs lignes sont introuvables ou non validées.');
+    if (rows.some((r) => r.deja_lettree)) throw new Error('Une ligne est déjà lettrée.');
+    if (rows.some((r) => r.compte_id !== rows[0]!.compte_id)) throw new Error('Toutes les lignes doivent appartenir au même compte.');
+    if (!/^(401|411)\d*$/.test(rows[0]!.numero)) throw new Error('Compte tiers 401 ou 411 requis.');
+    const hotels = new Set(rows.map((r) => r.hotel_id).filter((id) => id !== null));
+    if (hotels.size > 1) throw new Error('Le lettrage ne peut pas mélanger plusieurs unités.');
+    const debit = Math.round(rows.reduce((s, r) => s + r.debit, 0) * 100) / 100;
+    const credit = Math.round(rows.reduce((s, r) => s + r.credit, 0) * 100) / 100;
+    const ecart = Math.round((debit - credit) * 100) / 100;
+    if (Math.abs(ecart) >= 0.01) throw new Error(`Lettrage déséquilibré : écart de ${ecart.toFixed(2)} DA.`);
+    const code = `LTR-${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const result = db.prepare(`INSERT INTO compta_lettrages (code, compte_id, hotel_id, total_debit, total_credit, ecart, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(code, rows[0]!.compte_id, hotels.size ? [...hotels][0] : null, debit, credit, ecart, actorUserId);
+    const id = Number(result.lastInsertRowid);
+    const insert = db.prepare(`INSERT INTO compta_lettrage_lignes (lettrage_id, ligne_ecriture_id) VALUES (?, ?)`);
+    for (const ligneId of ids) insert.run(id, ligneId);
+    writeAuditLog({ userId: actor.userId, action: 'CREATE', module: 'comptabilite', description: `Lettrage ${code} — ${ids.length} lignes` });
+    return getLettrage(id);
+  })();
+}
+
+function getLettrage(id: number): LettrageComptable {
+  const row = getDatabase().prepare(`SELECT lt.*, c.numero AS compte_numero, COUNT(ll.ligne_ecriture_id) AS lignes_count
+    FROM compta_lettrages lt JOIN comptes c ON c.id=lt.compte_id LEFT JOIN compta_lettrage_lignes ll ON ll.lettrage_id=lt.id
+    WHERE lt.id=? GROUP BY lt.id`).get(id) as Record<string, unknown> | undefined;
+  if (!row) throw new Error('Lettrage introuvable.');
+  return { id:Number(row.id), code:String(row.code), compteNumero:String(row.compte_numero), totalDebit:Number(row.total_debit), totalCredit:Number(row.total_credit), ecart:Number(row.ecart), statut:row.statut as 'valide'|'annule', createdAt:String(row.created_at), lignesCount:Number(row.lignes_count) };
+}
+
+export function listLettrages(actorUserId: number): LettrageComptable[] {
+  getActorContext(actorUserId);
+  return (getDatabase().prepare(`SELECT id FROM compta_lettrages ORDER BY id DESC LIMIT 100`).all() as {id:number}[]).map((r) => getLettrage(r.id));
+}
+
+export function annulerLettrage(actorUserId: number, id: number): LettrageComptable {
+  const actor = getActorContext(actorUserId);
+  const n = getDatabase().prepare(`UPDATE compta_lettrages SET statut='annule', cancelled_by=?, cancelled_at=datetime('now') WHERE id=? AND statut='valide'`).run(actorUserId, id).changes;
+  if (!n) throw new Error('Lettrage introuvable ou déjà annulé.');
+  writeAuditLog({ userId: actor.userId, action: 'UPDATE', module: 'comptabilite', description: `Annulation lettrage #${id}` });
+  return getLettrage(id);
+}
+
 export const COMPTES_SCF = {
   CLIENTS: '411000',
   FOURNISSEURS: '401000',

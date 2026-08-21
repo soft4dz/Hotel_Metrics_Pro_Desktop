@@ -4,6 +4,7 @@ import { applyUiTheme } from '@/lib/applyUiTheme';
 import type { LayoutProfileId } from '@/shared/constants/layoutProfiles';
 import { getLayoutProfile } from '@/shared/constants/layoutProfiles';
 import type { UserUiPreferencesDto } from '@/shared/types/uiPreferences';
+import { applyDocumentLocale } from '@/lib/localization';
 
 export type AccentColor = 'navy' | 'blue' | 'violet' | 'emerald' | 'rose' | 'amber' | 'cyan' | 'slate';
 export type Density     = 'compact' | 'comfortable' | 'spacious';
@@ -86,7 +87,10 @@ export const useUiStore = create<UiState>()(
         set({ density });
         applyUiTheme(get().accentColor, density);
       },
-      setLocale: (locale) => set({ locale }),
+      setLocale: (locale) => {
+        set({ locale });
+        applyDocumentLocale(locale);
+      },
       setNotifPref:   (key, value)   =>
         set((state) => ({ notifPrefs: { ...state.notifPrefs, [key]: value } })),
       resetNotifPrefs: () => set({ notifPrefs: DEFAULT_NOTIF }),
@@ -135,6 +139,7 @@ export const useUiStore = create<UiState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyUiTheme(state.accentColor, state.density);
+          applyDocumentLocale(state.locale);
         }
       },
     },

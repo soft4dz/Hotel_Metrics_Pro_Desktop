@@ -88,9 +88,9 @@ export function createMouvement(actorUserId: number, input: SaveMouvementInput):
   const actor = assertPortmaster(actorUserId);
   const db = getDatabase();
 
-  const bateau = db.prepare(`SELECT id, nom FROM port_bateaux WHERE id = ? AND deleted_at IS NULL`).get(
+  const bateau = db.prepare(`SELECT id, uuid, nom FROM port_bateaux WHERE id = ? AND deleted_at IS NULL`).get(
     input.bateauId,
-  );
+  ) as { id: number; uuid: string; nom: string } | undefined;
   if (!bateau) throw new Error('Bateau introuvable.');
 
   if (input.typeMouvement === 'arrivee' && !input.emplacementToId) {
@@ -155,10 +155,22 @@ export function createMouvement(actorUserId: number, input: SaveMouvementInput):
   }
 
   try {
+    const from = input.emplacementFromId
+      ? (db.prepare(`SELECT uuid FROM port_emplacements WHERE id = ?`).get(input.emplacementFromId) as { uuid: string } | undefined)
+      : undefined;
+    const to = input.emplacementToId
+      ? (db.prepare(`SELECT uuid FROM port_emplacements WHERE id = ?`).get(input.emplacementToId) as { uuid: string } | undefined)
+      : undefined;
     enqueueSync('port_mouvement', 'create', Number(r.lastInsertRowid), {
       uuid,
-      bateauId: input.bateauId,
+      bateauUuid: bateau.uuid,
       typeMouvement: input.typeMouvement,
+      emplacementFromUuid: from?.uuid ?? null,
+      emplacementToUuid: to?.uuid ?? null,
+      dateMouvement: input.dateMouvement,
+      motif: input.motif?.trim() || null,
+      statut: 'valide',
+      updatedAt: new Date().toISOString(),
     });
   } catch {
     /* sync_config peut ne pas exister sur très vieilles bases */

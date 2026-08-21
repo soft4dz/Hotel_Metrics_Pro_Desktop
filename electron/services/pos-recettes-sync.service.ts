@@ -2,9 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { POS_FOOD_SERVICE_TYPES } from '../../src/shared/constants/posPointVenteTypes';
-import { isAnnexPosType } from '../../src/shared/constants/posPointVenteTypes';
-import type { PosPointVenteType } from '../../src/shared/types/pos';
-import { computeAnnexCaTotals } from './pos-annex.service';
 
 const ERP_RECETTE_OBS_PREFIX = '[ERP auto]';
 
@@ -98,10 +95,7 @@ export function getPosClosureStatusForHotel(hotelId: number, dateJournal: string
           WHERE point_vente_id = ? AND date_journal = ? AND statut = 'cloturee'
         `).get(pv.id, dateJournal) as { t: number } | undefined
       : null;
-    let totalVentes = totalRow?.t ?? 0;
-    if (!closed && isAnnexPosType(pv.type as PosPointVenteType)) {
-      totalVentes = computeAnnexCaTotals(pv.type as PosPointVenteType, hotelId, dateJournal).totalVentes;
-    }
+    const totalVentes = totalRow?.t ?? 0;
     return {
       pointVenteId: pv.id,
       nom: pv.nom,
@@ -126,7 +120,7 @@ export function assertAllPosClosedForHotel(hotelId: number, dateJournal: string)
   throw new Error(`Clôture POS requise avant clôture hôtel — PDV en attente : ${pending}`);
 }
 
-/** Alimente recettes_journalieres depuis clôtures POS du jour (restauration + annexes). */
+/** Alimente recettes_journalieres depuis clôtures POS du jour (restauration). */
 export function syncPosCaToRecettesJournalieres(actorUserId: number, hotelId: number, dateJournal: string): number {
   const db = getDatabase();
   const foodTypes = POS_FOOD_SERVICE_TYPES.map((t) => `'${t}'`).join(', ');
@@ -139,14 +133,6 @@ export function syncPosCaToRecettesJournalieres(actorUserId: number, hotelId: nu
       AND pv.type IN (${foodTypes})
   `).get(hotelId, dateJournal) as { total: number };
 
-  const annexRow = db.prepare(`
-    SELECT COALESCE(SUM(c.total_ventes), 0) as total
-    FROM pos_clotures_journalieres c
-    INNER JOIN pos_points_vente pv ON pv.id = c.point_vente_id
-    WHERE pv.hotel_id = ? AND c.date_journal = ? AND c.statut = 'cloturee'
-      AND pv.type IN ('plage', 'piscine', 'parking')
-  `).get(hotelId, dateJournal) as { total: number };
-
   const restauration = upsertAutoRecetteLine(
     actorUserId,
     hotelId,
@@ -156,21 +142,12 @@ export function syncPosCaToRecettesJournalieres(actorUserId: number, hotelId: nu
     'CA restauration consolidé POS',
   );
 
-  const annexes = upsertAutoRecetteLine(
-    actorUserId,
-    hotelId,
-    dateJournal,
-    'AUTRES',
-    annexRow.total ?? 0,
-    'CA plage, piscine et parking (POS)',
-  );
-
   writeAuditLog({
     userId: actorUserId,
     action: 'UPDATE',
     module: 'pos',
-    description: `Sync recettes POS ${dateJournal} — restauration ${restauration} DA, annexes ${annexes} DA`,
+    description: `Sync recettes POS ${dateJournal} — restauration ${restauration} DA`,
   });
 
-  return restauration + annexes;
+  return restauration;
 }

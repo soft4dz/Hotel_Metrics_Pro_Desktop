@@ -10,6 +10,7 @@ import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 import { ipcClient } from '@/lib/ipcClient';
 import { DEMO_PROFILE_PASSWORD } from '@/shared/constants/demoProfileAccounts';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface DemoAccountRow {
   email: string;
@@ -23,6 +24,7 @@ export function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { logoUrl, companyName } = useCompanyBranding();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,7 +80,7 @@ export function LoginPage() {
           navigate(DEFAULT_HOME_PATH, { replace: true });
         }
       } else {
-        setError(result.error ?? 'Identifiants incorrects.');
+        setError(result.error ?? t('Identifiants incorrects.'));
       }
     } catch {
       setError("Impossible de contacter l'application. Lancez via dev.bat ou npm run dev.");
@@ -98,15 +100,15 @@ export function LoginPage() {
           />
           <span className="font-heading font-semibold text-primary">{companyName}</span>
         </div>
-        <CardTitle className="text-2xl text-foreground">Connexion</CardTitle>
+        <CardTitle className="text-2xl text-foreground">{t('Connexion')}</CardTitle>
         <CardDescription>
-          Accédez à votre espace de pilotage hôtelier et portuaire.
+          {t('Accédez à votre espace de pilotage hôtelier et portuaire.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Adresse e-mail</Label>
+            <Label htmlFor="email">{t('Adresse e-mail')}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -123,7 +125,7 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password">{t('Mot de passe')}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -140,7 +142,7 @@ export function LoginPage() {
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                aria-label={t(showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe')}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -156,7 +158,7 @@ export function LoginPage() {
               className="h-4 w-4 cursor-pointer rounded border-input text-primary focus:ring-ring"
             />
             <Label htmlFor="remember" className="cursor-pointer font-normal">
-              Mémoriser la session sur cet ordinateur
+              {t('Mémoriser la session sur cet ordinateur')}
             </Label>
           </div>
 
@@ -166,17 +168,17 @@ export function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Connexion…
+                {t('Connexion')}…
               </>
             ) : (
-              'Se connecter'
+              t('Se connecter')
             )}
           </Button>
 
           {import.meta.env.DEV && (
             <div className="space-y-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
               <p>
-                <strong className="text-foreground">Comptes administrateur</strong>
+                <strong className="text-foreground">{t('Comptes administrateur')}</strong>
                 <br />
                 <span className="text-foreground">admin@hotelmetrics.local</span> — mot de passe initial
                 dans <span className="font-mono">INITIAL_ADMIN_CREDENTIALS.txt</span>
@@ -191,14 +193,14 @@ export function LoginPage() {
                   >
                     <span className="inline-flex items-center gap-1.5">
                       <UserCircle2 className="h-3.5 w-3.5" />
-                      Profils démo ({demoAccounts.length})
+                      {t('Profils démo')} ({demoAccounts.length})
                     </span>
                     <ChevronDown
                       className={`h-4 w-4 transition-transform ${showDemoAccounts ? 'rotate-180' : ''}`}
                     />
                   </button>
                   <p className="mt-1">
-                    Mot de passe commun :{' '}
+                    {t('Mot de passe commun')} :{' '}
                     <strong className="font-mono text-foreground">{DEMO_PROFILE_PASSWORD}</strong>
                   </p>
                   {showDemoAccounts && (
@@ -232,7 +234,7 @@ export function LoginPage() {
             className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             onClick={clearLocalSession}
           >
-            Réinitialiser la session locale
+            {t('Réinitialiser la session locale')}
           </button>
         </form>
       </CardContent>

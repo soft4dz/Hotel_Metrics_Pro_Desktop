@@ -248,6 +248,8 @@ export interface RhAbsence {
   statut: StatutAbsence;
   statutN1: StatutValidationN1;
   commentaireN1: string | null;
+  cancelledAt: string | null;
+  decisionComment: string | null;
 }
 
 export interface RhDashboard {

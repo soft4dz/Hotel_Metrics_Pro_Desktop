@@ -77,6 +77,7 @@ import { ComptabiliteSaisiePage } from '@/pages/comptabilite/ComptabiliteSaisieP
 import { ComptabiliteJournauxPage } from '@/pages/comptabilite/ComptabiliteJournauxPage';
 import { ComptabiliteBalancePage } from '@/pages/comptabilite/ComptabiliteBalancePage';
 import { ComptabiliteExercicesPage } from '@/pages/comptabilite/ComptabiliteExercicesPage';
+import { ComptabiliteLettragePage } from '@/pages/comptabilite/ComptabiliteLettragePage';
 import { FiscaliteIndexPage } from '@/pages/fiscalite/FiscaliteIndexPage';
 import { FiscaliteRegistreTvaPage } from '@/pages/fiscalite/FiscaliteRegistreTvaPage';
 import { FiscaliteDeclarationTvaPage } from '@/pages/fiscalite/FiscaliteDeclarationTvaPage';
@@ -128,8 +129,6 @@ import { PERMISSIONS } from '@/shared/permissions';
 import AnomaliesPage from '@/pages/anomalies/AnomaliesPage';
 import DecisionsPage from '@/pages/decisions/DecisionsPage';
 import ReclamationsPage from '@/pages/reclamations/ReclamationsPage';
-import ParkingPage from '@/pages/parking/ParkingPage';
-import PlagePage from '@/pages/plage/PlagePage';
 import StocksPage from '@/pages/stocks/StocksPage';
 import CuisinePage from '@/pages/cuisine/CuisinePage';
 import PosPage from '@/pages/pos/PosPage';
@@ -240,6 +239,7 @@ export function AppRoutes() {
               <Route path="journaux" element={<ComptabiliteJournauxPage />} />
               <Route path="balance" element={<ComptabiliteBalancePage />} />
               <Route path="exercices" element={<ComptabiliteExercicesPage />} />
+              <Route path="lettrage" element={<ComptabiliteLettragePage />} />
             </Route>
 
             <Route path="/fiscalite" element={<FiscaliteIndexPage />}>
@@ -302,8 +302,6 @@ export function AppRoutes() {
             <Route path="/anomalies" element={<AnomaliesPage />} />
             <Route path="/decisions" element={<DecisionsPage />} />
             <Route path="/reclamations" element={<ReclamationsPage />} />
-            <Route path="/parking" element={<ParkingPage />} />
-            <Route path="/plage" element={<PlagePage />} />
             <Route path="/stocks" element={<StocksPage />} />
             <Route path="/cuisine" element={<CuisinePage />} />
             <Route path="/pos" element={<PosPage />} />

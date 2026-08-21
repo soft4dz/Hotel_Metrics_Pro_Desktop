@@ -39,8 +39,6 @@ export const HOTEL_ONLY_MODULE_IDS: readonly ConfiguredModuleId[] = [
   'hebergement-occupation',
   'housekeeping-chambres',
   'tarifs-conventions',
-  'plage-piscine',
-  'parking',
   'recettes-journalieres',
   'comparatif-inter-unites',
 ];
@@ -50,8 +48,6 @@ const HOTEL_ROUTES = [
   '/housekeeping',
   '/tarifs',
   '/hotel-legal',
-  '/parking',
-  '/plage',
 ] as const;
 
 const RECETTES_ROUTES = [
@@ -179,8 +175,6 @@ export const BUSINESS_SECTOR_PROFILES: Record<BusinessSectorId, BusinessSectorPr
       ...RECETTES_ROUTES,
       '/cuisine',
       '/pos',
-      '/parking',
-      '/plage',
     ],
   },
   industrie: {
@@ -253,8 +247,6 @@ export const BUSINESS_SECTOR_PROFILES: Record<BusinessSectorId, BusinessSectorPr
       ...RECETTES_ROUTES,
       '/cuisine',
       '/pos',
-      '/parking',
-      '/plage',
     ],
   },
 };

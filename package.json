@@ -39,7 +39,10 @@
     "license-manager:build": "cd license-manager && npm run build",
     "seed:pms": "electron scripts/seed-pms-demo.mjs",
     "seed:demo": "electron scripts/seed-demo-full.mjs",
-    "reset:db": "electron scripts/reset-db-superadmin.mjs"
+    "reset:db": "electron scripts/reset-db-superadmin.mjs",
+    "i18n:extract": "node scripts/extract-ui-strings.mjs",
+    "i18n:translate": "node scripts/translate-ui-catalog.mjs en ar",
+    "i18n:check": "node scripts/check-i18n-catalog.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.5",

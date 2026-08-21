@@ -12,10 +12,13 @@ import {
   findActiveModuleId,
   type SidebarModule,
 } from '@/layouts/sidebarModules';
+import { translate } from '@/lib/localization';
+import { useUiStore } from '@/stores/ui.store';
 
 export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
   const autoExpandOnNavigate = options?.autoExpandOnNavigate ?? false;
   const role = useAuthStore((state) => state.user?.role);
+  const locale = useUiStore((state) => state.locale);
   const enabledModules = useEnabledModules();
   const { sectorId } = useBusinessSector();
   const { pathname } = useLocation();
@@ -28,12 +31,16 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
 
   const modules = useMemo(
     () =>
-      buildSidebarModules(role, pendingUsers, pendingValidationsN1, sectorId).filter((mod) => {
+      buildSidebarModules(role, pendingUsers, pendingValidationsN1, sectorId).map((mod) => ({
+        ...mod,
+        title: translate(locale, mod.title),
+        items: mod.items.map((item) => ({ ...item, label: translate(locale, item.label) })),
+      })).filter((mod) => {
         if (mod.visible === false) return false;
         if (mod.moduleId && enabledModules.size > 0 && !enabledModules.has(mod.moduleId)) return false;
         return mod.items.some((item) => item.visible !== false);
       }),
-    [role, pendingUsers, pendingValidationsN1, enabledModules, sectorId],
+    [role, pendingUsers, pendingValidationsN1, enabledModules, sectorId, locale],
   );
 
   useEffect(() => {

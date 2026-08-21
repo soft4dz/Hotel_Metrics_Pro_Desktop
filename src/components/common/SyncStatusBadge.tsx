@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SyncStatusBadgeProps {
   className?: string;
@@ -12,6 +13,7 @@ interface SyncStatusBadgeProps {
 
 export function SyncStatusBadge({ className, compact = false }: SyncStatusBadgeProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data } = useSyncStatus();
 
   if (!data) return null;
@@ -21,10 +23,10 @@ export function SyncStatusBadge({ className, compact = false }: SyncStatusBadgeP
 
   const label =
     data.failedCount > 0
-      ? `${data.failedCount} sync en échec`
-      : `${data.pendingCount} en attente`;
+      ? `${data.failedCount} ${t('sync en échec')}`
+      : `${data.pendingCount} ${t('en attente')}`;
 
-  const shortLabel = data.failedCount > 0 ? `${data.failedCount} échec` : `${data.pendingCount}`;
+  const shortLabel = data.failedCount > 0 ? `${data.failedCount} ${t('échec')}` : `${data.pendingCount}`;
 
   return (
     <Button

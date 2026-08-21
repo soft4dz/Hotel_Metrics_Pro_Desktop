@@ -140,15 +140,6 @@ export const KPI_REPORTS: KpiReportDef[] = [
       { key: 'charges_total', label: 'Charges', width: 14 },
     ],
   },
-  {
-    id: 'kpi_parking_plage', label: 'Recettes annexes', category: 'Exploitation',
-    description: 'CA parking et plage/piscine par hôtel',
-    icon: 'car', permissions: ['reports.export'],
-    columns: [
-      { key: 'hotel', label: 'Hôtel', width: 22 }, { key: 'module', label: 'Module', width: 14 },
-      { key: 'nb_operations', label: 'Opérations', width: 12 }, { key: 'ca_total', label: 'CA total', width: 14 },
-    ],
-  },
 ];
 
 import { userHasPermission } from '../permissions.service';
@@ -356,22 +347,6 @@ export function runKpiReport(
         FROM rh_bulletins b WHERE 1=1 ${periodeCond}
         GROUP BY b.periode ORDER BY b.periode DESC
       `).all(...periodeParams) as Record<string, unknown>[];
-      break;
-    }
-    case 'kpi_parking_plage': {
-      const parking = db.prepare(`
-        SELECT h.name AS hotel, 'Parking' AS module, COUNT(*) AS nb_operations, ROUND(SUM(pt.montant), 2) AS ca_total
-        FROM parking_tickets pt INNER JOIN hotels h ON h.id = pt.hotel_id
-        WHERE pt.statut = 'termine' ${hotelCond.replace('rj.hotel_id', 'pt.hotel_id')}
-        GROUP BY h.id
-      `).all(...hp) as Record<string, unknown>[];
-      const plage = db.prepare(`
-        SELECT h.name AS hotel, 'Plage/Piscine' AS module, COUNT(*) AS nb_operations, ROUND(SUM(pe.montant), 2) AS ca_total
-        FROM plage_entrees pe INNER JOIN hotels h ON h.id = pe.hotel_id
-        WHERE 1=1 ${hotelCond.replace('rj.hotel_id', 'pe.hotel_id')}
-        GROUP BY h.id
-      `).all(...hp) as Record<string, unknown>[];
-      rows = [...parking, ...plage];
       break;
     }
     default:

@@ -4,6 +4,7 @@ import { Check, ChevronDown, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clampMenuPosition } from '@/lib/clampMenuPosition';
 import { useUiStore, type Locale } from '@/stores/ui.store';
+import { translate } from '@/lib/localization';
 
 const LOCALES: { value: Locale; label: string; short: string }[] = [
   { value: 'fr', label: 'Français', short: 'FR' },
@@ -84,7 +85,7 @@ export function LanguageSwitcher() {
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Changer de langue"
+        aria-label={translate(locale, 'Changer de langue')}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}

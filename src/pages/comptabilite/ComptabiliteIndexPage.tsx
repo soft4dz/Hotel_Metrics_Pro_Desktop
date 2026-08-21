@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, BookOpen, Calculator, CalendarRange, FileSpreadsheet, ListChecks } from 'lucide-react';
+import { BarChart3, BookOpen, Calculator, CalendarRange, FileSpreadsheet, ListChecks, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -9,6 +9,7 @@ const TABS = [
   { to: '/comptabilite/journaux', label: 'Journaux', icon: ListChecks, end: false },
   { to: '/comptabilite/balance', label: 'Balance', icon: Calculator, end: false },
   { to: '/comptabilite/exercices', label: 'Exercices', icon: CalendarRange, end: false },
+  { to: '/comptabilite/lettrage', label: 'Lettrage', icon: Link2, end: false },
 ];
 
 export function ComptabiliteIndexPage() {

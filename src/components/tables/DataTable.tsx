@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface Column<T> {
   key: string;
@@ -21,10 +22,13 @@ export function DataTable<T>({
   columns,
   data,
   keyExtractor,
-  emptyMessage = 'Aucune donnée',
+  emptyMessage,
   loading = false,
   embedded = false,
 }: DataTableProps<T>) {
+  const { t } = useTranslation();
+  const resolvedEmptyMessage = emptyMessage ?? t('Aucune donnée');
+
   if (loading) {
     return (
       <div
@@ -33,7 +37,7 @@ export function DataTable<T>({
           !embedded && 'app-surface',
         )}
       >
-        Chargement…
+        {t('Chargement')}…
       </div>
     );
   }
@@ -46,7 +50,7 @@ export function DataTable<T>({
           !embedded && 'app-surface',
         )}
       >
-        {emptyMessage}
+        {resolvedEmptyMessage}
       </div>
     );
   }
@@ -65,7 +69,7 @@ export function DataTable<T>({
                     col.className,
                   )}
                 >
-                  {col.header}
+                  {t(col.header)}
                 </th>
               ))}
             </tr>

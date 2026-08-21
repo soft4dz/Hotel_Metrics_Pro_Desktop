@@ -19,6 +19,7 @@ import * as rhPointeuseSync from '../services/rh-pointeuse-sync.service';
 import * as rhAts from '../services/rh-ats.service';
 import * as rhTemps from '../services/rh-temps-reconciliation.service';
 import * as rhGpec from '../services/rh-gpec.service';
+import { assertPositiveInteger, assertText } from './validation';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -210,6 +211,8 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rh.createAbsence(uid, input)));
   Electron.ipcMain.handle('rh:absences:decider', (event, id: number, approuve: boolean) =>
     wrapIpc(event, (uid) => rh.deciderAbsence(uid, id, approuve)));
+  Electron.ipcMain.handle('rh:absences:cancel', (event, id: unknown, motif?: unknown) =>
+    wrapIpc(event, (uid) => rh.cancelAbsence(uid, assertPositiveInteger(id, 'id'), motif ? assertText(motif, 'motif', { maxLength: 500 }) : undefined)));
 
   Electron.ipcMain.handle(
     'rh:affectations:list',

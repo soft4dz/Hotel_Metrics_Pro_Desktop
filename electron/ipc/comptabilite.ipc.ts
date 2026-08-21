@@ -74,4 +74,13 @@ export function registerComptabiliteIpc(): void {
 
   Electron.ipcMain.handle('comptabilite:balance', (event, exerciceId?: number, dateDebut?: string, dateFin?: string) =>
     wrapIpc(event, (uid) => svc.getBalanceGenerale(uid, exerciceId, dateDebut, dateFin)));
+
+  Electron.ipcMain.handle('comptabilite:lettrage:lignes', (event, compteNumero: unknown) =>
+    wrapIpc(event, (uid) => svc.listLignesLettrables(uid, assertText(compteNumero, 'compteNumero', { required: true, maxLength: 20 }))));
+  Electron.ipcMain.handle('comptabilite:lettrage:list', (event) =>
+    wrapIpc(event, (uid) => svc.listLettrages(uid)));
+  Electron.ipcMain.handle('comptabilite:lettrage:create', (event, ligneIds: unknown) =>
+    wrapIpc(event, (uid) => svc.creerLettrage(uid, assertArray(ligneIds, 'ligneIds', 2).map((id, i) => assertPositiveInteger(id, `ligneIds[${i}]`)))));
+  Electron.ipcMain.handle('comptabilite:lettrage:cancel', (event, id: unknown) =>
+    wrapIpc(event, (uid) => svc.annulerLettrage(uid, assertPositiveInteger(id, 'id'))));
 }

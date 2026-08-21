@@ -34,8 +34,6 @@ export const SMOKE_ROUTES: string[] = [
   '/anomalies',
   '/decisions',
   '/reclamations',
-  '/parking',
-  '/plage',
   '/stocks',
   '/achats',
   '/maintenance',

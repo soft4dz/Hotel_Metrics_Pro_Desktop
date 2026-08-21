@@ -10,7 +10,6 @@ import {
   Lock,
   X,
 } from 'lucide-react';
-import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -493,11 +492,6 @@ export function SaisieJournalierePage() {
 
   return (
     <div className="page-shell">
-      <PageHeader
-        title="CA journalier (ERP)"
-        description="Consolidation automatique depuis l'hébergement, le POS et la facturation"
-      />
-
       <div className="mb-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p>

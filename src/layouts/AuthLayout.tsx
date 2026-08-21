@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Anchor, BarChart3, Building2 } from 'lucide-react';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 
@@ -6,6 +7,7 @@ import { useCompanyBranding } from '@/hooks/useCompanyBranding';
  * Layout pour les écrans non authentifiés (login, activation licence).
  */
 export function AuthLayout() {
+  const { t } = useTranslation();
   const { logoUrl, companyName } = useCompanyBranding();
 
   return (
@@ -27,7 +29,7 @@ export function AuthLayout() {
 
         <div className="relative z-10 space-y-6">
           <h1 className="max-w-md text-balance text-3xl font-semibold leading-tight tracking-tight">
-            ERP de pilotage hôtelier
+            {t('ERP de pilotage hôtelier')}
             <span className="mt-2 block text-brand-gold"> &amp; port de plaisance</span>
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-white/75">
@@ -37,11 +39,11 @@ export function AuthLayout() {
           <ul className="flex flex-wrap gap-4 text-sm text-white/60">
             <li className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-brand-gold" strokeWidth={1.75} />
-              Multi-unités
+              {t('Multi-unités')}
             </li>
             <li className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-brand-gold" strokeWidth={1.75} />
-              KPI temps réel
+              {t('KPI temps réel')}
             </li>
             <li className="flex items-center gap-2">
               <Anchor className="h-4 w-4 text-brand-gold" strokeWidth={1.75} />

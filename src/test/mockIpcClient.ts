@@ -143,6 +143,7 @@ export function createMockIpcClient(): IpcApi {
       listChambres: list(),
     }),
     tarifs: namespace({ listGrilles: list(), listConventions: list() }),
+    yield: namespace({ listRules: list(), computeSuggestions: list() }),
     rh: namespace({
       dashboard: ok({ effectif: 0, absences: 0, pointages: 0 }),
       listEmployes: list(),
@@ -159,8 +160,6 @@ export function createMockIpcClient(): IpcApi {
     anomalies: namespace({ list: list() }),
     decisions: namespace({ list: list() }),
     reclamations: namespace({ list: list() }),
-    parking: namespace({ listPlaces: list(), listMouvements: list() }),
-    plage: namespace({ listZones: list(), listPassages: list() }),
     stocks: namespace({ getNiveaux: list(), listProduits: list() }),
     achats: namespace({ listCommandes: list(), listFournisseurs: list() }),
     maintenance: namespace({ listEquipements: list(), listInterventions: list(), stats: ok({}) }),

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, Calculator, CalendarRange, FileSpreadsheet, ListChecks } from 'lucide-react';
+import { ArrowRight, BadgeDollarSign, BookOpen, Calculator, CalendarRange, FileSpreadsheet, Link2, ListChecks, Scale, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const CARDS = [
@@ -8,6 +8,10 @@ const CARDS = [
   { to: '/comptabilite/journaux', label: 'Journaux', desc: 'Consultation des écritures', icon: ListChecks, color: 'text-emerald-600 bg-emerald-50' },
   { to: '/comptabilite/balance', label: 'Balance', desc: 'Balance générale par période', icon: Calculator, color: 'text-amber-600 bg-amber-50' },
   { to: '/comptabilite/exercices', label: 'Exercices', desc: 'Ouverture et clôture', icon: CalendarRange, color: 'text-rose-600 bg-rose-50' },
+  { to: '/comptabilite/lettrage', label: 'Lettrage', desc: 'Rapprocher factures et règlements tiers', icon: Link2, color: 'text-cyan-600 bg-cyan-50' },
+  { to: '/finance/rapprochements', label: 'Rapprochement bancaire', desc: 'Contrôler recettes et encaissements', icon: Scale, color: 'text-indigo-600 bg-indigo-50' },
+  { to: '/objectifs', label: 'Budgets', desc: 'Budgets mensuels et suivi du réalisé', icon: Target, color: 'text-amber-600 bg-amber-50' },
+  { to: '/creances', label: 'Recouvrement', desc: 'Créances, risques et relances', icon: BadgeDollarSign, color: 'text-red-600 bg-red-50' },
 ];
 
 export function ComptabiliteHubPage() {

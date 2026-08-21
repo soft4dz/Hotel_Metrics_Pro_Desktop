@@ -2,6 +2,7 @@ import Electron from '../lib/electronApi';
 import { wrapIpc } from './ipcHelpers';
 import * as pos from '../services/pos.service';
 import * as posCloture from '../services/pos-cloture.service';
+import * as kds from '../services/pos-kds.service';
 import type {
   CreatePointVenteInput,
   CreateFactionInput,
@@ -48,4 +49,8 @@ export function registerPosIpc(): void {
     wrapIpc(event, (uid) => posCloture.cloturerJourneePos(uid, input)));
   Electron.ipcMain.handle('pos:hotelClosureStatus', (event, hotelId: number, dateJournal: string) =>
     wrapIpc(event, () => posCloture.getPosClosureStatusForHotel(hotelId, dateJournal)));
+  Electron.ipcMain.handle('pos:kds:list', (event, pointVenteId: number) => wrapIpc(event, () => kds.listKds(pointVenteId)));
+  Electron.ipcMain.handle('pos:kds:update', (event, id: number, statut: string) => wrapIpc(event, uid => kds.updateKds(uid,id,statut)));
+  Electron.ipcMain.handle('pos:devices:list', (event, pointVenteId: number) => wrapIpc(event, () => kds.listPeripheriques(pointVenteId)));
+  Electron.ipcMain.handle('pos:devices:save', (event, input: {pointVenteId:number;type:string;nom:string;connexion:string;adresse?:string;actif:boolean}) => wrapIpc(event, uid => kds.savePeripherique(uid,input)));
 }

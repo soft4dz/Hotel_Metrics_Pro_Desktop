@@ -7,14 +7,16 @@ import { LanguageSwitcher } from '@/layouts/LanguageSwitcher';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 import { useUiStore } from '@/stores/ui.store';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
+import { DATE_LOCALES, translate } from '@/lib/localization';
 
 export function TopNavbar() {
   const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const locale = useUiStore((s) => s.locale);
   const { logoUrl, companyName } = useCompanyBranding();
 
-  const today = new Intl.DateTimeFormat('fr-DZ', {
+  const today = new Intl.DateTimeFormat(DATE_LOCALES[locale], {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
@@ -28,7 +30,7 @@ export function TopNavbar() {
           variant="ghost"
           size="icon"
           className="shrink-0 text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
-          aria-label="Ouvrir le menu"
+          aria-label={translate(locale, 'Ouvrir le menu')}
           onClick={() => setMobileNavOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -39,7 +41,7 @@ export function TopNavbar() {
           variant="ghost"
           size="icon"
           className="hidden shrink-0 text-white/80 hover:bg-white/10 hover:text-white lg:inline-flex"
-          aria-label={sidebarCollapsed ? 'Déplier le menu latéral' : 'Replier le menu latéral'}
+          aria-label={translate(locale, sidebarCollapsed ? 'Déplier le menu latéral' : 'Replier le menu latéral')}
           onClick={toggleSidebar}
         >
           <PanelLeft className="h-5 w-5" />

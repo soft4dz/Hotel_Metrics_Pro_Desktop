@@ -6,6 +6,7 @@ import { isDateJournalLocked } from './daily-closure.service';
 import { consommerStockRecette, getRecette } from './cuisine-production.service';
 import { genererEcritureVenteRestauration } from './comptabilite.service';
 import { isPosJourneeLocked } from './pos-cloture.service';
+import { enqueueKdsForTicket } from './pos-kds.service';
 
 import type {
   PosPointVente,
@@ -20,19 +21,13 @@ import type {
   AddTicketLigneInput,
   ValiderTicketInput,
   PosModePaiement,
-  PosPointVenteType,
 } from '../../src/shared/types/pos';
-import { isAnnexPosType } from '../../src/shared/constants/posPointVenteTypes';
 
 const DEFAULT_FACTIONS = [
   { code: 'MATIN', nom: 'Service matin', heureDebut: '06:00', heureFin: '11:00', ordre: 1 },
   { code: 'MIDI', nom: 'Service midi', heureDebut: '11:00', heureFin: '15:00', ordre: 2 },
   { code: 'SOIR', nom: 'Service soir', heureDebut: '18:00', heureFin: '23:00', ordre: 3 },
   { code: 'NUIT', nom: 'Service nuit', heureDebut: '23:00', heureFin: '06:00', ordre: 4 },
-];
-
-const ANNEX_FACTIONS = [
-  { code: 'JOUR', nom: 'Service journée', heureDebut: '00:00', heureFin: '23:59', ordre: 1 },
 ];
 
 const TVA_RATE = 19;
@@ -156,13 +151,12 @@ function nextTicketNumero(pointVenteId: number, date: string): string {
   return `T${pointVenteId}-${date.replace(/-/g, '')}-${String((count.c ?? 0) + 1).padStart(4, '0')}`;
 }
 
-function seedDefaultFactions(pointVenteId: number, type: PosPointVenteType = 'restaurant'): void {
+function seedDefaultFactions(pointVenteId: number): void {
   const db = getDatabase();
   const stmt = db.prepare(`
     INSERT OR IGNORE INTO pos_factions (point_vente_id, code, nom, heure_debut, heure_fin, ordre) VALUES (?, ?, ?, ?, ?, ?)
   `);
-  const factions = isAnnexPosType(type) ? ANNEX_FACTIONS : DEFAULT_FACTIONS;
-  for (const f of factions) {
+  for (const f of DEFAULT_FACTIONS) {
     stmt.run(pointVenteId, f.code, f.nom, f.heureDebut, f.heureFin, f.ordre);
   }
 }
@@ -183,7 +177,7 @@ export function createPointVente(actorUserId: number, input: CreatePointVenteInp
   const res = db.prepare(`
     INSERT INTO pos_points_vente (hotel_id, code, nom, type) VALUES (?, ?, ?, ?) RETURNING id
   `).get(input.hotelId, input.code.trim().toUpperCase(), input.nom.trim(), pvType) as { id: number };
-  seedDefaultFactions(res.id, pvType);
+  seedDefaultFactions(res.id);
   writeAuditLog({ userId: actorUserId, action: 'CREATE', module: 'pos', description: `Point de vente ${input.code} créé`, newValue: String(res.id) });
   return mapPointVente(db.prepare(`SELECT * FROM pos_points_vente WHERE id = ?`).get(res.id) as Record<string, unknown>);
 }
@@ -389,6 +383,7 @@ export function validerTicket(actorUserId: number, input: ValiderTicketInput): P
     UPDATE pos_tickets SET statut = 'valide', mode_paiement = ?, encaissement_id = ?,
       ecriture_comptable_id = ?, validated_at = datetime('now') WHERE id = ?
   `).run(input.modePaiement, encaissementId, ecriture?.id ?? null, ticket.id);
+  enqueueKdsForTicket(ticket.id);
 
   const modeCol = input.modePaiement === 'especes' ? 'total_especes'
     : input.modePaiement === 'carte' ? 'total_carte'

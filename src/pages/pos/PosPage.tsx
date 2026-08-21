@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Store, Plus, Play, Lock, Receipt, CalendarCheck, ExternalLink } from 'lucide-react';
+import { Store, Plus, Play, Lock, Receipt, CalendarCheck } from 'lucide-react';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
@@ -20,12 +19,10 @@ import type {
 import type { CuisineRecette } from '@/shared/types/cuisine';
 import {
   POS_POINT_VENTE_TYPE_LABELS,
-  isAnnexPosType,
-  POS_ANNEX_OPERATIONAL_ROUTES,
   type PosPointVenteType,
 } from '@/shared/constants/posPointVenteTypes';
 
-type Tab = 'parametrage' | 'caisse' | 'clotures';
+type Tab = 'parametrage' | 'caisse' | 'kds' | 'materiel' | 'clotures';
 
 export default function PosPage() {
   const qc = useQueryClient();
@@ -54,9 +51,6 @@ export default function PosPage() {
   });
 
   const pvId = pointVenteId ?? pointsVente[0]?.id ?? null;
-  const selectedPv = pointsVente.find((p) => p.id === pvId) ?? null;
-  const annexPv = selectedPv ? isAnnexPosType(selectedPv.type) : false;
-  const annexRoute = selectedPv ? POS_ANNEX_OPERATIONAL_ROUTES[selectedPv.type] : undefined;
 
   const { data: factions = [] } = useQuery({
     queryKey: ['pos-factions', pvId],
@@ -90,6 +84,11 @@ export default function PosPage() {
     queryKey: ['cuisine-recettes', hotelId],
     queryFn: async () => unwrapIpc(await ipcClient.cuisine.listRecettes(hotelId)) as CuisineRecette[],
   });
+  const { data: kdsOrders = [] } = useQuery({ queryKey:['pos-kds',pvId],queryFn:async()=>unwrapIpc(await ipcClient.pos.listKds(pvId!)),enabled:Boolean(pvId)&&tab==='kds',refetchInterval:5000 });
+  const { data: devices = [] } = useQuery({ queryKey:['pos-devices',pvId],queryFn:async()=>unwrapIpc(await ipcClient.pos.listDevices(pvId!)),enabled:Boolean(pvId)&&tab==='materiel' });
+  const [device,setDevice]=useState({type:'imprimante_ticket',nom:'',connexion:'usb',adresse:'',actif:true});
+  const updateKds=useMutation({mutationFn:async(v:{id:number;statut:string})=>unwrapIpc(await ipcClient.pos.updateKds(v.id,v.statut)),onSuccess:()=>void qc.invalidateQueries({queryKey:['pos-kds']})});
+  const saveDevice=useMutation({mutationFn:async()=>unwrapIpc(await ipcClient.pos.saveDevice({pointVenteId:pvId!,...device})),onSuccess:()=>{setDevice({...device,nom:''});void qc.invalidateQueries({queryKey:['pos-devices']});notify.success('Périphérique enregistré');}});
 
   const recettesValidees = recettes.filter((r) => r.statut === 'valide');
   const activeTicket = tickets.find((t) => t.id === activeTicketId) ?? tickets.find((t) => t.statut === 'brouillon');
@@ -200,7 +199,7 @@ export default function PosPage() {
         <Store className="w-8 h-8 text-orange-600" />
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Points de vente</h1>
-          <p className="text-sm text-muted-foreground">Caisse, factions, clôture Z et clôture journalière — plage, piscine et parking inclus.</p>
+          <p className="text-sm text-muted-foreground">Caisse, factions, clôture Z et clôture journalière.</p>
         </div>
         <select value={hotelId} onChange={(e) => setHotelId(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-background">
           {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -216,38 +215,17 @@ export default function PosPage() {
         )}
       </div>
 
-      {annexPv && annexRoute && (
-        <div className="border rounded-xl p-4 bg-sky-50/80 text-sm flex flex-wrap items-center gap-3">
-          <span>
-            Point de vente <strong>{selectedPv?.nom}</strong> — opérations via le module métier.
-          </span>
-          <Link to={annexRoute} className="inline-flex items-center gap-1 text-sky-700 font-medium hover:underline">
-            Ouvrir le module <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
       <ol className="text-sm border rounded-xl p-4 space-y-1 list-decimal list-inside bg-muted/30">
-        {annexPv ? (
-          <>
-            <li>Saisir les opérations dans le module dédié (entrées, tickets…)</li>
-            <li>Clôturer la journée POS (CA consolidé automatiquement)</li>
-            <li>Clôture journalière hôtel (/recettes/cloture)</li>
-          </>
-        ) : (
-          <>
-            <li>Ouvrir session faction → encaisser tickets</li>
-            <li>Clôturer chaque faction (rapport Z)</li>
-            <li>Clôturer journée POS (verrouille le PDV)</li>
-            <li>Clôture journalière hôtel (/recettes/cloture) — CA restauration auto-sync</li>
-          </>
-        )}
+        <li>Ouvrir session faction → encaisser tickets</li>
+        <li>Clôturer chaque faction (rapport Z)</li>
+        <li>Clôturer journée POS (verrouille le PDV)</li>
+        <li>Clôture journalière hôtel (/recettes/cloture) — CA restauration auto-sync</li>
       </ol>
 
       <div className="flex gap-2 border-b pb-2">
-        {(['parametrage', 'caisse', 'clotures'] as Tab[]).map((t) => (
+        {(['parametrage', 'caisse', 'kds', 'materiel', 'clotures'] as Tab[]).map((t) => (
           <button key={t} type="button" onClick={() => setTab(t)} className={`px-4 py-2 text-sm rounded-t-lg ${tab === t ? 'bg-orange-600 text-white' : 'text-muted-foreground hover:bg-muted'}`}>
-            {t === 'parametrage' ? 'Paramétrage' : t === 'caisse' ? 'Caisse' : 'Clôtures'}
+            {t === 'parametrage' ? 'Paramétrage' : t === 'caisse' ? 'Caisse' : t === 'kds' ? 'KDS cuisine' : t === 'materiel' ? 'Matériel' : 'Clôtures'}
           </button>
         ))}
       </div>
@@ -283,21 +261,6 @@ export default function PosPage() {
 
       {tab === 'caisse' && (
         <div className="grid md:grid-cols-2 gap-6">
-          {annexPv ? (
-            <div className="border rounded-xl p-4 space-y-3 md:col-span-2">
-              <h2 className="font-semibold">Caisse — point de vente annexé</h2>
-              <p className="text-sm text-muted-foreground">
-                Les encaissements {selectedPv?.nom} sont saisis dans le module opérationnel.
-                La clôture journalière POS consolide le CA du jour automatiquement.
-              </p>
-              {annexRoute && (
-                <Button asChild variant="outline">
-                  <Link to={annexRoute}>Aller au module {selectedPv?.nom}</Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-          <>
           <div className="space-y-4 border rounded-xl p-4">
             <h2 className="font-semibold flex items-center gap-2"><Play className="w-4 h-4" /> Session faction</h2>
             {!sessionActive ? (
@@ -353,14 +316,15 @@ export default function PosPage() {
               </>
             )}
           </div>
-          </>
-          )}
         </div>
       )}
 
+      {tab === 'kds' && <div className="grid gap-3 md:grid-cols-3">{(kdsOrders as Array<Record<string,unknown>>).map(o=><div key={Number(o.id)} className="space-y-3 rounded-xl border bg-card p-4"><div className="flex justify-between"><strong>{String(o.numero)}</strong><Badge variant={Number(o.attente_minutes)>15?'danger':'warning'}>{Number(o.attente_minutes)} min</Badge></div><p className="text-sm text-muted-foreground">{String(o.statut)}</p><div className="flex gap-2"><Button size="sm" variant="outline" onClick={()=>updateKds.mutate({id:Number(o.id),statut:'en_preparation'})}>Préparer</Button><Button size="sm" onClick={()=>updateKds.mutate({id:Number(o.id),statut:o.statut==='prete'?'servie':'prete'})}>{o.statut==='prete'?'Servie':'Prête'}</Button></div></div>)}</div>}
+
+      {tab === 'materiel' && <div className="space-y-4 rounded-xl border bg-card p-4"><h2 className="font-semibold">Périphériques de caisse</h2><div className="flex flex-wrap gap-2"><select className="border rounded px-2 py-1.5 text-sm" value={device.type} onChange={e=>setDevice({...device,type:e.target.value})}><option value="imprimante_ticket">Imprimante ticket</option><option value="tiroir_caisse">Tiroir-caisse</option><option value="terminal_paiement">Terminal paiement</option><option value="scanner">Scanner</option></select><input className="border rounded px-2 py-1.5 text-sm" placeholder="Nom" value={device.nom} onChange={e=>setDevice({...device,nom:e.target.value})}/><select className="border rounded px-2 py-1.5 text-sm" value={device.connexion} onChange={e=>setDevice({...device,connexion:e.target.value})}><option value="usb">USB</option><option value="reseau">Réseau</option><option value="serie">Série</option></select><input className="border rounded px-2 py-1.5 text-sm" placeholder="Adresse/IP" value={device.adresse} onChange={e=>setDevice({...device,adresse:e.target.value})}/><Button disabled={!pvId||!device.nom} onClick={()=>saveDevice.mutate()}>Ajouter</Button></div>{(devices as Array<Record<string,unknown>>).map(d=><div key={Number(d.id)} className="flex justify-between rounded-lg border p-3 text-sm"><span>{String(d.nom)} · {String(d.type)} · {String(d.connexion)}</span><Badge variant={d.statut==='actif'?'success':'muted'}>{String(d.statut)}</Badge></div>)}</div>}
+
       {tab === 'clotures' && (
         <div className="grid md:grid-cols-2 gap-6">
-          {!annexPv && (
           <div className="border rounded-xl p-4 space-y-3">
             <h2 className="font-semibold flex items-center gap-2"><Lock className="w-4 h-4" /> Clôture faction (fin de service)</h2>
             <p className="text-xs text-muted-foreground">Rapport Z — comptez la caisse et saisissez le fond réel.</p>
@@ -375,12 +339,10 @@ export default function PosPage() {
               <p className="text-sm text-muted-foreground">Aucune session ouverte.</p>
             )}
           </div>
-          )}
-          <div className={`border rounded-xl p-4 space-y-3 ${annexPv ? 'md:col-span-2' : ''}`}>
+          <div className="border rounded-xl p-4 space-y-3">
             <h2 className="font-semibold flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Clôture journalière</h2>
             <p className="text-xs text-muted-foreground">
-              Date : {dateService}
-              {annexPv ? ' — CA calculé depuis les opérations du module.' : ' — toutes les factions doivent être clôturées.'}
+              Date : {dateService} — toutes les factions doivent être clôturées.
             </p>
             <input placeholder="Observations" value={clotureJour.observations} onChange={(e) => setClotureJour({ observations: e.target.value })} className="w-full border rounded px-2 py-1.5 text-sm" />
             <Button variant="destructive" onClick={() => cloturerJourMut.mutate()} disabled={!pvId}>Clôturer la journée POS</Button>

@@ -7,6 +7,8 @@ import { applyUiTheme } from '@/lib/applyUiTheme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiStore } from '@/stores/ui.store';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
+import { applyDocumentLocale } from '@/lib/localization';
+import { DocumentTranslator } from '@/components/common/DocumentTranslator';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,16 +42,22 @@ function SessionBootstrap() {
 export default function App() {
   const accentColor = useUiStore((s) => s.accentColor);
   const density = useUiStore((s) => s.density);
+  const locale = useUiStore((s) => s.locale);
 
   useEffect(() => {
     applyUiTheme(accentColor, density);
   }, [accentColor, density]);
+
+  useEffect(() => {
+    applyDocumentLocale(locale);
+  }, [locale]);
 
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <HashRouter>
           <SessionBootstrap />
+          <DocumentTranslator />
           <AppRoutes />
           <Toaster position="top-right" richColors closeButton duration={4000} />
         </HashRouter>

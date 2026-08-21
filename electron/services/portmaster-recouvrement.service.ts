@@ -278,7 +278,21 @@ export function createRelance(actorUserId: number, input: CreateRelanceInput): R
     );
 
   try {
-    enqueueSync('port_relance', 'create', Number(r.lastInsertRowid), { uuid, clientId });
+    const client = clientId ? db.prepare(`SELECT uuid FROM port_clients WHERE id = ?`).get(clientId) as { uuid: string } | undefined : undefined;
+    const facture = input.factureId ? db.prepare(`SELECT uuid FROM port_factures WHERE id = ?`).get(input.factureId) as { uuid: string } | undefined : undefined;
+    const contrat = input.contratId ? db.prepare(`SELECT uuid FROM port_contrats WHERE id = ?`).get(input.contratId) as { uuid: string } | undefined : undefined;
+    enqueueSync('port_relance', 'create', Number(r.lastInsertRowid), {
+      uuid,
+      clientUuid: client?.uuid ?? null,
+      factureUuid: facture?.uuid ?? null,
+      contratUuid: contrat?.uuid ?? null,
+      typeRelance: input.typeRelance ?? 'courrier',
+      niveau: input.niveau ?? 1,
+      dateRelance: input.dateRelance,
+      commentaire: input.commentaire?.trim() || null,
+      statut: 'planifiee',
+      updatedAt: new Date().toISOString(),
+    });
   } catch {
     /* ignore */
   }
@@ -300,9 +314,30 @@ export function marquerRelanceEnvoyee(actorUserId: number, id: number): void {
   const actor = assertPortmaster(actorUserId);
   const db = getDatabase();
   const n = db
-    .prepare(`UPDATE port_relances SET statut = 'envoyee' WHERE id = ? AND statut = 'planifiee'`)
+    .prepare(`UPDATE port_relances SET statut = 'envoyee', updated_at = datetime('now') WHERE id = ? AND statut = 'planifiee'`)
     .run(id).changes;
   if (!n) throw new Error('Relance introuvable ou déjà traitée.');
+  const relance = db.prepare(`
+    SELECT r.uuid, r.type_relance, r.niveau, r.date_relance, r.commentaire, r.statut, r.updated_at,
+           c.uuid AS client_uuid, f.uuid AS facture_uuid, pc.uuid AS contrat_uuid
+    FROM port_relances r
+    LEFT JOIN port_clients c ON c.id = r.client_id
+    LEFT JOIN port_factures f ON f.id = r.facture_id
+    LEFT JOIN port_contrats pc ON pc.id = r.contrat_id
+    WHERE r.id = ?
+  `).get(id) as Record<string, unknown>;
+  enqueueSync('port_relance', 'update', id, {
+    uuid: relance.uuid,
+    clientUuid: relance.client_uuid,
+    factureUuid: relance.facture_uuid,
+    contratUuid: relance.contrat_uuid,
+    typeRelance: relance.type_relance,
+    niveau: relance.niveau,
+    dateRelance: relance.date_relance,
+    commentaire: relance.commentaire,
+    statut: relance.statut,
+    updatedAt: relance.updated_at,
+  });
   writeAuditLog({
     userId: actor.userId,
     userEmail: actor.email,

@@ -21,8 +21,6 @@ export const CONFIGURED_MODULE_IDS = [
   'journal-anomalies',
   'decisions-instructions',
   'qualite-reclamations',
-  'plage-piscine',
-  'parking',
   'portmaster',
   'clients',
   'commercial-partenariats',

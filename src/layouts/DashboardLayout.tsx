@@ -7,14 +7,20 @@ import { MobileNavDrawer } from '@/layouts/MobileNavDrawer';
 import { PremiumSidebar } from '@/layouts/PremiumSidebar';
 import { getPageTitle } from '@/shared/constants/pageTitles';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
+import { useUiStore } from '@/stores/ui.store';
+import { translate } from '@/lib/localization';
 
 export function DashboardLayout() {
   const { pathname } = useLocation();
-  const { title, subtitle } = getPageTitle(pathname || DEFAULT_HOME_PATH);
+  const locale = useUiStore((state) => state.locale);
+  const pageTitle = getPageTitle(pathname || DEFAULT_HOME_PATH);
+  const title = translate(locale, pageTitle.title);
+  const subtitle = pageTitle.subtitle ? translate(locale, pageTitle.subtitle) : undefined;
   const hidePageTitle =
     pathname === '/modules' ||
     pathname.startsWith('/modules/') ||
-    pathname === '/portmaster';
+    pathname === '/portmaster' ||
+    pathname === '/ged';
 
   return (
     <div className="flex h-full overflow-hidden bg-background">

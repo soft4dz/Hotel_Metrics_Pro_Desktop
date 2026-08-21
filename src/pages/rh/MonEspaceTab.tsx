@@ -61,6 +61,15 @@ export function MonEspaceTab() {
     }
   };
 
+  const annulerAbsence = async (id: number) => {
+    try {
+      unwrapIpc(await ipcClient.rh.cancelAbsence(id));
+      void load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Annulation impossible');
+    }
+  };
+
   if (loading) return <p className="text-sm text-muted-foreground">Chargement…</p>;
   if (!data?.employe) {
     return (
@@ -208,7 +217,10 @@ export function MonEspaceTab() {
             <li key={p.id}>{p.date} : {p.heureEntree}–{p.heureSortie} ({p.statut})</li>
           ))}
           {absences.slice(0, 5).map((a) => (
-            <li key={a.id}>{a.type} {a.dateDebut}→{a.dateFin} ({a.statut})</li>
+            <li key={a.id} className="flex items-center justify-between gap-2">
+              <span>{a.type} {a.dateDebut}→{a.dateFin} ({a.cancelledAt ? 'annulée' : a.statut})</span>
+              {a.statut === 'demandee' && !a.cancelledAt && <Button size="sm" variant="ghost" onClick={() => void annulerAbsence(a.id)}>Annuler</Button>}
+            </li>
           ))}
         </ul>
       </div>

@@ -27,5 +27,7 @@ export interface SyncRunResult {
   pushed: number;
   pulled: number;
   failed: number;
+  conflicts: number;
+  quarantined: number;
   message: string;
 }

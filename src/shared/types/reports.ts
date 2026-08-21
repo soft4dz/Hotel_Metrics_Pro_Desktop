@@ -189,7 +189,7 @@ export interface ReportSourceCatalog {
 export const REPORT_MODULE_LABELS: Record<string, string> = {
   recettes: 'Recettes', encaissements: 'Trésorerie', facturation: 'Facturation',
   hebergement: 'Hébergement', stocks: 'Stocks', achats: 'Achats',
-  maintenance: 'Maintenance', parking: 'Parking', plage: 'Plage & piscine',
+  maintenance: 'Maintenance',
   anomalies: 'Anomalies', reclamations: 'Qualité', decisions: 'Décisions',
   ged: 'GED', commercial: 'Commercial', rh: 'RH', portmaster: 'PortMaster',
   audit: 'Audit', administration: 'Administration',

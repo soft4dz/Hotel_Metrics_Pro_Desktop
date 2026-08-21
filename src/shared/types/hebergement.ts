@@ -134,3 +134,8 @@ export interface OccupationPeriode {
   adrMoyen: number;
   totalRevenu: number;
 }
+
+export interface PmsGroupe { id:number; code:string; hotelId:number; hotelName:string; nom:string; dateArrivee:string; dateDepart:string; statut:'option'|'confirme'|'en_cours'|'termine'|'annule'; allotement:number; reservationsCount:number; }
+export interface PmsDepot { id:number; reservationId:number; clientNom:string; montant:number; mode:string; reference:string|null; statut:'recu'|'affecte'|'rembourse'|'annule'; dateDepot:string; }
+export interface ChannelConnector { id:number; hotelId:number; hotelName:string; code:string; label:string; statut:'inactif'|'actif'|'erreur'; endpointUrl:string|null; lastSyncAt:string|null; lastError:string|null; }
+export interface ChannelImportInput { connectorId:number; externalReference:string; hotelId:number; clientNom:string; dateArrivee:string; dateDepart:string; montantTotal?:number; source?:SourceReservation; notes?:string; }

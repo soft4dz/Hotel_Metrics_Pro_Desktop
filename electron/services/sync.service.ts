@@ -5,6 +5,7 @@ import { getActorContext, isGlobalAdminRole } from './actorContext';
 import { assertPermission, userHasPermission } from './permissions.service';
 
 import { validateSyncApiUrl } from '../utils/syncUrl';
+import { parseRemoteSyncChange, remoteWins, type RemoteSyncChange } from './sync-contract';
 
 const DEFAULT_API = 'http://127.0.0.1:3847';
 
@@ -48,7 +49,75 @@ export interface SyncRunResult {
   pushed: number;
   pulled: number;
   failed: number;
+  conflicts: number;
+  quarantined: number;
   message: string;
+}
+
+type Db = ReturnType<typeof getDatabase>;
+
+function idByUuid(db: Db, table: 'port_bateaux' | 'port_emplacements' | 'port_clients' | 'port_factures' | 'port_contrats', uuid: unknown): number | null {
+  if (uuid == null) return null;
+  const row = db.prepare(`SELECT id FROM ${table} WHERE uuid = ? AND deleted_at IS NULL`).get(uuid) as { id: number } | undefined;
+  return row?.id ?? null;
+}
+
+function recordConflict(db: Db, change: RemoteSyncChange, localUpdatedAt: string | null, resolution: 'local_wins' | 'remote_wins' | 'quarantined', reason: string, localPayload: unknown = null): void {
+  db.prepare(`INSERT OR IGNORE INTO sync_conflicts
+    (change_uuid, entity_type, entity_uuid, local_updated_at, remote_updated_at, local_payload_json, remote_payload_json, resolution, reason)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(change.changeUuid, change.entityType, change.entityUuid, localUpdatedAt, change.updatedAt, localPayload ? JSON.stringify(localPayload) : null, JSON.stringify(change.payload), resolution, reason);
+}
+
+function applyRemoteChange(db: Db, change: RemoteSyncChange): 'applied' | 'conflict' | 'quarantined' {
+  if (change.action === 'delete') {
+    recordConflict(db, change, null, 'quarantined', 'Remote deletes require manual approval');
+    return 'quarantined';
+  }
+  const p = change.payload;
+  if (change.entityType === 'port_mouvement') {
+    const bateauId = idByUuid(db, 'port_bateaux', p.bateauUuid);
+    const fromId = idByUuid(db, 'port_emplacements', p.emplacementFromUuid);
+    const toId = idByUuid(db, 'port_emplacements', p.emplacementToUuid);
+    if (!bateauId || (p.emplacementFromUuid && !fromId) || (p.emplacementToUuid && !toId)) {
+      recordConflict(db, change, null, 'quarantined', 'Missing parent UUID');
+      return 'quarantined';
+    }
+    const local = db.prepare(`SELECT id, updated_at, created_at FROM port_mouvements WHERE uuid = ?`).get(change.entityUuid) as { id: number; updated_at: string | null; created_at: string } | undefined;
+    const localAt = local?.updated_at ?? local?.created_at ?? null;
+    if (local && !remoteWins(localAt, change.updatedAt)) {
+      recordConflict(db, change, localAt, 'local_wins', 'Local record is newer or equal');
+      return 'conflict';
+    }
+    db.prepare(`INSERT INTO port_mouvements (uuid, bateau_id, type_mouvement, emplacement_from_id, emplacement_to_id, date_mouvement, motif, statut, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(uuid) DO UPDATE SET bateau_id=excluded.bateau_id, type_mouvement=excluded.type_mouvement,
+      emplacement_from_id=excluded.emplacement_from_id, emplacement_to_id=excluded.emplacement_to_id,
+      date_mouvement=excluded.date_mouvement, motif=excluded.motif, statut=excluded.statut, updated_at=excluded.updated_at`)
+      .run(change.entityUuid, bateauId, p.typeMouvement, fromId, toId, p.dateMouvement, p.motif ?? null, p.statut ?? 'valide', change.updatedAt);
+  } else {
+    const clientId = idByUuid(db, 'port_clients', p.clientUuid);
+    const factureId = idByUuid(db, 'port_factures', p.factureUuid);
+    const contratId = idByUuid(db, 'port_contrats', p.contratUuid);
+    if ((p.clientUuid && !clientId) || (p.factureUuid && !factureId) || (p.contratUuid && !contratId)) {
+      recordConflict(db, change, null, 'quarantined', 'Missing parent UUID');
+      return 'quarantined';
+    }
+    const local = db.prepare(`SELECT id, updated_at, created_at FROM port_relances WHERE uuid = ?`).get(change.entityUuid) as { id: number; updated_at: string | null; created_at: string } | undefined;
+    const localAt = local?.updated_at ?? local?.created_at ?? null;
+    if (local && !remoteWins(localAt, change.updatedAt)) {
+      recordConflict(db, change, localAt, 'local_wins', 'Local record is newer or equal');
+      return 'conflict';
+    }
+    db.prepare(`INSERT INTO port_relances (uuid, client_id, facture_id, contrat_id, type_relance, niveau, date_relance, commentaire, statut, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(uuid) DO UPDATE SET client_id=excluded.client_id, facture_id=excluded.facture_id,
+      contrat_id=excluded.contrat_id, type_relance=excluded.type_relance, niveau=excluded.niveau,
+      date_relance=excluded.date_relance, commentaire=excluded.commentaire, statut=excluded.statut, updated_at=excluded.updated_at`)
+      .run(change.entityUuid, clientId, factureId, contratId, p.typeRelance, p.niveau, p.dateRelance, p.commentaire ?? null, p.statut ?? 'planifiee', change.updatedAt);
+  }
+  if (change.action === 'update') recordConflict(db, change, null, 'remote_wins', 'Remote record is newer');
+  return 'applied';
 }
 
 function assertSync(actorUserId: number) {
@@ -222,6 +291,8 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
       pushed: 0,
       pulled: 0,
       failed: 0,
+      conflicts: 0,
+      quarantined: 0,
       message: 'API centrale injoignable. Vérifiez l\'URL et démarrez le serveur (npm run server:dev).',
     };
   }
@@ -263,10 +334,16 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
         signal: AbortSignal.timeout(30000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = (await res.json()) as { accepted?: number };
-      const accepted = body.accepted ?? pending.length;
-      for (let i = 0; i < Math.min(accepted, pending.length); i++) {
+      const body = (await res.json()) as { accepted?: number; acceptedUuids?: string[] };
+      const acceptedSet = Array.isArray(body.acceptedUuids) ? new Set(body.acceptedUuids) : null;
+      for (let i = 0; i < pending.length; i++) {
         const p = pending[i]!;
+        const accepted = acceptedSet ? acceptedSet.has(p.uuid) : i < Math.min(body.accepted ?? pending.length, pending.length);
+        if (!accepted) {
+          db.prepare(`UPDATE sync_queue SET status = 'failed', error_message = 'Rejected by sync API', attempts = attempts + 1 WHERE id = ?`).run(p.id);
+          failed++;
+          continue;
+        }
         db.prepare(
           `UPDATE sync_queue SET status = 'synced', processed_at = datetime('now'), attempts = attempts + 1 WHERE id = ?`,
         ).run(p.id);
@@ -283,21 +360,37 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
     }
   }
 
-  // Le pull récupère les changements distants mais ne les applique PAS encore à la base
-  // locale : les entités référencées (bateaux, clients, factures, contrats...) ne sont pas
-  // elles-mêmes synchronisées par uuid, donc appliquer port_mouvements/port_relances distants
-  // en réutilisant leurs ids numériques risquerait de rattacher un enregistrement au mauvais
-  // bateau/client local. Tant que cette synchronisation des entités parentes n'existe pas,
-  // `pulled` ne doit être présenté que comme "détecté côté serveur", jamais "appliqué".
   let pulled = 0;
+  let conflicts = 0;
+  let quarantined = 0;
   try {
+    const cursorRow = db.prepare(`SELECT last_pull_cursor FROM sync_config WHERE id = 1`).get() as { last_pull_cursor: number };
     const res = await fetch(
-      `${cfg.apiBaseUrl}/api/sync/pull?deviceId=${encodeURIComponent(cfg.deviceId)}`,
+      `${cfg.apiBaseUrl}/api/sync/pull?deviceId=${encodeURIComponent(cfg.deviceId)}&cursor=${cursorRow.last_pull_cursor}`,
       { headers: syncHeaders(), signal: AbortSignal.timeout(15000) },
     );
     if (res.ok) {
-      const body = (await res.json()) as { changes?: unknown[] };
-      pulled = body.changes?.length ?? 0;
+      const body = (await res.json()) as { changes?: unknown[]; nextCursor?: number };
+      const incoming = Array.isArray(body.changes) ? body.changes.slice(0, 100) : [];
+      db.transaction(() => {
+        for (const raw of incoming) {
+          const change = parseRemoteSyncChange(raw);
+          if (!change || change.sourceDeviceId === cfg.deviceId) continue;
+          const inserted = db.prepare(`INSERT OR IGNORE INTO sync_inbox
+            (change_uuid, source_device_id, entity_type, entity_uuid, action, remote_updated_at, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`)
+            .run(change.changeUuid, change.sourceDeviceId, change.entityType, change.entityUuid, change.action, change.updatedAt, JSON.stringify(change.payload));
+          if (!inserted.changes) continue;
+          const outcome = applyRemoteChange(db, change);
+          db.prepare(`UPDATE sync_inbox SET status = ?, processed_at = datetime('now') WHERE change_uuid = ?`).run(outcome, change.changeUuid);
+          if (outcome === 'applied') pulled++;
+          else if (outcome === 'conflict') conflicts++;
+          else quarantined++;
+        }
+        if (Number.isSafeInteger(body.nextCursor) && body.nextCursor! >= cursorRow.last_pull_cursor) {
+          db.prepare(`UPDATE sync_config SET last_pull_cursor = ? WHERE id = 1`).run(body.nextCursor);
+        }
+      })();
     }
   } catch {
     /* pull best-effort : une erreur réseau ici n'empêche pas le push d'avoir réussi */
@@ -310,8 +403,8 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
   db.prepare(
     `INSERT INTO sync_log (direction, status, message, items_count) VALUES ('full', 'ok', ?, ?)`,
   ).run(
-    `Push ${pushed}, pull ${pulled} détecté(s) (non appliqué)`,
-    pushed + pulled,
+    `Push ${pushed}, pull ${pulled}, conflits ${conflicts}, quarantaine ${quarantined}`,
+    pushed + pulled + conflicts + quarantined,
   );
 
   writeAuditLog({
@@ -321,18 +414,15 @@ export async function runSync(actorUserId: number): Promise<SyncRunResult> {
     action: 'SYNC',
     module: 'sync',
     page: 'SyncPage',
-    description: `Synchronisation : ${pushed} envoyé(s), ${pulled} détecté(s) côté serveur (non appliqué localement)`,
+    description: `Synchronisation : ${pushed} envoyé(s), ${pulled} appliqué(s), ${conflicts} conflit(s), ${quarantined} en quarantaine`,
   });
 
   return {
     pushed,
     pulled,
     failed,
-    message:
-      pulled > 0
-        ? `${pushed} élément(s) envoyé(s). ${pulled} changement(s) distant(s) détecté(s) mais non appliqué(s) localement — la synchronisation descendante n'est pas encore disponible.`
-        : pushed > 0
-          ? `Synchronisation terminée (${pushed} envoyé(s)).`
-          : 'Aucun élément en attente — connexion API OK.',
+    conflicts,
+    quarantined,
+    message: `Synchronisation terminée : ${pushed} envoyé(s), ${pulled} appliqué(s), ${conflicts} conflit(s), ${quarantined} en quarantaine.`,
   };
 }

@@ -107,6 +107,10 @@ import type {
   SimulateurInput, SimulateurResult,
 } from './tarifs';
 import type {
+  YieldRule, CreateYieldRuleInput, UpdateYieldRuleInput,
+  ComputeYieldSuggestionsInput, YieldSuggestion, ApplyYieldSuggestionsInput,
+} from './yield';
+import type {
   Chambre, CreateChambreInput, CreateReservationInput, CreateTypeChambreInput,
   EstimateReservationPriceInput, OccupationPeriode, Reservation, StatutChambre, StatutReservation, TypeChambre,
 } from './hebergement';
@@ -140,6 +144,8 @@ import type {
   EcritureListItem,
   ExerciceComptable,
   Journal,
+  LigneLettrable,
+  LettrageComptable,
 } from './comptabilite';
 import type {
   CreateRetenueInput,
@@ -593,6 +599,10 @@ export interface IpcApi {
     validerEcriture: (id: number) => Promise<IpcResult<unknown>>;
     getGrandLivre: (compteNumero: string, dateDebut: string, dateFin: string) => Promise<IpcResult<unknown[]>>;
     getBalance: (exerciceId: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<BalanceLigne[]>>;
+    listLignesLettrables: (compteNumero: string) => Promise<IpcResult<LigneLettrable[]>>;
+    listLettrages: () => Promise<IpcResult<LettrageComptable[]>>;
+    creerLettrage: (ligneIds: number[]) => Promise<IpcResult<LettrageComptable>>;
+    annulerLettrage: (id: number) => Promise<IpcResult<LettrageComptable>>;
   };
   fiscalite: {
     listRegistreTva: (periode: string) => Promise<IpcResult<RegistreTvaVente[]>>;
@@ -704,6 +714,14 @@ export interface IpcApi {
     createFolio: (reservationId: number) => Promise<IpcResult<unknown>>;
     addFolioLine: (folioId: number, input: { designation: string; quantite?: number; prixUnitaire: number; tauxTva?: number; categorie?: string }) => Promise<IpcResult<unknown>>;
     closeFolioToFacture: (reservationId: number) => Promise<IpcResult<{ folio: unknown; factureId: number }>>;
+    listGroupes: (hotelId?: number) => Promise<IpcResult<import('./hebergement').PmsGroupe[]>>;
+    createGroupe: (input: {hotelId:number;nom:string;dateArrivee:string;dateDepart:string;allotement:number;contactNom?:string;contactEmail?:string;contactTelephone?:string;notes?:string}) => Promise<IpcResult<import('./hebergement').PmsGroupe>>;
+    addReservationToGroupe: (groupeId:number,reservationId:number) => Promise<IpcResult<void>>;
+    listDepots: (reservationId?:number) => Promise<IpcResult<import('./hebergement').PmsDepot[]>>;
+    createDepot: (input:{reservationId:number;montant:number;mode:string;reference?:string;dateDepot:string}) => Promise<IpcResult<import('./hebergement').PmsDepot>>;
+    listChannelConnectors: () => Promise<IpcResult<import('./hebergement').ChannelConnector[]>>;
+    saveChannelConnector: (input:{hotelId:number;code:string;label:string;endpointUrl?:string;actif:boolean}) => Promise<IpcResult<import('./hebergement').ChannelConnector>>;
+    importChannelReservation: (input:import('./hebergement').ChannelImportInput) => Promise<IpcResult<Reservation>>;
   };
   tarifs: {
     listComposants:   (hotelId?: number) => Promise<IpcResult<ComposantTarif[]>>;
@@ -727,6 +745,15 @@ export interface IpcApi {
     toggleConvention: (id: number, actif: boolean) => Promise<IpcResult<boolean>>;
     deleteConvention: (id: number) => Promise<IpcResult<boolean>>;
     simuler:          (input: SimulateurInput) => Promise<IpcResult<SimulateurResult>>;
+  };
+  yield: {
+    listRules:          (hotelId?: number) => Promise<IpcResult<YieldRule[]>>;
+    createRule:         (input: CreateYieldRuleInput) => Promise<IpcResult<YieldRule>>;
+    updateRule:         (id: number, input: UpdateYieldRuleInput) => Promise<IpcResult<YieldRule>>;
+    toggleRule:         (id: number, actif: boolean) => Promise<IpcResult<boolean>>;
+    deleteRule:         (id: number) => Promise<IpcResult<boolean>>;
+    computeSuggestions: (input: ComputeYieldSuggestionsInput) => Promise<IpcResult<YieldSuggestion[]>>;
+    applySuggestions:   (input: ApplyYieldSuggestionsInput) => Promise<IpcResult<number>>;
   };
   rh: {
     getDashboard: (dateDebut?: string, dateFin?: string, hotelId?: number) => Promise<IpcResult<RhDashboard>>;
@@ -793,6 +820,7 @@ export interface IpcApi {
     ) => Promise<IpcResult<RhAbsence[]>>;
     createAbsence: (input: CreateAbsenceInput) => Promise<IpcResult<RhAbsence>>;
     deciderAbsence: (id: number, approuve: boolean) => Promise<IpcResult<RhAbsence>>;
+    cancelAbsence: (id: number, motif?: string) => Promise<IpcResult<RhAbsence>>;
     listAffectations: (opts?: {
       employeId?: number;
       hotelId?: number;
@@ -953,21 +981,6 @@ export interface IpcApi {
     create: (input: unknown) => Promise<IpcResult<unknown>>;
     update: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
   };
-  parking: {
-    getConfig: (hotelId: number) => Promise<IpcResult<unknown>>;
-    saveConfig: (hotelId: number, input: unknown) => Promise<IpcResult<unknown>>;
-    listTickets: (hotelId: number, statut?: string) => Promise<IpcResult<unknown[]>>;
-    entree: (input: unknown) => Promise<IpcResult<unknown>>;
-    sortie: (ticketId: number) => Promise<IpcResult<unknown>>;
-    stats: (hotelId: number) => Promise<IpcResult<unknown>>;
-  };
-  plage: {
-    getConfig: (hotelId: number) => Promise<IpcResult<unknown>>;
-    saveConfig: (hotelId: number, input: unknown) => Promise<IpcResult<unknown>>;
-    listEntrees: (hotelId: number, date?: string) => Promise<IpcResult<unknown[]>>;
-    createEntree: (input: unknown) => Promise<IpcResult<unknown>>;
-    stats: (hotelId: number) => Promise<IpcResult<unknown>>;
-  };
   stocks: {
     listProduits: () => Promise<IpcResult<unknown[]>>;
     createProduit: (input: unknown) => Promise<IpcResult<unknown>>;
@@ -990,6 +1003,10 @@ export interface IpcApi {
     enregistrerVentePos: (input: import('./cuisine').EnregistrerVentePosInput) => Promise<IpcResult<import('./cuisine').CuisineVentePos>>;
   };
   pos: {
+    listKds: (pointVenteId:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
+    updateKds: (id:number,statut:string) => Promise<IpcResult<Record<string,unknown>>>;
+    listDevices: (pointVenteId:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
+    saveDevice: (input:{pointVenteId:number;type:string;nom:string;connexion:string;adresse?:string;actif:boolean}) => Promise<IpcResult<Array<Record<string,unknown>>>>;
     listPointsVente: (hotelId: number) => Promise<IpcResult<import('./pos').PosPointVente[]>>;
     createPointVente: (input: import('./pos').CreatePointVenteInput) => Promise<IpcResult<import('./pos').PosPointVente>>;
     listFactions: (pointVenteId: number) => Promise<IpcResult<import('./pos').PosFaction[]>>;
@@ -1045,6 +1062,13 @@ export interface IpcApi {
     stats: (hotelId?: number) => Promise<IpcResult<unknown>>;
   };
   ged: {
+    listVersions: (id:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
+    addVersion: (id:number,note?:string) => Promise<IpcResult<Record<string,unknown>>>;
+    requestOcr: (id:number,langue?:string) => Promise<IpcResult<Record<string,unknown>|null>>;
+    completeOcr: (id:number,texte:string,confidence?:number) => Promise<IpcResult<Record<string,unknown>|null>>;
+    searchOcr: (query:string) => Promise<IpcResult<Array<Record<string,unknown>>>>;
+    listSignatures: (id:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
+    sign: (id:number,motif?:string) => Promise<IpcResult<Array<Record<string,unknown>>>>;
     listCategories: () => Promise<IpcResult<unknown[]>>;
     listDocuments: (hotelId?: number, categorieId?: number, search?: string) => Promise<IpcResult<unknown[]>>;
     upload: (input: unknown) => Promise<IpcResult<unknown>>;
