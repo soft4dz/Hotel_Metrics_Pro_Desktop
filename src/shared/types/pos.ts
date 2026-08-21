@@ -1,9 +1,11 @@
 export type { PosPointVenteType } from '../constants/posPointVenteTypes';
 import type { PosPointVenteType } from '../constants/posPointVenteTypes';
 export type PosSessionStatut = 'ouverte' | 'cloturee';
-export type PosTicketStatut = 'brouillon' | 'valide' | 'annule';
+export type PosTicketStatut = 'brouillon' | 'valide' | 'annule' | 'rembourse';
 export type PosClotureStatut = 'brouillon' | 'cloturee';
-export type PosModePaiement = 'especes' | 'carte' | 'cheque' | 'virement' | 'autre';
+export type PosModePaiement = 'especes' | 'carte' | 'cheque' | 'virement' | 'autre' | 'multiple' | 'folio';
+export type PosEtapeService = 'commande'|'envoyee'|'preparation'|'prete'|'servie'|'addition'|'terminee';
+export type PosTableStatut = 'libre'|'reservee'|'occupee'|'a_nettoyer'|'hors_service';
 
 export interface PosPointVente {
   id: number;
@@ -77,8 +79,21 @@ export interface PosTicket {
   dateTicket: string;
   createdAt: string;
   validatedAt: string | null;
+  tableId: number | null;
+  tableNumero: string | null;
+  nbCouverts: number;
+  etapeService: PosEtapeService;
+  remiseMontant: number;
+  remisePourcentage: number;
+  remiseMotif: string | null;
+  folioId: number | null;
+  paiements: PosPaiement[];
   lignes: PosTicketLigne[];
 }
+
+export interface PosSalle { id:number;pointVenteId:number;nom:string;largeur:number;hauteur:number;actif:boolean; }
+export interface PosTable { id:number;salleId:number;numero:string;capacite:number;forme:'carree'|'ronde'|'rectangle';positionX:number;positionY:number;largeur:number;hauteur:number;statut:PosTableStatut;actif:boolean;ticketActifId:number|null; }
+export interface PosPaiement { id:number;ticketId:number;mode:Exclude<PosModePaiement,'multiple'>;montant:number;reference:string|null;encaissementId:number|null;createdAt:string; }
 
 export interface PosClotureJournaliere {
   id: number;
@@ -138,9 +153,7 @@ export interface OpenSessionInput {
   fondCaisse?: number;
 }
 
-export interface CreateTicketInput {
-  sessionId: number;
-}
+export interface CreateTicketInput { sessionId:number;tableId?:number|null;nbCouverts?:number; }
 
 export interface AddTicketLigneInput {
   ticketId: number;
@@ -151,8 +164,13 @@ export interface AddTicketLigneInput {
 
 export interface ValiderTicketInput {
   ticketId: number;
-  modePaiement: PosModePaiement;
+  modePaiement?: Exclude<PosModePaiement,'multiple'|'folio'>;
+  paiements?: Array<{mode:Exclude<PosModePaiement,'multiple'|'folio'>;montant:number;reference?:string}>;
+  reservationId?: number;
 }
+
+export interface CreateSalleInput { pointVenteId:number;nom:string;largeur?:number;hauteur?:number; }
+export interface SaveTableInput { salleId:number;numero:string;capacite?:number;forme?:PosTable['forme'];positionX?:number;positionY?:number;largeur?:number;hauteur?:number;statut?:PosTableStatut; }
 
 export interface CloturerSessionInput {
   sessionId: number;
