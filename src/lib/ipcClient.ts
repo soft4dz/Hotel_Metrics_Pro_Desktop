@@ -722,6 +722,10 @@ export const ipcClient: IpcApi = {
     close: (closureId) => api().cloture.close(closureId),
     list: (hotelId, dateDebut, dateFin) => api().cloture.list(hotelId, dateDebut, dateFin),
     getPosStatus: (hotelId, dateJournal) => api().cloture.getPosStatus(hotelId, dateJournal),
+    getBusinessDate: (hotelId) => api().cloture.getBusinessDate(hotelId),
+    getNightAudit: (closureId) => api().cloture.getNightAudit(closureId),
+    runNightAudit: (closureId) => api().cloture.runNightAudit(closureId),
+    reopenNightAudit: (closureId, motif) => api().cloture.reopenNightAudit(closureId, motif),
   },
   reconciliation: {
     create: (hotelId, dateJournal) => api().reconciliation.create(hotelId, dateJournal),

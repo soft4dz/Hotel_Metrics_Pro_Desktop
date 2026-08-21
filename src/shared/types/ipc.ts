@@ -1101,6 +1101,10 @@ export interface IpcApi {
     close: (closureId: number) => Promise<IpcResult<DailyClosure>>;
     list: (hotelId?: number, dateDebut?: string, dateFin?: string) => Promise<IpcResult<DailyClosure[]>>;
     getPosStatus: (hotelId: number, dateJournal: string) => Promise<IpcResult<import('./pos').PosHotelClosureStatus>>;
+    getBusinessDate: (hotelId: number) => Promise<IpcResult<import('./phase2').HotelBusinessDate>>;
+    getNightAudit: (closureId: number) => Promise<IpcResult<import('./phase2').NightAuditReport | null>>;
+    runNightAudit: (closureId: number) => Promise<IpcResult<import('./phase2').NightAuditReport>>;
+    reopenNightAudit: (closureId: number, motif: string) => Promise<IpcResult<import('./phase2').NightAuditReport>>;
   };
   reconciliation: {
     create: (hotelId: number, dateJournal: string) => Promise<IpcResult<FinanceReconciliation>>;
