@@ -67,6 +67,9 @@ export interface Reservation {
   statut: StatutReservation;
   source: SourceReservation;
   notes: string | null;
+  surbookingAutorise: boolean;
+  surbookingMotif: string | null;
+  politiqueAnnulationId: number | null;
   createdAt: string;
 }
 
@@ -88,6 +91,39 @@ export interface CreateReservationInput {
   statut?: StatutReservation;
   source?: SourceReservation;
   notes?: string | null;
+  surbookingAutorise?: boolean;
+  surbookingMotif?: string | null;
+  politiqueAnnulationId?: number | null;
+}
+
+export type UpdateReservationInput = Partial<Omit<CreateReservationInput, 'hotelId'>>;
+
+export interface PmsOccupant {
+  id: number; reservationId: number; nom: string; prenom: string | null;
+  dateNaissance: string | null; nationalite: string | null; typeDocument: string | null;
+  numeroDocument: string | null; principal: boolean;
+}
+export interface PmsMouvementChambre {
+  id: number; reservationId: number; ancienneChambreId: number | null;
+  ancienneChambreNumero: string | null; nouvelleChambreId: number;
+  nouvelleChambreNumero: string; motif: string; surbookingAutorise: boolean; createdAt: string;
+}
+export interface PmsAttente {
+  id: number; hotelId: number; hotelName: string; typeChambreId: number | null;
+  clientNom: string; clientPrenom: string | null; clientEmail: string | null;
+  clientTelephone: string | null; dateArrivee: string; dateDepart: string;
+  nbAdultes: number; nbEnfants: number; priorite: number;
+  statut: 'attente'|'contacte'|'convertie'|'annulee'|'expiree';
+  notes: string | null; reservationId: number | null;
+}
+export interface PmsPolitiqueAnnulation {
+  id: number; hotelId: number; hotelName: string; nom: string;
+  delaiSansFraisJours: number; penaliteType: 'pourcentage'|'montant'|'nuitees';
+  penaliteValeur: number; noShowType: 'pourcentage'|'montant'|'nuitees';
+  noShowValeur: number; actif: boolean;
+}
+export interface PmsAnnulationResult {
+  reservation: Reservation; montantPenalite: number; montantRemboursable: number;
 }
 
 export interface CreateTypeChambreInput {

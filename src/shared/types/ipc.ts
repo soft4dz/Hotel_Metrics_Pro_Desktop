@@ -725,6 +725,23 @@ export interface IpcApi {
     listChannelConnectors: () => Promise<IpcResult<import('./hebergement').ChannelConnector[]>>;
     saveChannelConnector: (input:{hotelId:number;code:string;label:string;endpointUrl?:string;actif:boolean}) => Promise<IpcResult<import('./hebergement').ChannelConnector>>;
     importChannelReservation: (input:import('./hebergement').ChannelImportInput) => Promise<IpcResult<Reservation>>;
+    updateReservation: (reservationId:number,input:import('./hebergement').UpdateReservationInput) => Promise<IpcResult<Reservation>>;
+    moveReservationRoom: (reservationId:number,input:{newRoomId:number;motif:string;surbookingAutorise?:boolean}) => Promise<IpcResult<import('./hebergement').PmsMouvementChambre>>;
+    listRoomMoves: (reservationId:number) => Promise<IpcResult<import('./hebergement').PmsMouvementChambre[]>>;
+    listOccupants: (reservationId:number) => Promise<IpcResult<import('./hebergement').PmsOccupant[]>>;
+    saveOccupant: (reservationId:number,input:Omit<import('./hebergement').PmsOccupant,'id'|'reservationId'>,occupantId?:number) => Promise<IpcResult<import('./hebergement').PmsOccupant>>;
+    deleteOccupant: (occupantId:number) => Promise<IpcResult<boolean>>;
+    listWaitlist: (hotelId?:number) => Promise<IpcResult<import('./hebergement').PmsAttente[]>>;
+    createWaitlist: (input:{hotelId:number;typeChambreId?:number;clientNom:string;clientPrenom?:string;clientEmail?:string;clientTelephone?:string;dateArrivee:string;dateDepart:string;nbAdultes?:number;nbEnfants?:number;priorite?:number;notes?:string}) => Promise<IpcResult<import('./hebergement').PmsAttente>>;
+    updateWaitlistStatus: (id:number,statut:import('./hebergement').PmsAttente['statut']) => Promise<IpcResult<import('./hebergement').PmsAttente>>;
+    promoteWaitlist: (id:number,input:{chambreId:number;surbookingAutorise?:boolean;motif?:string}) => Promise<IpcResult<Reservation>>;
+    listCancellationPolicies: (hotelId?:number) => Promise<IpcResult<import('./hebergement').PmsPolitiqueAnnulation[]>>;
+    createCancellationPolicy: (input:Omit<import('./hebergement').PmsPolitiqueAnnulation,'id'|'hotelName'|'actif'>) => Promise<IpcResult<import('./hebergement').PmsPolitiqueAnnulation>>;
+    cancelReservation: (reservationId:number,input:{motif:string;policyId?:number}) => Promise<IpcResult<import('./hebergement').PmsAnnulationResult>>;
+    markReservationNoShow: (reservationId:number,input:{motif:string;policyId?:number}) => Promise<IpcResult<import('./hebergement').PmsAnnulationResult>>;
+    operateDeposit: (depotId:number,input:{type:'remboursement'|'annulation';motif:string;reference?:string}) => Promise<IpcResult<void>>;
+    transferFolioLines: (input:{sourceReservationId:number;destinationReservationId:number;lineIds:number[];motif:string}) => Promise<IpcResult<void>>;
+    shareFolio: (input:{folioReservationId:number;sharedReservationId:number}) => Promise<IpcResult<void>>;
   };
   tarifs: {
     listComposants:   (hotelId?: number) => Promise<IpcResult<ComposantTarif[]>>;
