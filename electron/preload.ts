@@ -796,6 +796,10 @@ const api: IpcApi = {
     close: (closureId) => ipcRenderer.invoke('cloture:close', closureId),
     list: (hotelId, dateDebut, dateFin) => ipcRenderer.invoke('cloture:list', hotelId, dateDebut, dateFin),
     getPosStatus: (hotelId, dateJournal) => ipcRenderer.invoke('cloture:posStatus', hotelId, dateJournal),
+    getBusinessDate: (hotelId) => ipcRenderer.invoke('cloture:nightAudit:businessDate', hotelId),
+    getNightAudit: (closureId) => ipcRenderer.invoke('cloture:nightAudit:get', closureId),
+    runNightAudit: (closureId) => ipcRenderer.invoke('cloture:nightAudit:run', closureId),
+    reopenNightAudit: (closureId, motif) => ipcRenderer.invoke('cloture:nightAudit:reopen', closureId, motif),
   },
   reconciliation: {
     create: (hotelId, dateJournal) => ipcRenderer.invoke('reconciliation:create', hotelId, dateJournal),

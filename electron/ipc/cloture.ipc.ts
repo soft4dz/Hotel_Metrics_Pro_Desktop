@@ -1,6 +1,7 @@
 import Electron from '../lib/electronApi';
 import { wrapIpc } from './ipcHelpers';
 import * as svc from '../services/daily-closure.service';
+import * as nightAudit from '../services/night-audit.service';
 import { assertDateJournal, assertPositiveInteger, assertText } from './validation';
 
 export function registerClotureIpc(): void {
@@ -33,4 +34,20 @@ export function registerClotureIpc(): void {
 
   Electron.ipcMain.handle('cloture:posStatus', (event, hotelId: number, dateJournal: string) =>
     wrapIpc(event, () => svc.getPosClosureStatusForHotel(assertPositiveInteger(hotelId, 'hotelId'), assertDateJournal(dateJournal, 'dateJournal'))));
+
+  Electron.ipcMain.handle('cloture:nightAudit:businessDate', (event, hotelId: unknown) =>
+    wrapIpc(event, (uid) => nightAudit.getHotelBusinessDate(uid, assertPositiveInteger(hotelId, 'hotelId'))));
+
+  Electron.ipcMain.handle('cloture:nightAudit:get', (event, closureId: unknown) =>
+    wrapIpc(event, (uid) => nightAudit.getNightAuditReport(uid, assertPositiveInteger(closureId, 'closureId'))));
+
+  Electron.ipcMain.handle('cloture:nightAudit:run', (event, closureId: unknown) =>
+    wrapIpc(event, (uid) => nightAudit.runNightAuditControls(uid, assertPositiveInteger(closureId, 'closureId'))));
+
+  Electron.ipcMain.handle('cloture:nightAudit:reopen', (event, closureId: unknown, motif: unknown) =>
+    wrapIpc(event, (uid) => nightAudit.reopenNightAudit(
+      uid,
+      assertPositiveInteger(closureId, 'closureId'),
+      assertText(motif, 'motif', { required: true, maxLength: 1000 }),
+    )));
 }

@@ -5,6 +5,7 @@ import { createWorkflow, submitWorkflow, findWorkflow, syncWorkflowStatutOnly } 
 import { createDecAlertIfMissing } from './dec-cockpit.service';
 import { assertAllPosClosedForHotel, getPosClosureStatusForHotel } from './pos-recettes-sync.service';
 import { syncAllRecettesFromErp } from './recettes-auto-sync.service';
+import { applyNightAuditClosure } from './night-audit.service';
 
 export { getPosClosureStatusForHotel } from './pos-recettes-sync.service';
 export type { PosHotelClosureStatus } from './pos-recettes-sync.service';
@@ -208,11 +209,15 @@ export function rejectDailyClosure(actorUserId: number, closureId: number, motif
 
 export function closeDailyClosure(actorUserId: number, closureId: number, opts?: { syncWorkflow?: boolean }): DailyClosure {
   const c = getClosureById(closureId);
+  assertHotelAccess(actorUserId, c.hotelId);
   if (c.statut !== 'valide_dec') throw new Error('Clôture finale : validation DEC requise.');
   assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
-  getDatabase().prepare(`
-    UPDATE daily_closures SET statut='cloture', closed_at=datetime('now'), updated_at=datetime('now') WHERE id=?
-  `).run(closureId);
+  getDatabase().transaction(() => {
+    applyNightAuditClosure(actorUserId, closureId);
+    getDatabase().prepare(`
+      UPDATE daily_closures SET statut='cloture', closed_at=datetime('now'), updated_at=datetime('now') WHERE id=?
+    `).run(closureId);
+  })();
   if (opts?.syncWorkflow !== false) {
     const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
     if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'cloture');

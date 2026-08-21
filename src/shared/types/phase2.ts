@@ -89,6 +89,49 @@ export interface DailyClosure {
   items?: DailyClosureItem[];
 }
 
+export interface HotelBusinessDate {
+  hotelId: number;
+  currentBusinessDate: string;
+  lastClosedDate: string | null;
+}
+
+export interface NightAuditControl {
+  code: string;
+  libelle: string;
+  severity: 'blocking' | 'warning' | 'info';
+  statut: 'ok' | 'failed';
+  occurrences: number;
+  details: string[];
+}
+
+export interface NightAuditEvent {
+  id: number;
+  action: 'controle' | 'cloture' | 'reouverture';
+  actorUserId: number | null;
+  motif: string | null;
+  createdAt: string;
+}
+
+export interface NightAuditReport {
+  id: number;
+  closureId: number;
+  hotelId: number;
+  businessDate: string;
+  statut: 'controle' | 'bloque' | 'cloture' | 'rouvert';
+  blockersCount: number;
+  warningsCount: number;
+  occupiedRooms: number;
+  roomChargesPosted: number;
+  roomRevenue: number;
+  stayTaxTotal: number;
+  generatedAt: string;
+  closedAt: string | null;
+  reopenedAt: string | null;
+  reopenReason: string | null;
+  controls: NightAuditControl[];
+  events: NightAuditEvent[];
+}
+
 export type ReconciliationStatut = 'a_controler' | 'equilibre' | 'ecart_justifie' | 'ecart_non_justifie' | 'valide';
 
 export interface FinanceReconciliation {
