@@ -13,6 +13,11 @@ Ce guide installe la **base MySQL centrale** et l’**API PHP** compatible avec 
 5. **phpMyAdmin** → sélectionner `softdzco_hmp_sync` → **Importer**
    - Fichier : `server/deploy/mysql/001_central_schema.sql`
 
+Pour une installation existante créée avant ce correctif P0, importer une seule fois
+`server/deploy/mysql/002_sync_tenant_isolation.sql` au lieu de réimporter le schéma initial.
+Les données déjà présentes reçoivent le code d'organisation `LEGACY` : utilisez ce code dans
+`organization_keys` lors de la première remise en service, puis planifiez son renommage si nécessaire.
+
 ## 2. Déployer l’API PHP
 
 1. **Gestionnaire de fichiers** cPanel → `public_html/`
@@ -31,7 +36,9 @@ Ce guide installe la **base MySQL centrale** et l’**API PHP** compatible avec 
     'user' => 'softdzco_hmp_user',
     'pass' => 'VOTRE_MOT_DE_PASSE_MYSQL',
 ],
-'api_key' => 'VOTRE_CLE_API_SECRETE',
+'organization_keys' => [
+    'MON_ORGANISATION' => 'VOTRE_CLE_API_SECRETE_MINIMUM_32_CARACTERES',
+],
 ```
 
 6. Générer une clé API (PowerShell) :
@@ -58,7 +65,7 @@ Test push (remplacer `VOTRE_CLE`) :
 curl -X POST https://soft4dz.com/hmp-api/api/sync/push \
   -H "Content-Type: application/json" \
   -H "X-HMP-API-Key: VOTRE_CLE" \
-  -d "{\"deviceId\":\"test-device\",\"items\":[]}"
+  -d "{\"deviceId\":\"00000000-0000-4000-8000-000000000001\",\"items\":[]}"
 ```
 
 ## 4. Configurer l’application desktop
@@ -81,7 +88,8 @@ Ou ajouter dans `.env.production` (si utilisé au build).
 - Ne partagez **jamais** les identifiants cPanel dans un chat ou un dépôt Git
 - Changez le mot de passe cPanel si exposé
 - `config.php` ne doit pas être public (reste côté serveur)
-- Utilisez une clé API longue et unique
+- Utilisez une clé API longue et unique par organisation (32 caractères minimum)
+- Ne réutilisez jamais une clé entre deux clients : elle définit leur cloisonnement de données
 
 ## Dépannage
 
@@ -89,5 +97,5 @@ Ou ajouter dans `.env.production` (si utilisé au build).
 |----------|----------|
 | 404 sur `/api/health` | Vérifier `.htaccess` et `RewriteBase /hmp-api/` |
 | 500 config.php manquant | Copier et renseigner `config.sample.php` |
-| 401 Unauthorized | Même clé dans `config.php` et `HMP_SYNC_API_KEY` |
+| 401 Unauthorized | La clé doit exister dans `organization_keys` et correspondre à `HMP_SYNC_API_KEY` |
 | Connexion MySQL refusée | Vérifier préfixe `softdzco_` sur base et utilisateur |

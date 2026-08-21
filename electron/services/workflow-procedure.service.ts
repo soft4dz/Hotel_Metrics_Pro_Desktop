@@ -7,7 +7,7 @@ import type {
   WorkflowPendingContext,
 } from '../../src/shared/types/workflowProcedure';
 import { getDatabase } from '../database/sqlite';
-import { getActorContext, isGlobalAdminRole } from './actorContext';
+import { actorCanAccessHotel, getActorContext, isGlobalAdminRole } from './actorContext';
 import { userHasPermission } from './permissions.service';
 import { writeAuditLog } from './audit.service';
 
@@ -200,6 +200,8 @@ export function canActorApproveStep(
   workflow: WorkflowInstance,
 ): boolean {
   const actor = getActorContext(actorUserId);
+  if (workflow.hotelId && !actorCanAccessHotel(actor, workflow.hotelId)) return false;
+  if (workflow.demandeurUserId === actorUserId) return false;
   if (isGlobalAdminRole(actor.roleCode)) return true;
 
   const step = getCurrentStep(procedure, workflow);
@@ -215,6 +217,10 @@ export function getWorkflowPendingContext(
 ): WorkflowPendingContext {
   const procedure = resolveProcedureForEntity(workflow.module, workflow.entityType, workflow.hotelId);
   if (!procedure) {
+    const actor = getActorContext(actorUserId);
+    const canApprove = workflow.demandeurUserId !== actorUserId
+      && (!workflow.hotelId || actorCanAccessHotel(actor, workflow.hotelId))
+      && isGlobalAdminRole(actor.roleCode);
     return {
       workflowId: workflow.id,
       procedureCode: null,
@@ -222,8 +228,8 @@ export function getWorkflowPendingContext(
       currentStepLabel: 'Approbation',
       stepIndex: 1,
       stepTotal: 1,
-      canApprove: true,
-      canReject: true,
+      canApprove,
+      canReject: canApprove,
       approvalMode: 'hub',
       moduleRoute: null,
       hint: null,

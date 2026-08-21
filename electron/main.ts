@@ -72,6 +72,7 @@ import { runPortMigrateV2 } from './database/portMigrateV2';
 import { logger } from './utils/logger';
 import { loadDotEnvFile } from './utils/loadEnv';
 import { clearWebContentsSession } from './services/session.service';
+import { startAutomaticSyncScheduler } from './services/sync.service';
 import {
   ensureLogoDirectories,
   parseLogoRequestPath,
@@ -295,6 +296,7 @@ function bootstrap(): void {
     registerGuideIpc();
     registerPmsExtensionsIpc();
     startPhase6BisScheduler();
+    startAutomaticSyncScheduler();
     createWindow();
   } catch (err) {
     logger.error('Échec initialisation application', err);

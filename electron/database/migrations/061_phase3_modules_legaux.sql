@@ -116,4 +116,4 @@ CREATE TABLE IF NOT EXISTS inventaire_legal_lignes (
 CREATE INDEX IF NOT EXISTS idx_inventaire_legal_exercice ON inventaire_legal_sessions(exercice, hotel_id);
 
 INSERT OR IGNORE INTO immobilisations (code, libelle, categorie, date_acquisition, valeur_acquisition, duree_amortissement_mois, hotel_id)
-VALUES ('IMMO-001', 'Mobilier chambres — lot initial', 'corporelle', '2026-01-01', 2500000, 60, 1);
+VALUES ('IMMO-001', 'Mobilier chambres — lot initial', 'corporelle', '2026-01-01', 2500000, 60, NULL);

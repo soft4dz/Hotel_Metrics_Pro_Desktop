@@ -88,17 +88,17 @@ export function registerAuthIpc(): void {
       if (!sessionToken) {
         return { success: false, error: 'Session invalide.' };
       }
-      const userId = restoreRememberToken(event.sender.id, sessionToken);
-      if (!userId) {
+      const restored = restoreRememberToken(event.sender.id, sessionToken);
+      if (!restored) {
         return { success: false, error: 'Session expirée. Veuillez vous reconnecter.' };
       }
-      const user = authService.getUserById(userId);
+      const user = authService.getUserById(restored.userId);
       if (!user) {
-        revokeRememberToken(sessionToken);
+        revokeRememberToken(restored.sessionToken);
         clearWebContentsSession(event.sender.id);
         return { success: false, error: 'Compte introuvable ou inactif.' };
       }
-      return { success: true, user, sessionToken };
+      return { success: true, user, sessionToken: restored.sessionToken };
     },
   );
 

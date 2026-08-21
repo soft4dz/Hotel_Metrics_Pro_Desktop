@@ -1,6 +1,6 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
-import { getActorContext, isGlobalAdminRole } from './actorContext';
+import { actorCanAccessHotel, getActorContext, isGlobalAdminRole } from './actorContext';
 import { executeWorkflowModuleAction } from './workflow-module-handlers';
 import {
   canActorApproveStep,
@@ -110,7 +110,32 @@ function getWorkflowById(id: number): WorkflowInstance {
   return mapWorkflow(row);
 }
 
+/** Contrôle commun RBAC + périmètre hôtel + séparation demandeur/validateur. */
+export function assertWorkflowApprovalAllowed(actorUserId: number, workflowId: number): WorkflowInstance {
+  const wf = getWorkflowById(workflowId);
+  const actor = getActorContext(actorUserId);
+  if (wf.hotelId && !actorCanAccessHotel(actor, wf.hotelId)) {
+    throw new Error('Accès refusé au périmètre de ce workflow.');
+  }
+  if (wf.demandeurUserId === actorUserId) {
+    throw new Error('Séparation des tâches : le demandeur ne peut pas valider ou refuser sa propre demande.');
+  }
+  const procedure = resolveProcedureForEntity(wf.module, wf.entityType, wf.hotelId);
+  if (procedure) {
+    if (!canActorApproveStep(actorUserId, procedure, wf)) {
+      throw new Error('Vous n\'êtes pas habilité à valider cette étape.');
+    }
+  } else if (!isGlobalAdminRole(actor.roleCode)) {
+    throw new Error('Workflow sans procédure : validation réservée aux administrateurs globaux.');
+  }
+  return wf;
+}
+
 export function createWorkflow(actorUserId: number, input: CreateWorkflowInput): WorkflowInstance {
+  const actor = getActorContext(actorUserId);
+  if (input.hotelId && !actorCanAccessHotel(actor, input.hotelId)) {
+    throw new Error('Accès refusé au périmètre de ce workflow.');
+  }
   const db = getDatabase();
   const existing = db.prepare(`
     SELECT id FROM workflow_instances WHERE module = ? AND entity_type = ? AND entity_id = ?
@@ -136,6 +161,13 @@ export function createWorkflow(actorUserId: number, input: CreateWorkflowInput):
 
 export function submitWorkflow(actorUserId: number, workflowId: number, commentaire?: string): WorkflowInstance {
   const wf = getWorkflowById(workflowId);
+  const actor = getActorContext(actorUserId);
+  if (wf.hotelId && !actorCanAccessHotel(actor, wf.hotelId)) {
+    throw new Error('Accès refusé au périmètre de ce workflow.');
+  }
+  if (wf.demandeurUserId && wf.demandeurUserId !== actorUserId && !isGlobalAdminRole(actor.roleCode)) {
+    throw new Error('Seul le demandeur peut soumettre cette demande.');
+  }
   if (!['brouillon', 'refuse'].includes(wf.statut)) throw new Error(`Soumission impossible depuis statut ${wf.statut}.`);
   const db = getDatabase();
   db.prepare(`
@@ -175,7 +207,7 @@ export function syncWorkflowStatutOnly(
 }
 
 export function approveWorkflow(actorUserId: number, workflowId: number, nouveauStatut: WorkflowStatut = 'valide', commentaire?: string): WorkflowInstance {
-  const wf = getWorkflowById(workflowId);
+  const wf = assertWorkflowApprovalAllowed(actorUserId, workflowId);
   if (!['soumis', 'en_validation', 'valide_unite', 'valide_dec'].includes(wf.statut)) {
     throw new Error(`Approbation impossible depuis statut ${wf.statut}.`);
   }
@@ -209,7 +241,7 @@ export function approveWorkflow(actorUserId: number, workflowId: number, nouveau
 
 export function rejectWorkflow(actorUserId: number, workflowId: number, motif: string): WorkflowInstance {
   if (!motif?.trim()) throw new Error('Motif de refus obligatoire.');
-  const wf = getWorkflowById(workflowId);
+  const wf = assertWorkflowApprovalAllowed(actorUserId, workflowId);
   if (['refuse', 'cloture', 'annule'].includes(wf.statut)) throw new Error('Workflow déjà terminé.');
 
   const procedure = resolveProcedureForEntity(wf.module, wf.entityType, wf.hotelId);
@@ -235,7 +267,11 @@ export function rejectWorkflow(actorUserId: number, workflowId: number, motif: s
 }
 
 export function getWorkflowHistory(actorUserId: number, workflowId: number): WorkflowHistoryEntry[] {
-  void actorUserId;
+  const wf = getWorkflowById(workflowId);
+  const actor = getActorContext(actorUserId);
+  if (wf.hotelId && !actorCanAccessHotel(actor, wf.hotelId)) {
+    throw new Error('Accès refusé au périmètre de ce workflow.');
+  }
   return (getDatabase().prepare(`
     SELECT h.*, u.full_name as actor_nom
     FROM workflow_history h LEFT JOIN users u ON u.id = h.actor_user_id
@@ -264,15 +300,22 @@ export function listPendingWorkflows(actorUserId: number, filters: WorkflowFilte
     conds.push(`statut IN ('soumis','en_validation','valide_unite')`);
   }
   if (filters.module) { conds.push('module = ?'); params.push(filters.module); }
-  if (filters.hotelId) { conds.push('hotel_id = ?'); params.push(filters.hotelId); }
+  if (filters.hotelId) {
+    if (!actorCanAccessHotel(actor, filters.hotelId)) throw new Error('Accès refusé à cette unité.');
+    conds.push('hotel_id = ?'); params.push(filters.hotelId);
+  }
   if (filters.statut) {
     const stats = Array.isArray(filters.statut) ? filters.statut : [filters.statut];
     conds.push(`statut IN (${stats.map(() => '?').join(',')})`);
     params.push(...stats);
   }
-  if (!isGlobalAdminRole(actor.roleCode) && actor.hotelIds.length > 0) {
-    conds.push(`(hotel_id IS NULL OR hotel_id IN (${actor.hotelIds.map(() => '?').join(',')}))`);
-    params.push(...actor.hotelIds);
+  if (!isGlobalAdminRole(actor.roleCode)) {
+    if (actor.hotelIds.length > 0) {
+      conds.push(`(hotel_id IS NULL OR hotel_id IN (${actor.hotelIds.map(() => '?').join(',')}))`);
+      params.push(...actor.hotelIds);
+    } else {
+      conds.push('hotel_id IS NULL');
+    }
   }
 
   const where = conds.length ? conds.join(' AND ') : '1=1';
@@ -284,6 +327,16 @@ export function findWorkflow(module: string, entityType: string, entityId: numbe
     SELECT * FROM workflow_instances WHERE module = ? AND entity_type = ? AND entity_id = ?
   `).get(module, entityType, entityId) as Record<string, unknown> | undefined;
   return row ? mapWorkflow(row) : null;
+}
+
+export function findWorkflowForActor(actorUserId: number, module: string, entityType: string, entityId: number): WorkflowInstance | null {
+  const workflow = findWorkflow(module, entityType, entityId);
+  if (!workflow) return null;
+  const actor = getActorContext(actorUserId);
+  if (workflow.hotelId && !actorCanAccessHotel(actor, workflow.hotelId)) {
+    throw new Error('Accès refusé au périmètre de ce workflow.');
+  }
+  return workflow;
 }
 
 export function listPendingWorkflowsWithContext(actorUserId: number, filters: WorkflowFilters = {}): WorkflowPendingItem[] {

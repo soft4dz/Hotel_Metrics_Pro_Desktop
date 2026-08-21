@@ -3,7 +3,7 @@ import { writeAuditLog } from './audit.service';
 import { getActorContext, actorCanAccessHotel, isGlobalAdminRole } from './actorContext';
 import { createAnomalie } from './anomalies.service';
 import { createDecAlertIfMissing } from './dec-cockpit.service';
-import { createWorkflow, submitWorkflow, syncWorkflowStatutOnly } from './workflow.service';
+import { assertWorkflowApprovalAllowed, createWorkflow, submitWorkflow, syncWorkflowStatutOnly } from './workflow.service';
 
 export type ReconciliationStatut = 'a_controler' | 'equilibre' | 'ecart_justifie' | 'ecart_non_justifie' | 'valide';
 
@@ -115,6 +115,10 @@ export function validateReconciliation(actorUserId: number, id: number, opts?: {
   const actor = getActorContext(actorUserId);
   if (!isGlobalAdminRole(actor.roleCode)) throw new Error('Validation DEC/admin requise.');
   const rec = getRecById(id);
+  const wf = getDatabase().prepare(`
+    SELECT id FROM workflow_instances WHERE module='rapprochement' AND entity_type='finance_reconciliation' AND entity_id=?
+  `).get(id) as { id: number } | undefined;
+  if (wf && opts?.syncWorkflow !== false) assertWorkflowApprovalAllowed(actorUserId, wf.id);
 
   if (rec.statut === 'a_controler' && Math.abs(rec.ecart) >= 0.01) {
     getDatabase().prepare(`
@@ -139,9 +143,6 @@ export function validateReconciliation(actorUserId: number, id: number, opts?: {
     UPDATE finance_reconciliations SET statut='valide', controle_by=?, controle_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(actorUserId, id);
 
-  const wf = getDatabase().prepare(`
-    SELECT id FROM workflow_instances WHERE module='rapprochement' AND entity_type='finance_reconciliation' AND entity_id=?
-  `).get(id) as { id: number } | undefined;
   if (wf && opts?.syncWorkflow !== false) syncWorkflowStatutOnly(actorUserId, wf.id, 'valide');
 
   dbLinkClosure(id);

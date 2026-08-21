@@ -213,6 +213,9 @@ const api: IpcApi = {
       ipcRenderer.invoke('sync:config:update', input),
     getStatus: () => ipcRenderer.invoke('sync:status'),
     listQueue: () => ipcRenderer.invoke('sync:queue:list'),
+    retryFailed: () => ipcRenderer.invoke('sync:queue:retryFailed'),
+    listConflicts: () => ipcRenderer.invoke('sync:conflicts:list'),
+    resolveConflict: (conflictId, decision, note) => ipcRenderer.invoke('sync:conflicts:resolve', conflictId, decision, note),
     run: () => ipcRenderer.invoke('sync:run'),
   },
   export: {
