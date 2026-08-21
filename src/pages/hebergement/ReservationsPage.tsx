@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, BedDouble, Calendar, User, MoreHorizontal, CheckCircle, XCircle, LogIn, LogOut, FileText } from 'lucide-react';
+import { Plus, Search, BedDouble, Calendar, User, MoreHorizontal, CheckCircle, XCircle, LogIn, LogOut, FileText, Pencil } from 'lucide-react';
 import { useReservations } from '@/hooks/useHebergement';
 import { useChambres } from '@/hooks/useHebergement';
 import { usePlans, useFormules } from '@/hooks/useTarifs';
@@ -9,6 +9,7 @@ import { ipcClient } from '@/lib/ipcClient';
 import { cn } from '@/lib/utils';
 import type { ClientFacturation } from '@/shared/types/facturation';
 import type { Reservation, StatutReservation, CreateReservationInput } from '@/shared/types/hebergement';
+import { ReservationAdvancedModal } from './ReservationAdvancedModal';
 
 const STATUT_COLORS: Record<StatutReservation, string> = {
   provisoire:  'bg-slate-100 text-slate-600',
@@ -34,10 +35,12 @@ function ReservationRow({
   r,
   onAction,
   onCreateFacture,
+  onEdit,
 }: {
   r: Reservation;
   onAction: (id: number, s: StatutReservation) => void;
   onCreateFacture: (id: number) => void;
+  onEdit: (reservation: Reservation) => void;
 }) {
   const [open, setOpen] = useState(false);
   const actions: { label: string; statut: StatutReservation; icon: React.ElementType }[] = (
@@ -92,6 +95,7 @@ function ReservationRow({
       </td>
       <td className="px-4 py-3 relative">
         <div className="flex items-center justify-end gap-1">
+          <button title="Modifier le dossier" onClick={() => onEdit(r)} className="rounded-lg p-1.5 text-primary transition-colors hover:bg-primary/10"><Pencil className="h-4 w-4" /></button>
           {!r.factureId && r.statut !== 'annulee' && r.statut !== 'no_show' && (
             <button
               title="Générer facture"
@@ -356,8 +360,21 @@ export function ReservationsPage() {
   const [dateFin,   setDateFin]   = useState(in30());
   const [search, setSearch]       = useState('');
   const [showNew, setShowNew]     = useState(false);
+  const [editing, setEditing]     = useState<Reservation | null>(null);
 
   const { data, loading, create, updateStatut, createFactureFromReservation, refresh } = useReservations(undefined, dateDebut, dateFin);
+
+  const handleStatus = async (id:number, statut:StatutReservation) => {
+    if (statut !== 'no_show') { await updateStatut(id, statut); return; }
+    const motif = window.prompt('Motif du no-show :');
+    if (!motif) return;
+    try {
+      const result = await ipcClient.hebergement.markReservationNoShow(id, { motif });
+      if (!result.ok) throw new Error(result.error ?? 'Traitement impossible');
+      alert(`No-show enregistré. Pénalité : ${result.data.montantPenalite.toLocaleString('fr-DZ')} DA.`);
+      await refresh();
+    } catch (e) { alert(e instanceof Error ? e.message : 'Traitement impossible'); }
+  };
 
   const filtered = data.filter((r) =>
     !search || `${r.clientNom} ${r.clientPrenom ?? ''} ${r.chambreNumero ?? ''}`.toLowerCase().includes(search.toLowerCase())
@@ -416,7 +433,7 @@ export function ReservationsPage() {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <ReservationRow key={r.id} r={r} onAction={updateStatut} onCreateFacture={(id) => void handleCreateFacture(id)} />
+                  <ReservationRow key={r.id} r={r} onAction={(id,s)=>void handleStatus(id,s)} onCreateFacture={(id) => void handleCreateFacture(id)} onEdit={setEditing} />
                 ))}
               </tbody>
             </table>
@@ -430,6 +447,7 @@ export function ReservationsPage() {
           onSave={create}
         />
       )}
+      {editing && <ReservationAdvancedModal reservation={editing} onClose={()=>setEditing(null)} onSaved={()=>void refresh()} />}
     </div>
   );
 }

@@ -257,7 +257,7 @@ export function listReservations(
   return rows.map(mapReservation);
 }
 
-export function getReservation(_actorUserId: number, id: number): Reservation {
+export function getReservation(actorUserId: number, id: number): Reservation {
   const db = getDatabase();
   const row = db.prepare(`
     SELECT r.*, h.name as hotel_name, c.numero as chambre_numero, tc.label as type_label
@@ -268,6 +268,10 @@ export function getReservation(_actorUserId: number, id: number): Reservation {
     WHERE r.id = ? AND r.deleted_at IS NULL
   `).get(id) as any;
   if (!row) throw new Error(`Réservation ${id} introuvable.`);
+  const actor = getActorContext(actorUserId);
+  if (!isGlobalAdminRole(actor.roleCode) && !actor.hotelIds.includes(Number(row.hotel_id))) {
+    throw new Error('Accès hôtel refusé.');
+  }
   return mapReservation(row);
 }
 
@@ -287,7 +291,10 @@ export function createReservation(actorUserId: number, input: CreateReservationI
         AND statut NOT IN ('annulee','no_show')
         AND date_arrivee < ? AND date_depart > ?
     `).get(input.chambreId, input.dateDepart, input.dateArrivee) as { cnt: number };
-    if (conflict.cnt > 0) throw new Error('Chambre déjà occupée sur cette période.');
+    if (conflict.cnt > 0 && !input.surbookingAutorise) throw new Error('Chambre déjà occupée sur cette période.');
+    if (conflict.cnt > 0 && input.surbookingAutorise && !input.surbookingMotif?.trim()) {
+      throw new Error('Le motif du surbooking autorisé est obligatoire.');
+    }
   }
 
   let clientNom = input.clientNom ?? '';
@@ -329,8 +336,9 @@ export function createReservation(actorUserId: number, input: CreateReservationI
       (hotel_id, chambre_id, client_id, plan_id, formule_id,
        date_arrivee, date_depart, nb_nuits,
        nb_adultes, nb_enfants, client_nom, client_prenom,
-       client_email, client_telephone, montant_total, statut, source, notes, created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       client_email, client_telephone, montant_total, statut, source, notes, created_by,
+       surbooking_autorise, surbooking_motif, politique_annulation_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     input.hotelId, input.chambreId ?? null,
     input.clientId ?? null, input.planId ?? null, input.formuleId ?? null,
@@ -341,6 +349,8 @@ export function createReservation(actorUserId: number, input: CreateReservationI
     montantTotal,
     input.statut ?? 'confirmee', input.source ?? 'direct',
     input.notes ?? null, actorUserId,
+    input.surbookingAutorise ? 1 : 0, input.surbookingMotif?.trim() || null,
+    input.politiqueAnnulationId ?? null,
   );
 
   // Marquer la chambre occupée si arrivée aujourd'hui
@@ -685,5 +695,8 @@ function mapReservation(r: any): Reservation {
     statut: r.statut as StatutReservation,
     source: r.source as any,
     notes: r.notes, createdAt: r.created_at,
+    surbookingAutorise: Number(r.surbooking_autorise ?? 0) === 1,
+    surbookingMotif: r.surbooking_motif ?? null,
+    politiqueAnnulationId: r.politique_annulation_id ?? null,
   };
 }
