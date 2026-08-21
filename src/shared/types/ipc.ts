@@ -1044,6 +1044,16 @@ export interface IpcApi {
     listCloturesJournalieres: (pointVenteId: number) => Promise<IpcResult<import('./pos').PosClotureJournaliere[]>>;
     cloturerJournee: (input: import('./pos').CloturerJourneeInput) => Promise<IpcResult<import('./pos').PosClotureJournaliere>>;
     getHotelClosureStatus: (hotelId: number, dateJournal: string) => Promise<IpcResult<import('./pos').PosHotelClosureStatus>>;
+    listSalles: (pointVenteId:number) => Promise<IpcResult<import('./pos').PosSalle[]>>;
+    createSalle: (input:import('./pos').CreateSalleInput) => Promise<IpcResult<import('./pos').PosSalle>>;
+    listTables: (salleId:number) => Promise<IpcResult<import('./pos').PosTable[]>>;
+    saveTable: (input:import('./pos').SaveTableInput,tableId?:number) => Promise<IpcResult<import('./pos').PosTable>>;
+    updateTableStatus: (tableId:number,statut:import('./pos').PosTableStatut) => Promise<IpcResult<import('./pos').PosTable>>;
+    assignTicketTable: (ticketId:number,input:{tableId:number;nbCouverts:number}) => Promise<IpcResult<void>>;
+    updateServiceStage: (ticketId:number,etape:import('./pos').PosEtapeService) => Promise<IpcResult<void>>;
+    splitTicket: (ticketId:number,lineIds:number[]) => Promise<IpcResult<number>>;
+    applyDiscount: (ticketId:number,input:{type:'pourcentage'|'montant';valeur:number;motif:string}) => Promise<IpcResult<void>>;
+    refundTicket: (ticketId:number,input:{montant:number;mode:'especes'|'carte'|'cheque'|'virement'|'autre'|'folio';motif:string;reference?:string;remettreEnStock?:boolean}) => Promise<IpcResult<void>>;
   };
   achats: {
     listFournisseurs: () => Promise<IpcResult<unknown[]>>;

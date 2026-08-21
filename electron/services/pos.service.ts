@@ -4,9 +4,11 @@ import { emitErpEvent } from './event-bus.service';
 import { getActorContext, actorCanAccessHotel } from './actorContext';
 import { isDateJournalLocked } from './daily-closure.service';
 import { consommerStockRecette, getRecette } from './cuisine-production.service';
-import { genererEcritureVenteRestauration } from './comptabilite.service';
+import { genererEcritureVenteRestaurationMulti } from './comptabilite.service';
 import { isPosJourneeLocked } from './pos-cloture.service';
 import { enqueueKdsForTicket } from './pos-kds.service';
+import { addFolioLine, createFolioFromReservation, getReservation } from './hebergement.service';
+import { assertSettlementsMatch, calculateDiscount } from './pos-restaurant.rules';
 
 import type {
   PosPointVente,
@@ -111,11 +113,12 @@ function mapLigne(r: Record<string, unknown>): PosTicketLigne {
   };
 }
 
-function getTicketById(ticketId: number): PosTicket {
+export function getTicketById(ticketId: number): PosTicket {
   const db = getDatabase();
-  const row = db.prepare(`SELECT * FROM pos_tickets WHERE id = ?`).get(ticketId) as Record<string, unknown> | undefined;
+  const row = db.prepare(`SELECT t.*,pt.numero table_numero FROM pos_tickets t LEFT JOIN pos_tables pt ON pt.id=t.table_id WHERE t.id = ?`).get(ticketId) as Record<string, unknown> | undefined;
   if (!row) throw new Error('Ticket introuvable.');
   const lignes = (db.prepare(`SELECT * FROM pos_ticket_lignes WHERE ticket_id = ? ORDER BY id`).all(ticketId) as Record<string, unknown>[]).map(mapLigne);
+  const paiements = (db.prepare(`SELECT * FROM pos_ticket_paiements WHERE ticket_id=? ORDER BY id`).all(ticketId) as Record<string,unknown>[]).map(p=>({id:Number(p.id),ticketId:Number(p.ticket_id),mode:p.mode as PosTicket['paiements'][number]['mode'],montant:Number(p.montant),reference:p.reference?String(p.reference):null,encaissementId:p.encaissement_id?Number(p.encaissement_id):null,createdAt:String(p.created_at)}));
   return {
     id: row.id as number,
     uuid: row.uuid as string,
@@ -131,14 +134,25 @@ function getTicketById(ticketId: number): PosTicket {
     dateTicket: row.date_ticket as string,
     createdAt: row.created_at as string,
     validatedAt: (row.validated_at as string | null) ?? null,
+    tableId: row.table_id ? Number(row.table_id) : null,
+    tableNumero: row.table_numero ? String(row.table_numero) : null,
+    nbCouverts: Number(row.nb_couverts ?? 1),
+    etapeService: row.etape_service as PosTicket['etapeService'],
+    remiseMontant: Number(row.remise_montant ?? 0),
+    remisePourcentage: Number(row.remise_pourcentage ?? 0),
+    remiseMotif: row.remise_motif ? String(row.remise_motif) : null,
+    folioId: row.folio_id ? Number(row.folio_id) : null,
+    paiements,
     lignes,
   };
 }
 
-function recalcTicketTotals(ticketId: number): void {
+export function recalcTicketTotals(ticketId: number): void {
   const db = getDatabase();
   const sum = db.prepare(`SELECT COALESCE(SUM(montant_ligne), 0) as ttc FROM pos_ticket_lignes WHERE ticket_id = ?`).get(ticketId) as { ttc: number };
-  const ttc = round2(sum.ttc ?? 0);
+  const ticket=getDatabase().prepare(`SELECT remise_montant,remise_pourcentage FROM pos_tickets WHERE id=?`).get(ticketId) as {remise_montant:number;remise_pourcentage:number};
+  const brut=round2(sum.ttc??0);const remise=calculateDiscount(brut,Number(ticket.remise_montant??0),Number(ticket.remise_pourcentage??0));
+  const ttc = round2(brut-remise);
   const { ht, tva } = calcTvaFromTtc(ttc);
   db.prepare(`UPDATE pos_tickets SET total_ttc = ?, total_ht = ?, tva_montant = ? WHERE id = ?`).run(ttc, ht, tva, ticketId);
 }
@@ -291,10 +305,12 @@ export function createTicket(actorUserId: number, input: CreateTicketInput): Pos
   if (isPosJourneeLocked(session.point_vente_id as number, dateTicket)) throw new Error('Journée POS clôturée.');
 
   const numero = nextTicketNumero(session.point_vente_id as number, dateTicket);
+  if(input.tableId){const table=db.prepare(`SELECT t.id,s.point_vente_id,t.statut,EXISTS(SELECT 1 FROM pos_tickets x WHERE x.table_id=t.id AND x.statut='brouillon') ticket_ouvert FROM pos_tables t JOIN pos_salles s ON s.id=t.salle_id WHERE t.id=?`).get(input.tableId) as {id:number;point_vente_id:number;statut:string;ticket_ouvert:number}|undefined;if(!table||table.point_vente_id!==Number(session.point_vente_id))throw new Error('Table incompatible avec le point de vente.');if(table.statut==='hors_service')throw new Error('Table hors service.');if(table.ticket_ouvert)throw new Error('Un ticket est déjà ouvert sur cette table.');}
   const res = db.prepare(`
-    INSERT INTO pos_tickets (session_id, point_vente_id, hotel_id, numero, cree_par, date_ticket)
-    VALUES (?, ?, ?, ?, ?, ?) RETURNING id
-  `).get(input.sessionId, session.point_vente_id, session.hotel_id, numero, actorUserId, dateTicket) as { id: number };
+    INSERT INTO pos_tickets (session_id, point_vente_id, hotel_id, numero, cree_par, date_ticket,table_id,nb_couverts)
+    VALUES (?, ?, ?, ?, ?, ?,?,?) RETURNING id
+  `).get(input.sessionId, session.point_vente_id, session.hotel_id, numero, actorUserId, dateTicket,input.tableId??null,input.nbCouverts??1) as { id: number };
+  if(input.tableId)db.prepare(`UPDATE pos_tables SET statut='occupee',updated_at=datetime('now') WHERE id=?`).run(input.tableId);
   return getTicketById(res.id);
 }
 
@@ -341,6 +357,16 @@ export function validerTicket(actorUserId: number, input: ValiderTicketInput): P
   if (isDateJournalLocked(ticket.hotelId, ticket.dateTicket)) throw new Error('Journée hôtel clôturée.');
   if (isPosJourneeLocked(ticket.pointVenteId, ticket.dateTicket)) throw new Error('Journée POS clôturée.');
 
+  const settlements:Array<{mode:'especes'|'carte'|'cheque'|'virement'|'autre'|'folio';montant:number;reference?:string}>=input.reservationId
+    ? [{mode:'folio',montant:ticket.totalTtc,reference:`RES-${input.reservationId}`}]
+    : input.paiements?.length?input.paiements:[{mode:input.modePaiement??'especes',montant:ticket.totalTtc}];
+  assertSettlementsMatch(ticket.totalTtc,settlements);
+
+  let folioId:number|null=null;
+  if(input.reservationId){const reservation=getReservation(actorUserId,input.reservationId);if(reservation.hotelId!==ticket.hotelId)throw new Error('La chambre doit appartenir au même hôtel.');if(!['confirmee','arrivee'].includes(reservation.statut))throw new Error('Réservation non éligible au transfert folio.');const folio=createFolioFromReservation(actorUserId,input.reservationId);if(folio.statut!=='ouvert')throw new Error('Folio chambre non ouvert.');addFolioLine(actorUserId,folio.id,{designation:`Restaurant ${ticket.numero}`,quantite:1,prixUnitaire:ticket.totalHt,tauxTva:ticket.totalHt>0?round2(ticket.tvaMontant/ticket.totalHt*100):0,categorie:'restauration'});folioId=folio.id;}
+
+  // La validation des règlements et du folio doit précéder toute sortie de stock.
+  // Une erreur de saisie ne peut ainsi jamais consommer les ingrédients du ticket.
   for (const ligne of ticket.lignes) {
     consommerStockRecette(
       actorUserId,
@@ -354,7 +380,7 @@ export function validerTicket(actorUserId: number, input: ValiderTicketInput): P
     );
   }
 
-  const ecriture = genererEcritureVenteRestauration(actorUserId, {
+  const ecriture = genererEcritureVenteRestaurationMulti(actorUserId, {
     ticketId: ticket.id,
     hotelId: ticket.hotelId,
     dateTicket: ticket.dateTicket,
@@ -362,48 +388,29 @@ export function validerTicket(actorUserId: number, input: ValiderTicketInput): P
     totalTtc: ticket.totalTtc,
     totalHt: ticket.totalHt,
     tvaMontant: ticket.tvaMontant,
-    modePaiement: input.modePaiement,
-  });
+    modePaiement:settlements.length>1?'multiple':settlements[0].mode,
+  },settlements);
 
-  const encRes = db.prepare(`
-    INSERT INTO encaissements (hotel_id, date_encaissement, montant, mode, reference, description, statut, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, 'confirme', ?)
-  `).run(
-    ticket.hotelId,
-    ticket.dateTicket,
-    ticket.totalTtc,
-    input.modePaiement,
-    ticket.numero,
-    `Encaissement POS ${ticket.numero}`,
-    actorUserId,
-  );
-  const encaissementId = Number(encRes.lastInsertRowid);
+  let firstEncaissementId:number|null=null;
+  for(const p of settlements){let encaissementId:number|null=null;if(p.mode!=='folio'){const encRes=db.prepare(`INSERT INTO encaissements (hotel_id,date_encaissement,montant,mode,reference,description,statut,created_by) VALUES(?,?,?,?,?,?,'confirme',?)`).run(ticket.hotelId,ticket.dateTicket,p.montant,p.mode,p.reference??ticket.numero,`Encaissement POS ${ticket.numero}`,actorUserId);encaissementId=Number(encRes.lastInsertRowid);firstEncaissementId??=encaissementId;}db.prepare(`INSERT INTO pos_ticket_paiements(ticket_id,mode,montant,reference,encaissement_id,created_by) VALUES(?,?,?,?,?,?)`).run(ticket.id,p.mode,p.montant,p.reference??null,encaissementId,actorUserId);}
+
+  const paymentMode:PosModePaiement=folioId?'folio':settlements.length>1?'multiple':settlements[0].mode;
 
   db.prepare(`
-    UPDATE pos_tickets SET statut = 'valide', mode_paiement = ?, encaissement_id = ?,
+    UPDATE pos_tickets SET statut = 'valide', mode_paiement = ?, encaissement_id = ?,folio_id=?,etape_service='terminee',
       ecriture_comptable_id = ?, validated_at = datetime('now') WHERE id = ?
-  `).run(input.modePaiement, encaissementId, ecriture?.id ?? null, ticket.id);
+  `).run(paymentMode, firstEncaissementId,folioId, ecriture?.id ?? null, ticket.id);
   enqueueKdsForTicket(ticket.id);
-
-  const modeCol = input.modePaiement === 'especes' ? 'total_especes'
-    : input.modePaiement === 'carte' ? 'total_carte'
-    : input.modePaiement === 'cheque' ? 'total_cheque'
-    : input.modePaiement === 'virement' ? 'total_virement' : null;
-
-  if (modeCol) {
-    db.prepare(`
-      UPDATE pos_sessions SET total_ventes = total_ventes + ?, ${modeCol} = ${modeCol} + ? WHERE id = ?
-    `).run(ticket.totalTtc, ticket.totalTtc, ticket.sessionId);
-  } else {
-    db.prepare(`UPDATE pos_sessions SET total_ventes = total_ventes + ? WHERE id = ?`).run(ticket.totalTtc, ticket.sessionId);
-  }
+  db.prepare(`UPDATE pos_sessions SET total_ventes=total_ventes+? WHERE id=?`).run(ticket.totalTtc,ticket.sessionId);
+  for(const p of settlements){const col=p.mode==='especes'?'total_especes':p.mode==='carte'?'total_carte':p.mode==='cheque'?'total_cheque':p.mode==='virement'?'total_virement':null;if(col)db.prepare(`UPDATE pos_sessions SET ${col}=${col}+? WHERE id=?`).run(p.montant,ticket.sessionId);}
+  if(ticket.tableId)db.prepare(`UPDATE pos_tables SET statut='a_nettoyer',updated_at=datetime('now') WHERE id=?`).run(ticket.tableId);
 
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'pos', description: `Ticket ${ticket.numero} validé — ${ticket.totalTtc} DA`, newValue: String(ticket.id) });
   emitErpEvent({
     type: 'POS_SALE_RECORDED',
     entiteType: 'pos_ticket',
     entiteId: ticket.id,
-    data: { numero: ticket.numero, totalTtc: ticket.totalTtc, modePaiement: input.modePaiement },
+    data: { numero: ticket.numero, totalTtc: ticket.totalTtc, modePaiement: paymentMode },
   });
 
   return getTicketById(ticket.id);

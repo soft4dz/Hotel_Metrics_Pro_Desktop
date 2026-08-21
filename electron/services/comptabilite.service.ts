@@ -663,3 +663,33 @@ export function genererEcritureVenteRestauration(actorUserId: number, input: Ven
     return null;
   }
 }
+
+export function genererEcritureVenteRestaurationMulti(
+  actorUserId:number,
+  input:VenteRestaurationEcritureInput,
+  paiements:Array<{mode:string;montant:number}>,
+):EcritureDetail|null{
+  if(input.totalTtc<=0)return null;
+  try{
+    const debitByAccount=new Map<string,number>();
+    for(const p of paiements){
+      const compte=p.mode==='especes'?COMPTES_SCF.CAISSE:p.mode==='folio'?COMPTES_SCF.CLIENTS:COMPTES_SCF.BANQUE;
+      debitByAccount.set(compte,Math.round(((debitByAccount.get(compte)??0)+p.montant)*100)/100);
+    }
+    const lignes:LigneEcritureInput[]=[...debitByAccount].map(([compteNumero,debit])=>({compteNumero,debit,credit:0,hotelId:input.hotelId}));
+    lignes.push({compteNumero:COMPTES_SCF.CA_RESTAURATION,debit:0,credit:Math.round(input.totalHt*100)/100,hotelId:input.hotelId});
+    if(input.tvaMontant>0)lignes.push({compteNumero:COMPTES_SCF.TVA_COLLECTEE,debit:0,credit:Math.round(input.tvaMontant*100)/100,hotelId:input.hotelId});
+    return creerEcriture(actorUserId,{journalCode:paiements.some(p=>p.mode==='especes')?'CA':'BQ',dateEcriture:input.dateTicket,libelle:`Vente POS ${input.numero}`,piece:input.numero,hotelId:input.hotelId,sourceModule:'pos',sourceRef:String(input.ticketId),lignes},true);
+  }catch(err){writeAuditLog({userId:actorUserId,action:'ERROR',module:'comptabilite',description:`Échec écriture POS multi #${input.ticketId}: ${err instanceof Error?err.message:String(err)}`});return null;}
+}
+
+export function genererEcritureRemboursementRestauration(actorUserId:number,input:VenteRestaurationEcritureInput,mode:string,montant:number):EcritureDetail|null{
+  if(montant<=0)return null;
+  try{
+    const ratio=Math.min(1,montant/input.totalTtc);const ht=Math.round(input.totalHt*ratio*100)/100;const tva=Math.round((montant-ht)*100)/100;
+    const compte=mode==='especes'?COMPTES_SCF.CAISSE:mode==='folio'?COMPTES_SCF.CLIENTS:COMPTES_SCF.BANQUE;
+    const lignes:LigneEcritureInput[]=[{compteNumero:COMPTES_SCF.CA_RESTAURATION,debit:ht,credit:0,hotelId:input.hotelId},{compteNumero:compte,debit:0,credit:montant,hotelId:input.hotelId}];
+    if(tva>0)lignes.push({compteNumero:COMPTES_SCF.TVA_COLLECTEE,debit:tva,credit:0,hotelId:input.hotelId});
+    return creerEcriture(actorUserId,{journalCode:mode==='especes'?'CA':'BQ',dateEcriture:input.dateTicket,libelle:`Remboursement POS ${input.numero}`,piece:`AV-${input.numero}`,hotelId:input.hotelId,sourceModule:'pos_refund',sourceRef:String(input.ticketId),lignes},true);
+  }catch(err){writeAuditLog({userId:actorUserId,action:'ERROR',module:'comptabilite',description:`Échec remboursement POS #${input.ticketId}: ${err instanceof Error?err.message:String(err)}`});return null;}
+}
