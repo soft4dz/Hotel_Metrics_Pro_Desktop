@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { hostname } from 'node:os';
+import { getDatabase } from '../database/sqlite';
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface SessionRecord {
   userId: number;
@@ -10,9 +11,6 @@ interface SessionRecord {
 
 /** Session active liée à une fenêtre (webContents.id). */
 const webContentsSessions = new Map<number, SessionRecord>();
-
-/** Jetons « mémoriser la session » persistés côté renderer. */
-const rememberTokens = new Map<string, SessionRecord>();
 
 export class SessionError extends Error {
   constructor(message: string) {
@@ -29,9 +27,14 @@ function purgeExpired(): void {
   for (const [id, record] of webContentsSessions) {
     if (isExpired(record)) webContentsSessions.delete(id);
   }
-  for (const [token, record] of rememberTokens) {
-    if (isExpired(record)) rememberTokens.delete(token);
-  }
+  getDatabase().prepare(`
+    DELETE FROM auth_remember_tokens
+    WHERE expires_at <= datetime('now') OR revoked_at IS NOT NULL
+  `).run();
+}
+
+function tokenHash(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 export function bindSession(webContentsId: number, userId: number): void {
@@ -44,23 +47,40 @@ export function bindSession(webContentsId: number, userId: number): void {
 
 export function createRememberToken(userId: number): string {
   purgeExpired();
-  const token = randomUUID();
-  rememberTokens.set(token, {
-    userId,
-    expiresAt: Date.now() + REMEMBER_TTL_MS,
-  });
+  const token = randomBytes(32).toString('base64url');
+  getDatabase().prepare(`
+    INSERT INTO auth_remember_tokens (token_hash, user_id, machine_id, expires_at)
+    VALUES (?, ?, ?, datetime('now', '+30 days'))
+  `).run(tokenHash(token), userId, hostname());
   return token;
 }
 
-export function restoreRememberToken(webContentsId: number, token: string): number | null {
+export interface RestoredRememberSession {
+  userId: number;
+  sessionToken: string;
+}
+
+export function restoreRememberToken(webContentsId: number, token: string): RestoredRememberSession | null {
   purgeExpired();
-  const record = rememberTokens.get(token);
-  if (!record || isExpired(record)) {
-    rememberTokens.delete(token);
+  const hash = tokenHash(token);
+  const row = getDatabase().prepare(`
+    SELECT user_id FROM auth_remember_tokens
+    WHERE token_hash=? AND revoked_at IS NULL AND expires_at > datetime('now')
+  `).get(hash) as { user_id: number } | undefined;
+  if (!row) {
     return null;
   }
-  bindSession(webContentsId, record.userId);
-  return record.userId;
+
+  // Rotation à chaque restauration : un ancien jeton copié ne reste pas réutilisable.
+  const nextToken = getDatabase().transaction(() => {
+    getDatabase().prepare(`
+      UPDATE auth_remember_tokens SET revoked_at=datetime('now'), last_used_at=datetime('now')
+      WHERE token_hash=?
+    `).run(hash);
+    return createRememberToken(row.user_id);
+  })();
+  bindSession(webContentsId, row.user_id);
+  return { userId: row.user_id, sessionToken: nextToken };
 }
 
 export function getSessionUserId(webContentsId: number): number | null {
@@ -86,5 +106,8 @@ export function clearWebContentsSession(webContentsId: number): void {
 }
 
 export function revokeRememberToken(token: string): void {
-  rememberTokens.delete(token);
+  getDatabase().prepare(`
+    UPDATE auth_remember_tokens SET revoked_at=datetime('now')
+    WHERE token_hash=? AND revoked_at IS NULL
+  `).run(tokenHash(token));
 }

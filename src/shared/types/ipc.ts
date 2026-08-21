@@ -215,7 +215,7 @@ import type {
 } from './objectifs';
 import type { DashboardDto, DashboardFilters } from './dashboard';
 import type { ExportKind, ExportResult } from './export';
-import type { SyncConfigDto, SyncQueueItem, SyncRunResult, SyncStatusDto } from './sync';
+import type { SyncConfigDto, SyncConflictItem, SyncQueueItem, SyncRunResult, SyncStatusDto } from './sync';
 import type { AppInfoDto, AppSettingsDto } from './settings';
 import type {
   ClientContact,
@@ -554,6 +554,9 @@ export interface IpcApi {
     ) => Promise<IpcResult<SyncConfigDto>>;
     getStatus: () => Promise<IpcResult<SyncStatusDto>>;
     listQueue: () => Promise<IpcResult<SyncQueueItem[]>>;
+    retryFailed: () => Promise<IpcResult<number>>;
+    listConflicts: () => Promise<IpcResult<SyncConflictItem[]>>;
+    resolveConflict: (conflictId: number, decision: 'keep_local' | 'apply_remote', note?: string) => Promise<IpcResult<SyncConflictItem>>;
     run: () => Promise<IpcResult<SyncRunResult>>;
   };
   export: {

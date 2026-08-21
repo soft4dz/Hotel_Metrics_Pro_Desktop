@@ -10,7 +10,10 @@ return [
         'pass' => 'VOTRE_MOT_DE_PASSE_MYSQL',
         'charset' => 'utf8mb4',
     ],
-    'api_key' => 'GENERER_UNE_CLE_SECRETE_LONGUE',
+    // Une clé distincte par organisation empêche toute lecture inter-sociétés.
+    'organization_keys' => [
+        'EGT-SIDI-FREDJ' => 'GENERER_UNE_CLE_SECRETE_LONGUE_ET_UNIQUE',
+    ],
     'max_payload_bytes' => 5_000_000,
     'pull_limit' => 200,
 ];

@@ -11,6 +11,8 @@ export interface SyncStatusDto {
   failedCount: number;
   lastSyncAt: string | null;
   apiBaseUrl: string;
+  openConflictCount: number;
+  quarantinedCount: number;
 }
 
 export interface SyncQueueItem {
@@ -30,4 +32,16 @@ export interface SyncRunResult {
   conflicts: number;
   quarantined: number;
   message: string;
+}
+
+export interface SyncConflictItem {
+  id: number;
+  entityType: string;
+  entityUuid: string;
+  remoteAction: string;
+  resolution: string;
+  reason: string;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  resolvedAt: string | null;
 }

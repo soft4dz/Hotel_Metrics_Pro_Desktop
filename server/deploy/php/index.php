@@ -6,15 +6,32 @@ require __DIR__ . '/lib/bootstrap.php';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $route = $_GET['route'] ?? '';
 
+function hmp_valid_uuid(mixed $value): bool
+{
+    return is_string($value)
+        && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $value) === 1;
+}
+
+function hmp_valid_sync_item(mixed $item): bool
+{
+    if (!is_array($item) || !hmp_valid_uuid($item['uuid'] ?? null)) return false;
+    if (!in_array($item['entityType'] ?? null, ['port_mouvement', 'port_relance'], true)) return false;
+    if (!in_array($item['action'] ?? null, ['create', 'update', 'delete'], true)) return false;
+    $payload = $item['payload'] ?? null;
+    if (!is_array($payload) || !hmp_valid_uuid($payload['uuid'] ?? null)) return false;
+    $updatedAt = $payload['updatedAt'] ?? null;
+    return is_string($updatedAt) && strlen($updatedAt) <= 40 && strtotime($updatedAt) !== false;
+}
+
 if ($method === 'GET' && $route === 'health') {
     hmp_json(200, [
         'ok' => true,
         'service' => 'hotel-metrics-api',
-        'version' => '0.8.0',
+        'version' => '0.9.0',
     ]);
 }
 
-hmp_require_api_key();
+$organizationCode = hmp_require_api_key();
 $db = hmp_db();
 
 if ($method === 'POST' && $route === 'sync/push') {
@@ -22,28 +39,31 @@ if ($method === 'POST' && $route === 'sync/push') {
     $deviceId = isset($data['deviceId']) ? trim((string) $data['deviceId']) : '';
     $items = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
 
-    if ($deviceId === '' || strlen($deviceId) > 36) {
-        hmp_json(400, ['error' => 'deviceId requis']);
+    if (!hmp_valid_uuid($deviceId) || count($items) > 100) {
+        hmp_json(400, ['error' => 'Enveloppe de synchronisation invalide']);
     }
 
-    hmp_touch_device($db, $deviceId);
+    hmp_touch_device($db, $organizationCode, $deviceId);
 
     $accepted = 0;
+    $acceptedUuids = [];
+    $rejected = [];
     $db->beginTransaction();
     try {
         $insertInbox = $db->prepare(
             'INSERT IGNORE INTO hmp_sync_inbox
-             (uuid, device_id, entity_type, entity_id, action, payload_json)
-             VALUES (:uuid, :device_id, :entity_type, :entity_id, :action, :payload_json)'
+             (uuid, organization_code, device_id, entity_type, entity_id, action, payload_json)
+             VALUES (:uuid, :organization_code, :device_id, :entity_type, :entity_id, :action, :payload_json)'
         );
         $insertChange = $db->prepare(
             'INSERT IGNORE INTO hmp_sync_changes
-             (uuid, source_device_id, entity_type, entity_id, action, payload_json)
-             VALUES (:uuid, :source_device_id, :entity_type, :entity_id, :action, :payload_json)'
+             (uuid, organization_code, source_device_id, entity_type, entity_id, action, payload_json)
+             VALUES (:uuid, :organization_code, :source_device_id, :entity_type, :entity_id, :action, :payload_json)'
         );
 
         foreach ($items as $item) {
-            if (!is_array($item)) {
+            if (!hmp_valid_sync_item($item)) {
+                $rejected[] = is_array($item) ? ($item['uuid'] ?? null) : null;
                 continue;
             }
 
@@ -55,17 +75,15 @@ if ($method === 'POST' && $route === 'sync/push') {
                 : null;
             $payload = isset($item['payload']) && is_array($item['payload']) ? $item['payload'] : [];
 
-            if ($uuid === '' || $entityType === '' || $action === '') {
-                continue;
-            }
-
             $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($payloadJson === false) {
+                $rejected[] = $uuid;
                 continue;
             }
 
             $insertInbox->execute([
                 'uuid' => $uuid,
+                'organization_code' => $organizationCode,
                 'device_id' => $deviceId,
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
@@ -76,91 +94,97 @@ if ($method === 'POST' && $route === 'sync/push') {
             if ($insertInbox->rowCount() > 0) {
                 $insertChange->execute([
                     'uuid' => $uuid,
+                    'organization_code' => $organizationCode,
                     'source_device_id' => $deviceId,
                     'entity_type' => $entityType,
                     'entity_id' => $entityId,
                     'action' => $action,
                     'payload_json' => $payloadJson,
                 ]);
-                $accepted++;
             }
+            // Les doublons idempotents sont acceptés eux aussi : le poste peut alors
+            // retirer définitivement l'élément de sa file locale.
+            $accepted++;
+            $acceptedUuids[] = $uuid;
         }
 
         $db->commit();
-        hmp_log($db, 'push', $deviceId, 'ok', null, $accepted);
-        hmp_json(200, ['accepted' => $accepted, 'totalStored' => $accepted]);
+        hmp_log($db, 'push', $organizationCode, $deviceId, 'ok', null, $accepted);
+        hmp_json(200, [
+            'accepted' => $accepted,
+            'acceptedUuids' => $acceptedUuids,
+            'rejected' => $rejected,
+        ]);
     } catch (Throwable $e) {
         $db->rollBack();
-        hmp_log($db, 'push', $deviceId, 'error', $e->getMessage(), 0);
+        hmp_log($db, 'push', $organizationCode, $deviceId, 'error', $e->getMessage(), 0);
         hmp_json(500, ['error' => 'Erreur serveur']);
     }
 }
 
 if ($method === 'GET' && $route === 'sync/pull') {
     $deviceId = isset($_GET['deviceId']) ? trim((string) $_GET['deviceId']) : '';
-    if ($deviceId === '') {
-        hmp_json(400, ['error' => 'deviceId requis']);
+    $cursor = filter_var($_GET['cursor'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+    if (!hmp_valid_uuid($deviceId) || $cursor === false) {
+        hmp_json(400, ['error' => 'Curseur de synchronisation invalide']);
     }
 
-    hmp_touch_device($db, $deviceId);
-
-    $cursorStmt = $db->prepare(
-        'SELECT last_pull_at FROM hmp_sync_cursors WHERE device_id = :device_id'
-    );
-    $cursorStmt->execute(['device_id' => $deviceId]);
-    $cursor = $cursorStmt->fetch();
-    $lastPull = $cursor['last_pull_at'] ?? '1970-01-01 00:00:00';
+    hmp_touch_device($db, $organizationCode, $deviceId);
 
     $limit = (int) (hmp_config()['pull_limit'] ?? 200);
     $changesStmt = $db->prepare(
-        'SELECT uuid, entity_type, entity_id, action, payload_json, source_device_id, created_at
+        'SELECT id, uuid, entity_type, entity_id, action, payload_json, source_device_id, created_at
          FROM hmp_sync_changes
-         WHERE created_at > :last_pull
+         WHERE organization_code = :organization_code
+           AND id > :cursor
            AND source_device_id <> :device_id
          ORDER BY id ASC
          LIMIT ' . max(1, min($limit, 500))
     );
     $changesStmt->execute([
-        'last_pull' => $lastPull,
+        'organization_code' => $organizationCode,
+        'cursor' => $cursor,
         'device_id' => $deviceId,
     ]);
     $rows = $changesStmt->fetchAll();
 
     $changes = [];
-    $maxCreated = $lastPull;
+    $nextCursor = (int) $cursor;
     foreach ($rows as $row) {
         $payload = json_decode((string) $row['payload_json'], true);
         if (!is_array($payload)) {
             $payload = [];
         }
         $changes[] = [
-            'uuid' => $row['uuid'],
-            'entityType' => $row['entity_type'],
-            'entityId' => $row['entity_id'] !== null ? (int) $row['entity_id'] : null,
-            'action' => $row['action'],
-            'payload' => $payload,
+            'changeUuid' => $row['uuid'],
             'sourceDeviceId' => $row['source_device_id'],
-            'createdAt' => $row['created_at'],
+            'entityType' => $row['entity_type'],
+            'entityUuid' => $payload['uuid'] ?? '',
+            'action' => $row['action'],
+            'updatedAt' => $payload['updatedAt'] ?? $row['created_at'],
+            'payload' => $payload,
         ];
-        if ($row['created_at'] > $maxCreated) {
-            $maxCreated = $row['created_at'];
-        }
+        $nextCursor = max($nextCursor, (int) $row['id']);
     }
 
-    if (count($changes) > 0) {
-        $upsert = $db->prepare(
-            'INSERT INTO hmp_sync_cursors (device_id, last_pull_at)
-             VALUES (:device_id, :last_pull_at)
-             ON DUPLICATE KEY UPDATE last_pull_at = VALUES(last_pull_at)'
-        );
-        $upsert->execute([
-            'device_id' => $deviceId,
-            'last_pull_at' => $maxCreated,
-        ]);
-    }
+    $upsert = $db->prepare(
+        'INSERT INTO hmp_sync_cursors (organization_code, device_id, last_change_id)
+         VALUES (:organization_code, :device_id, :last_change_id)
+         ON DUPLICATE KEY UPDATE last_change_id = GREATEST(last_change_id, VALUES(last_change_id))'
+    );
+    $upsert->execute([
+        'organization_code' => $organizationCode,
+        'device_id' => $deviceId,
+        'last_change_id' => $nextCursor,
+    ]);
 
-    hmp_log($db, 'pull', $deviceId, 'ok', null, count($changes));
-    hmp_json(200, ['changes' => $changes]);
+    $hasMoreStmt = $db->prepare(
+        'SELECT 1 FROM hmp_sync_changes
+         WHERE organization_code=:organization_code AND id>:cursor AND source_device_id<>:device_id LIMIT 1'
+    );
+    $hasMoreStmt->execute(['organization_code' => $organizationCode, 'cursor' => $nextCursor, 'device_id' => $deviceId]);
+    hmp_log($db, 'pull', $organizationCode, $deviceId, 'ok', null, count($changes));
+    hmp_json(200, ['changes' => $changes, 'nextCursor' => $nextCursor, 'hasMore' => (bool) $hasMoreStmt->fetchColumn()]);
 }
 
 hmp_json(404, ['error' => 'Not found']);

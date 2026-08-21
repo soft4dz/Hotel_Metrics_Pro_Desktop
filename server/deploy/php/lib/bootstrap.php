@@ -48,17 +48,26 @@ function hmp_json(int $status, array $body): never
     exit;
 }
 
-function hmp_require_api_key(): void
+function hmp_require_api_key(): string
 {
-    $expected = (string) (hmp_config()['api_key'] ?? '');
-    if ($expected === '') {
-        hmp_json(500, ['error' => 'api_key non configurée']);
-    }
-
     $header = $_SERVER['HTTP_X_HMP_API_KEY'] ?? '';
-    if (!is_string($header) || !hash_equals($expected, $header)) {
+    if (!is_string($header) || $header === '') {
         hmp_json(401, ['error' => 'Unauthorized']);
     }
+    $keys = hmp_config()['organization_keys'] ?? [];
+    if (!is_array($keys) || count($keys) === 0) {
+        hmp_json(500, ['error' => 'organization_keys non configurées']);
+    }
+    foreach ($keys as $organizationCode => $expected) {
+        $code = strtoupper(trim((string) $organizationCode));
+        if (preg_match('/^[A-Z0-9][A-Z0-9_-]{2,63}$/', $code) !== 1) {
+            continue;
+        }
+        if (is_string($expected) && strlen($expected) >= 32 && hash_equals($expected, $header)) {
+            return $code;
+        }
+    }
+    hmp_json(401, ['error' => 'Unauthorized']);
 }
 
 function hmp_read_json_body(): array
@@ -81,23 +90,24 @@ function hmp_read_json_body(): array
     return $data;
 }
 
-function hmp_touch_device(PDO $db, string $deviceId): void
+function hmp_touch_device(PDO $db, string $organizationCode, string $deviceId): void
 {
     $stmt = $db->prepare(
-        'INSERT INTO hmp_devices (device_id) VALUES (:device_id)
+        'INSERT INTO hmp_devices (organization_code, device_id) VALUES (:organization_code, :device_id)
          ON DUPLICATE KEY UPDATE last_seen_at = CURRENT_TIMESTAMP'
     );
-    $stmt->execute(['device_id' => $deviceId]);
+    $stmt->execute(['organization_code' => $organizationCode, 'device_id' => $deviceId]);
 }
 
-function hmp_log(PDO $db, string $direction, ?string $deviceId, string $status, ?string $message, int $count): void
+function hmp_log(PDO $db, string $direction, ?string $organizationCode, ?string $deviceId, string $status, ?string $message, int $count): void
 {
     $stmt = $db->prepare(
-        'INSERT INTO hmp_sync_log (direction, device_id, status, message, items_count)
-         VALUES (:direction, :device_id, :status, :message, :items_count)'
+        'INSERT INTO hmp_sync_log (direction, organization_code, device_id, status, message, items_count)
+         VALUES (:direction, :organization_code, :device_id, :status, :message, :items_count)'
     );
     $stmt->execute([
         'direction' => $direction,
+        'organization_code' => $organizationCode,
         'device_id' => $deviceId,
         'status' => $status,
         'message' => $message,

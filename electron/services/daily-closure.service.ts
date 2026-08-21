@@ -1,7 +1,7 @@
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
 import { getActorContext, actorCanAccessHotel, isGlobalAdminRole } from './actorContext';
-import { createWorkflow, submitWorkflow, findWorkflow, syncWorkflowStatutOnly } from './workflow.service';
+import { assertWorkflowApprovalAllowed, createWorkflow, submitWorkflow, findWorkflow, syncWorkflowStatutOnly } from './workflow.service';
 import { createDecAlertIfMissing } from './dec-cockpit.service';
 import { assertAllPosClosedForHotel, getPosClosureStatusForHotel } from './pos-recettes-sync.service';
 import { syncAllRecettesFromErp } from './recettes-auto-sync.service';
@@ -157,6 +157,7 @@ export function prefillDailyClosure(actorUserId: number, closureId: number): Dai
 
 export function submitDailyClosure(actorUserId: number, closureId: number): DailyClosure {
   const c = getClosureById(closureId);
+  assertHotelAccess(actorUserId, c.hotelId);
   assertNotLocked(c.statut);
   if (c.statut !== 'brouillon' && c.statut !== 'refuse') throw new Error('Soumission impossible.');
   assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
@@ -170,12 +171,14 @@ export function submitDailyClosure(actorUserId: number, closureId: number): Dail
 
 export function validateDailyClosureUnit(actorUserId: number, closureId: number, opts?: { syncWorkflow?: boolean }): DailyClosure {
   const c = getClosureById(closureId);
+  assertHotelAccess(actorUserId, c.hotelId);
   if (c.statut !== 'soumis') throw new Error('Validation unité : statut soumis requis.');
+  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+  if (wf && opts?.syncWorkflow !== false) assertWorkflowApprovalAllowed(actorUserId, wf.id);
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='valide_unite', validated_unite_by=?, validated_unite_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(actorUserId, closureId);
   if (opts?.syncWorkflow !== false) {
-    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
     if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'valide_unite');
   }
   return getClosureById(closureId);
@@ -186,22 +189,26 @@ export function validateDailyClosureDec(actorUserId: number, closureId: number, 
   if (!isGlobalAdminRole(actor.roleCode)) throw new Error('Validation DEC réservée aux administrateurs.');
   const c = getClosureById(closureId);
   if (c.statut !== 'valide_unite') throw new Error('Validation DEC : statut validé unité requis.');
+  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+  if (wf && opts?.syncWorkflow !== false) assertWorkflowApprovalAllowed(actorUserId, wf.id);
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='valide_dec', validated_dec_by=?, validated_dec_at=datetime('now'), updated_at=datetime('now') WHERE id=?
   `).run(actorUserId, closureId);
   if (opts?.syncWorkflow !== false) {
-    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
     if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'valide_dec');
   }
   return getClosureById(closureId);
 }
 
 export function rejectDailyClosure(actorUserId: number, closureId: number, motif: string, opts?: { syncWorkflow?: boolean }): DailyClosure {
+  const c = getClosureById(closureId);
+  assertHotelAccess(actorUserId, c.hotelId);
+  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+  if (wf && opts?.syncWorkflow !== false) assertWorkflowApprovalAllowed(actorUserId, wf.id);
   getDatabase().prepare(`
     UPDATE daily_closures SET statut='refuse', observations=?, updated_at=datetime('now') WHERE id=?
   `).run(motif, closureId);
   if (opts?.syncWorkflow !== false) {
-    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
     if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'refuse', 'reject', motif);
   }
   return getClosureById(closureId);
@@ -211,6 +218,8 @@ export function closeDailyClosure(actorUserId: number, closureId: number, opts?:
   const c = getClosureById(closureId);
   assertHotelAccess(actorUserId, c.hotelId);
   if (c.statut !== 'valide_dec') throw new Error('Clôture finale : validation DEC requise.');
+  const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
+  if (wf && opts?.syncWorkflow !== false) assertWorkflowApprovalAllowed(actorUserId, wf.id);
   assertAllPosClosedForHotel(c.hotelId, c.dateJournal);
   getDatabase().transaction(() => {
     applyNightAuditClosure(actorUserId, closureId);
@@ -219,7 +228,6 @@ export function closeDailyClosure(actorUserId: number, closureId: number, opts?:
     `).run(closureId);
   })();
   if (opts?.syncWorkflow !== false) {
-    const wf = findWorkflow('cloture_journaliere', 'daily_closure', closureId);
     if (wf) syncWorkflowStatutOnly(actorUserId, wf.id, 'cloture');
   }
   writeAuditLog({ userId: actorUserId, action: 'UPDATE', module: 'cloture', description: `Clôture #${closureId} clôturée définitivement` });

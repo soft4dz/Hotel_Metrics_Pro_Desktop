@@ -30,7 +30,7 @@ export function registerWorkflowIpc(): void {
     wrapIpc(event, (uid) => svc.listPendingWorkflowsWithContext(uid, filters ?? {})));
 
   Electron.ipcMain.handle('workflow:find', (event, module: string, entityType: string, entityId: unknown) =>
-    wrapIpc(event, () => svc.findWorkflow(module, entityType, assertPositiveInteger(entityId, 'entityId'))));
+    wrapIpc(event, (uid) => svc.findWorkflowForActor(uid, module, entityType, assertPositiveInteger(entityId, 'entityId'))));
 
   Electron.ipcMain.handle('workflowProcedures:list', (event) =>
     wrapIpc(event, (uid) => proc.listWorkflowProcedures(uid)));

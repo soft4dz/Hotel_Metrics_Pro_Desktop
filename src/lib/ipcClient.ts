@@ -185,6 +185,9 @@ export const ipcClient: IpcApi = {
     updateConfig: (input) => api().sync.updateConfig(input),
     getStatus: () => api().sync.getStatus(),
     listQueue: () => api().sync.listQueue(),
+    retryFailed: () => api().sync.retryFailed(),
+    listConflicts: () => api().sync.listConflicts(),
+    resolveConflict: (conflictId, decision, note) => api().sync.resolveConflict(conflictId, decision, note),
     run: () => api().sync.run(),
   },
   export: {
