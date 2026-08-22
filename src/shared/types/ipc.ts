@@ -1111,6 +1111,23 @@ export interface IpcApi {
     executerOrdre: (id: number) => Promise<IpcResult<import('./cuisine').CuisineOrdreProduction>>;
     listVentesPos: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineVentePos[]>>;
     enregistrerVentePos: (input: import('./cuisine').EnregistrerVentePosInput) => Promise<IpcResult<import('./cuisine').CuisineVentePos>>;
+    qualityDashboard:(hotelId:number,from:string,to:string)=>Promise<IpcResult<unknown>>;
+    listHaccpPlans:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    createHaccpPlan:(input:unknown)=>Promise<IpcResult<unknown>>;
+    haccpControls:(planId:number,from?:string,to?:string)=>Promise<IpcResult<unknown>>;
+    recordHaccpControl:(input:unknown)=>Promise<IpcResult<unknown>>;
+    closeHaccpAction:(id:number,verification:string)=>Promise<IpcResult<boolean>>;
+    listTemperatureEquipment:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    saveTemperatureEquipment:(input:unknown)=>Promise<IpcResult<boolean>>;
+    recordTemperature:(input:unknown)=>Promise<IpcResult<unknown>>;
+    listAllergens:()=>Promise<IpcResult<unknown[]>>;
+    setProductAllergens:(productId:number,items:unknown[])=>Promise<IpcResult<boolean>>;
+    syncRecipeAllergens:(recipeId:number)=>Promise<IpcResult<unknown[]>>;
+    recipeAllergens:(recipeId:number)=>Promise<IpcResult<unknown[]>>;
+    recordWaste:(input:unknown)=>Promise<IpcResult<unknown>>;
+    closeProductionCost:(orderId:number)=>Promise<IpcResult<unknown>>;
+    traceability:(hotelId:number,search:string)=>Promise<IpcResult<unknown[]>>;
+    menuEngineering:(hotelId:number,from:string,to:string)=>Promise<IpcResult<unknown[]>>;
   };
   pos: {
     listKds: (pointVenteId:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
