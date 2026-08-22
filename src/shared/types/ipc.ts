@@ -1007,6 +1007,21 @@ export interface IpcApi {
     getNiveaux: (hotelId: number) => Promise<IpcResult<unknown[]>>;
     createMouvement: (input: unknown) => Promise<IpcResult<unknown>>;
     listCategories: () => Promise<IpcResult<unknown[]>>;
+    listMagasins:(hotelId:number)=>Promise<IpcResult<import('./stocks').StockMagasin[]>>;
+    createMagasin:(input:{hotelId:number;code:string;nom:string;type:import('./stocks').StockMagasin['type'];emplacement?:string;principal?:boolean})=>Promise<IpcResult<import('./stocks').StockMagasin>>;
+    listNiveauxMagasins:(hotelId:number)=>Promise<IpcResult<import('./stocks').StockMagasinNiveau[]>>;
+    listLots:(hotelId:number,produitId?:number)=>Promise<IpcResult<import('./stocks').StockLot[]>>;
+    receiveLot:(input:{magasinId:number;produitId:number;numeroLot:string;quantite:number;coutUnitaire:number;dateFabrication?:string;datePeremption?:string;reference?:string})=>Promise<IpcResult<import('./stocks').StockLot>>;
+    consumeFefo:(input:{magasinId:number;produitId:number;quantite:number;motif:string;reference?:string})=>Promise<IpcResult<Array<{lotId:number;quantite:number}>>>;
+    listTransferts:(hotelId:number)=>Promise<IpcResult<import('./stocks').StockTransfert[]>>;
+    createTransfert:(input:{sourceId:number;destinationId:number;dateTransfert:string;motif?:string;lignes:Array<{produitId:number;lotId?:number;quantite:number}>})=>Promise<IpcResult<import('./stocks').StockTransfert>>;
+    validateTransfert:(id:number)=>Promise<IpcResult<import('./stocks').StockTransfert>>;
+    listInventaires:(hotelId:number)=>Promise<IpcResult<import('./stocks').StockInventaire[]>>;
+    createInventaire:(input:{magasinId:number;dateInventaire:string;observations?:string})=>Promise<IpcResult<import('./stocks').StockInventaire>>;
+    getInventoryLines:(id:number)=>Promise<IpcResult<import('./stocks').StockInventaireLigne[]>>;
+    countInventoryLine:(inventaireId:number,produitId:number,quantite:number)=>Promise<IpcResult<void>>;
+    validateInventory:(id:number)=>Promise<IpcResult<import('./stocks').StockInventaire>>;
+    findByBarcode:(hotelId:number,barcode:string)=>Promise<IpcResult<Record<string,unknown>|null>>;
   };
   cuisine: {
     listRecettes: (hotelId: number) => Promise<IpcResult<import('./cuisine').CuisineRecette[]>>;

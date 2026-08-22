@@ -6,6 +6,7 @@ import { notify } from '@/lib/toast';
 import type { StockNiveau } from '@/shared/types/stocks';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import { Package, Plus, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
+import { StocksAdvancedPanels } from './StocksAdvancedPanels';
 
 const TYPES_MVMT = ['entree', 'sortie', 'ajustement', 'perte'];
 
@@ -16,7 +17,8 @@ export default function StocksPage() {
   const [showMvmt, setShowMvmt] = useState<StockNiveau | null>(null);
   const [showProduit, setShowProduit] = useState(false);
   const [mvmt, setMvmt] = useState({ typeMouvement: 'entree', quantite: 1, motif: '' });
-  const [newProduit, setNewProduit] = useState({ code: '', designation: '', unite: 'pièce', seuilAlerte: 0 });
+  const [newProduit, setNewProduit] = useState({ code: '', designation: '', unite: 'pièce', seuilAlerte: 0, codeBarres:'', suiviLot:false, suiviPeremption:false });
+  const [tab,setTab]=useState<'overview'|'magasins'|'lots'|'transferts'|'inventaires'|'valorisation'>('overview');
 
   const { data: niveaux = [], isLoading } = useQuery({
     queryKey: ['stocks-niveaux', hotelId],
@@ -38,7 +40,7 @@ export default function StocksPage() {
 
   const createProduit = useMutation({
     mutationFn: async () => unwrapIpc(await ipcClient.stocks.createProduit(newProduit)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['stocks'] }); setShowProduit(false); setNewProduit({ code: '', designation: '', unite: 'pièce', seuilAlerte: 0 }); notify.success('Produit créé'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['stocks'] }); setShowProduit(false); setNewProduit({ code: '', designation: '', unite: 'pièce', seuilAlerte: 0, codeBarres:'', suiviLot:false, suiviPeremption:false }); notify.success('Produit créé'); },
     onError: () => notify.error('Erreur'),
   });
 
@@ -64,6 +66,11 @@ export default function StocksPage() {
           </button>
         </div>
       </div>
+
+      <div className="flex gap-1 overflow-x-auto border-b">{(['overview','magasins','lots','transferts','inventaires','valorisation'] as const).map(t=><button key={t} onClick={()=>setTab(t)} className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 ${tab===t?'border-primary text-primary':'border-transparent text-muted-foreground'}`}>{t==='overview'?'Vue globale':t==='magasins'?'Magasins':t==='lots'?'Lots & FEFO':t==='transferts'?'Transferts':t==='inventaires'?'Inventaires':'Valorisation'}</button>)}</div>
+      {tab !== 'overview' && <StocksAdvancedPanels view={tab} hotelId={hotelId} />}
+
+      <div className={tab==='overview'?'contents':'hidden'}>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
@@ -162,10 +169,12 @@ export default function StocksPage() {
             <div className="space-y-3">
               <input placeholder="Code *" value={newProduit.code} onChange={e => setNewProduit(p => ({ ...p, code: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
               <input placeholder="Désignation *" value={newProduit.designation} onChange={e => setNewProduit(p => ({ ...p, designation: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+              <input placeholder="Code-barres EAN/UPC" value={newProduit.codeBarres} onChange={e => setNewProduit(p => ({ ...p, codeBarres: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Unité" value={newProduit.unite} onChange={e => setNewProduit(p => ({ ...p, unite: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
                 <input type="number" placeholder="Seuil alerte" value={newProduit.seuilAlerte} onChange={e => setNewProduit(p => ({ ...p, seuilAlerte: Number(e.target.value) }))} className="border rounded-lg px-3 py-2 text-sm bg-background" />
               </div>
+              <div className="flex gap-4 text-sm"><label><input type="checkbox" className="mr-1" checked={newProduit.suiviLot} onChange={e=>setNewProduit(p=>({...p,suiviLot:e.target.checked}))}/>Suivi par lot</label><label><input type="checkbox" className="mr-1" checked={newProduit.suiviPeremption} onChange={e=>setNewProduit(p=>({...p,suiviPeremption:e.target.checked,suiviLot:e.target.checked||p.suiviLot}))}/>Péremption / FEFO</label></div>
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowProduit(false)} className="px-4 py-2 rounded-lg text-sm border hover:bg-muted">Annuler</button>
@@ -176,6 +185,7 @@ export default function StocksPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
