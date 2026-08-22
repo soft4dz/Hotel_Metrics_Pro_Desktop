@@ -137,6 +137,7 @@ import AchatsPage from '@/pages/achats/AchatsPage';
 import MaintenancePage from '@/pages/maintenance/MaintenancePage';
 import HousekeepingPage from '@/pages/housekeeping/HousekeepingPage';
 import CrmPage from '@/pages/crm/CrmPage';
+import MicePage from '@/pages/mice/MicePage';
 import CommercialPage from '@/pages/commercial/CommercialPage';
 import GedPage from '@/pages/ged/GedPage';
 import { GuidePage } from '@/pages/guide/GuidePage';
@@ -290,6 +291,7 @@ export function AppRoutes() {
             <Route path="/clients/nouveau" element={<NouveauClientPage />} />
             <Route path="/clients/:id" element={<ClientDetailPage />} />
             <Route path="/crm" element={<CrmPage />} />
+            <Route path="/mice" element={<MicePage />} />
 
             <Route path="/hebergement" element={<HebergementPage />} />
             <Route path="/tarifs" element={<HotelTarifsPage />} />

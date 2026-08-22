@@ -4,6 +4,7 @@ import { assertAmount, assertArray, assertDateJournal, assertEnum, assertObject,
 import * as svc from '../services/pms-extensions.service';
 import * as advanced from '../services/pms-advanced.service';
 import * as distribution from '../services/distribution.service';
+import * as mice from '../services/mice.service';
 import type { PmsAttente, PmsOccupant, PmsPolitiqueAnnulation, UpdateReservationInput } from '../../src/shared/types/hebergement';
 
 const optionalId=(v:unknown,label:string)=>v===undefined||v===null?undefined:assertPositiveInteger(v,label);
@@ -61,4 +62,28 @@ export function registerPmsExtensionsIpc():void {
   Electron.ipcMain.handle('pms:depots:operate',(e,depotId:unknown,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return advanced.operateDeposit(uid,assertPositiveInteger(depotId,'depotId'),assertEnum(o.type,'type',['remboursement','annulation'] as const),assertText(o.motif,'motif',{required:true,maxLength:1000}),optionalText(o.reference,'reference',100));}));
   Electron.ipcMain.handle('pms:folios:transfer',(e,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return advanced.transferFolioLines(uid,assertPositiveInteger(o.sourceReservationId,'sourceReservationId'),assertPositiveInteger(o.destinationReservationId,'destinationReservationId'),assertArray<unknown>(o.lineIds,'lineIds',1).map((v,i)=>assertPositiveInteger(v,`lineIds[${i}]`)),assertText(o.motif,'motif',{required:true,maxLength:500}));}));
   Electron.ipcMain.handle('pms:folios:share',(e,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return advanced.shareFolio(uid,assertPositiveInteger(o.folioReservationId,'folioReservationId'),assertPositiveInteger(o.sharedReservationId,'sharedReservationId'));}));
+
+  Electron.ipcMain.handle('mice:dashboard',(e,hotelId:unknown)=>wrapIpc(e,uid=>mice.miceDashboard(uid,assertPositiveInteger(hotelId,'hotelId'))));
+  Electron.ipcMain.handle('mice:groups:detail',(e,id:unknown)=>wrapIpc(e,uid=>mice.groupDetail(uid,assertPositiveInteger(id,'groupeId'))));
+  Electron.ipcMain.handle('mice:allotments:save',(e,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return mice.saveAllotment(uid,{groupeId:assertPositiveInteger(o.groupeId,'groupeId'),typeChambreId:assertPositiveInteger(o.typeChambreId,'typeChambreId'),quantite:assertPositiveInteger(o.quantite,'quantite'),tarifNegocie:o.tarifNegocie===undefined?undefined:assertAmount(o.tarifNegocie,'tarifNegocie'),dateRelease:assertDateJournal(o.dateRelease,'dateRelease')});}));
+  Electron.ipcMain.handle('mice:allotments:release',(e,groupeId:unknown,date?:unknown)=>wrapIpc(e,uid=>mice.releaseAllotments(uid,assertPositiveInteger(groupeId,'groupeId'),date===undefined?undefined:assertDateJournal(date,'date'))));
+  Electron.ipcMain.handle('mice:rooming:import',(e,groupeId:unknown,rows:unknown)=>wrapIpc(e,uid=>{
+    const clean=assertArray<Record<string,unknown>>(rows,'rows',1).map((o,i)=>({
+      nom:assertText(o.nom,`rows[${i}].nom`,{required:true,maxLength:150}),prenom:optionalText(o.prenom,`rows[${i}].prenom`,150),email:optionalText(o.email,`rows[${i}].email`,200),telephone:optionalText(o.telephone,`rows[${i}].telephone`,40),typeChambreId:optionalId(o.typeChambreId,`rows[${i}].typeChambreId`),chambreId:optionalId(o.chambreId,`rows[${i}].chambreId`),dateArrivee:optionalDate(o.dateArrivee,`rows[${i}].dateArrivee`),dateDepart:optionalDate(o.dateDepart,`rows[${i}].dateDepart`),nbAdultes:o.nbAdultes===undefined?undefined:assertPositiveInteger(o.nbAdultes,`rows[${i}].nbAdultes`),nbEnfants:o.nbEnfants===undefined?undefined:assertPositiveInteger(o.nbEnfants,`rows[${i}].nbEnfants`,{allowZero:true}),notes:optionalText(o.notes,`rows[${i}].notes`,1000)
+    }));
+    return mice.importRoomingList(uid,assertPositiveInteger(groupeId,'groupeId'),clean);
+  }));
+  Electron.ipcMain.handle('mice:rooming:reserve',(e,id:unknown)=>wrapIpc(e,uid=>mice.reserveRoomingLine(uid,assertPositiveInteger(id,'lineId'))));
+  Electron.ipcMain.handle('mice:spaces:list',(e,hotelId:unknown)=>wrapIpc(e,uid=>mice.listSpaces(uid,assertPositiveInteger(hotelId,'hotelId'))));
+  Electron.ipcMain.handle('mice:spaces:save',(e,input)=>wrapIpc(e,uid=>mice.saveSpace(uid,input)));
+  Electron.ipcMain.handle('mice:events:list',(e,hotelId:unknown)=>wrapIpc(e,uid=>mice.listEvents(uid,assertPositiveInteger(hotelId,'hotelId'))));
+  Electron.ipcMain.handle('mice:events:create',(e,input)=>wrapIpc(e,uid=>mice.createEvent(uid,input)));
+  Electron.ipcMain.handle('mice:spaces:book',(e,input)=>wrapIpc(e,uid=>mice.bookSpace(uid,input)));
+  Electron.ipcMain.handle('mice:quotes:create',(e,input)=>wrapIpc(e,uid=>mice.createQuote(uid,input)));
+  Electron.ipcMain.handle('mice:quotes:addLine',(e,input)=>wrapIpc(e,uid=>mice.addQuoteLine(uid,input)));
+  Electron.ipcMain.handle('mice:quotes:status',(e,id:number,status:'envoye'|'accepte'|'refuse'|'expire')=>wrapIpc(e,uid=>mice.setQuoteStatus(uid,id,status)));
+  Electron.ipcMain.handle('mice:documents:list',(e,eventId:unknown)=>wrapIpc(e,uid=>mice.listEventDocuments(uid,assertPositiveInteger(eventId,'eventId'))));
+  Electron.ipcMain.handle('mice:beo:save',(e,input)=>wrapIpc(e,uid=>mice.saveBeo(uid,input)));
+  Electron.ipcMain.handle('mice:charges:add',(e,input)=>wrapIpc(e,uid=>mice.addEventCharge(uid,input)));
+  Electron.ipcMain.handle('mice:events:invoice',(e,eventId:unknown)=>wrapIpc(e,uid=>mice.invoiceEvent(uid,assertPositiveInteger(eventId,'eventId'))));
 }

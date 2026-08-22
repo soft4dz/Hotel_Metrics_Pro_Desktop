@@ -799,6 +799,24 @@ export interface IpcApi {
     operateDeposit: (depotId:number,input:{type:'remboursement'|'annulation';motif:string;reference?:string}) => Promise<IpcResult<void>>;
     transferFolioLines: (input:{sourceReservationId:number;destinationReservationId:number;lineIds:number[];motif:string}) => Promise<IpcResult<void>>;
     shareFolio: (input:{folioReservationId:number;sharedReservationId:number}) => Promise<IpcResult<void>>;
+    getMiceDashboard:(hotelId:number)=>Promise<IpcResult<unknown>>;
+    getMiceGroupDetail:(id:number)=>Promise<IpcResult<unknown>>;
+    saveMiceAllotment:(input:unknown)=>Promise<IpcResult<boolean>>;
+    releaseMiceAllotments:(groupeId:number,date?:string)=>Promise<IpcResult<unknown>>;
+    importRoomingList:(groupeId:number,rows:unknown[])=>Promise<IpcResult<unknown>>;
+    reserveRoomingLine:(id:number)=>Promise<IpcResult<unknown>>;
+    listMiceSpaces:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    saveMiceSpace:(input:unknown)=>Promise<IpcResult<boolean>>;
+    listMiceEvents:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    createMiceEvent:(input:unknown)=>Promise<IpcResult<unknown>>;
+    bookMiceSpace:(input:unknown)=>Promise<IpcResult<unknown>>;
+    createMiceQuote:(input:unknown)=>Promise<IpcResult<unknown>>;
+    addMiceQuoteLine:(input:unknown)=>Promise<IpcResult<unknown>>;
+    setMiceQuoteStatus:(id:number,status:'envoye'|'accepte'|'refuse'|'expire')=>Promise<IpcResult<boolean>>;
+    listMiceDocuments:(eventId:number)=>Promise<IpcResult<unknown>>;
+    saveMiceBeo:(input:unknown)=>Promise<IpcResult<unknown>>;
+    addMiceCharge:(input:unknown)=>Promise<IpcResult<unknown>>;
+    invoiceMiceEvent:(eventId:number)=>Promise<IpcResult<unknown>>;
   };
   tarifs: {
     listComposants:   (hotelId?: number) => Promise<IpcResult<ComposantTarif[]>>;
