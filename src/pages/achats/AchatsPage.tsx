@@ -6,6 +6,7 @@ import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import { ShoppingCart, Plus, CheckCircle, FileText, Send, Package, Users, ExternalLink } from 'lucide-react';
+import { AchatsAdvancedPanels } from './AchatsAdvancedPanels';
 
 interface BonCommande {
   id: number;
@@ -16,6 +17,7 @@ interface BonCommande {
   dateCommande: string;
   dateLivraisonPrevue: string | null;
   montantTtc: number;
+  fournisseurId?: number;
 }
 interface BonLigne {
   id: number;
@@ -40,7 +42,7 @@ const statutColor = (s: string) =>
 export default function AchatsPage() {
   const qc = useQueryClient();
   const { hotels } = useHotelsList();
-  const [tab, setTab] = useState<'bons' | 'fournisseurs'>('bons');
+  const [tab, setTab] = useState<'demandes'|'consultations'|'bons'|'factures'|'fournisseurs'>('demandes');
   const [hotelId, setHotelId] = useState<number | undefined>();
   const [showForm, setShowForm] = useState(false);
   const [showFournisseur, setShowFournisseur] = useState(false);
@@ -153,11 +155,11 @@ export default function AchatsPage() {
             <button type="button" onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
               <Plus className="w-4 h-4" /> Nouveau bon
             </button>
-          ) : (
+          ) : tab === 'fournisseurs' ? (
             <button type="button" onClick={() => setShowFournisseur(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
               <Plus className="w-4 h-4" /> Nouveau fournisseur
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -172,12 +174,14 @@ export default function AchatsPage() {
       )}
 
       <div className="flex gap-1 border-b">
-        {(['bons', 'fournisseurs'] as const).map((t) => (
+        {(['demandes','consultations','bons','factures','fournisseurs'] as const).map((t) => (
           <button key={t} type="button" onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 capitalize ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>
-            {t === 'bons' ? `Bons (${bons.length})` : `Fournisseurs (${fournisseurs.length})`}
+            {t === 'demandes'?'Demandes':t==='consultations'?'Appels d’offres':t === 'bons' ? `Commandes (${bons.length})` : t==='factures'?'Factures & paiements':`Fournisseurs (${fournisseurs.length})`}
           </button>
         ))}
       </div>
+
+      {(['demandes','consultations','factures'] as const).includes(tab as 'demandes'|'consultations'|'factures') && <AchatsAdvancedPanels view={tab as 'demandes'|'consultations'|'factures'} hotelId={hotelId??hotels[0]?.id??1} fournisseurs={fournisseurs} bons={bons}/>}
 
       {tab === 'bons' && (
         <>
