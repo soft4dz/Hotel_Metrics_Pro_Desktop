@@ -8,8 +8,9 @@ import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
 import type { CuisineRecette, CuisineOrdreProduction } from '@/shared/types/cuisine';
 import type { StockProduit } from '@/shared/types/stocks';
+import { CuisineQualityPanel } from './CuisineQualityPanel';
 
-type Tab = 'fiches' | 'production';
+type Tab = 'fiches' | 'production' | 'qualite';
 
 export default function CuisinePage() {
   const qc = useQueryClient();
@@ -105,6 +106,11 @@ export default function CuisinePage() {
     onSuccess: () => { invalidate(); notify.success('Production exécutée — stocks mis à jour'); },
     onError: (e) => notify.error(e instanceof Error ? e.message : 'Erreur'),
   });
+  const closeCost = useMutation({
+    mutationFn: async (id: number) => unwrapIpc(await ipcClient.cuisine.closeProductionCost(id)),
+    onSuccess: () => { invalidate(); notify.success('Coût réel et lot de traçabilité calculés'); },
+    onError: (e) => notify.error(e instanceof Error ? e.message : 'Erreur'),
+  });
 
   const recettesValidees = recettes.filter((r) => r.statut === 'valide');
 
@@ -129,14 +135,14 @@ export default function CuisinePage() {
       </div>
 
       <div className="flex gap-2 border-b">
-        {(['fiches', 'production'] as Tab[]).map((t) => (
+        {(['fiches', 'production', 'qualite'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === t ? 'border-orange-600 text-orange-600' : 'border-transparent text-muted-foreground'}`}
           >
-            {t === 'fiches' ? 'Fiches techniques' : 'Ordres de production'}
+            {t === 'fiches' ? 'Fiches techniques' : t === 'production' ? 'Ordres de production' : 'HACCP & qualité'}
           </button>
         ))}
       </div>
@@ -262,6 +268,9 @@ export default function CuisinePage() {
                           <Play className="w-3 h-3" /> Exécuter → stock
                         </button>
                       )}
+                      {o.statut === 'termine' && (
+                        <button type="button" onClick={() => closeCost.mutate(o.id)} className="text-xs font-medium text-orange-700">Coût réel & traçabilité</button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -270,6 +279,8 @@ export default function CuisinePage() {
           </div>
         </div>
       )}
+
+      {tab === 'qualite' && <CuisineQualityPanel hotelId={hotelId} />}
 
       {showNew && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
