@@ -3,6 +3,7 @@ import { wrapIpc } from './ipcHelpers';
 import { assertAmount, assertArray, assertDateJournal, assertEnum, assertObject, assertPositiveInteger, assertText } from './validation';
 import * as svc from '../services/pms-extensions.service';
 import * as advanced from '../services/pms-advanced.service';
+import * as distribution from '../services/distribution.service';
 import type { PmsAttente, PmsOccupant, PmsPolitiqueAnnulation, UpdateReservationInput } from '../../src/shared/types/hebergement';
 
 const optionalId=(v:unknown,label:string)=>v===undefined||v===null?undefined:assertPositiveInteger(v,label);
@@ -18,6 +19,21 @@ export function registerPmsExtensionsIpc():void {
   Electron.ipcMain.handle('pms:channels:list',(e)=>wrapIpc(e,uid=>svc.listConnectors(uid)));
   Electron.ipcMain.handle('pms:channels:save',(e,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return svc.saveConnector(uid,{hotelId:assertPositiveInteger(o.hotelId,'hotelId'),code:assertText(o.code,'code',{required:true,maxLength:30}),label:assertText(o.label,'label',{required:true,maxLength:100}),endpointUrl:o.endpointUrl?assertText(o.endpointUrl,'endpointUrl',{maxLength:500}):undefined,actif:o.actif===true});}));
   Electron.ipcMain.handle('pms:channels:import',(e,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');return svc.importChannelReservation(uid,{connectorId:assertPositiveInteger(o.connectorId,'connectorId'),externalReference:assertText(o.externalReference,'externalReference',{required:true,maxLength:100}),hotelId:assertPositiveInteger(o.hotelId,'hotelId'),clientNom:assertText(o.clientNom,'clientNom',{required:true,maxLength:150}),dateArrivee:assertDateJournal(o.dateArrivee,'dateArrivee'),dateDepart:assertDateJournal(o.dateDepart,'dateDepart'),montantTotal:o.montantTotal!==undefined?assertAmount(o.montantTotal,'montantTotal'):undefined,notes:o.notes?assertText(o.notes,'notes',{maxLength:2000}):undefined});}));
+  Electron.ipcMain.handle('distribution:connector:configure',(e,input)=>wrapIpc(e,uid=>distribution.configureConnector(uid,input)));
+  Electron.ipcMain.handle('distribution:mapping:save',(e,input)=>wrapIpc(e,uid=>distribution.saveMapping(uid,input)));
+  Electron.ipcMain.handle('distribution:availability',(e,hotelId:number,from:string,to:string)=>wrapIpc(e,uid=>distribution.availability(uid,hotelId,from,to)));
+  Electron.ipcMain.handle('distribution:restriction:save',(e,input)=>wrapIpc(e,uid=>distribution.setRestriction(uid,input)));
+  Electron.ipcMain.handle('distribution:sync:queue',(e,connectorId:number,from:string,to:string)=>wrapIpc(e,uid=>distribution.queueInventorySync(uid,connectorId,from,to)));
+  Electron.ipcMain.handle('distribution:sync:next',(e,limit?:number)=>wrapIpc(e,uid=>distribution.nextSyncJobs(uid,limit)));
+  Electron.ipcMain.handle('distribution:sync:complete',(e,id:number,result)=>wrapIpc(e,uid=>distribution.completeSyncJob(uid,id,result)));
+  Electron.ipcMain.handle('distribution:sync:logs',(e,connectorId:number)=>wrapIpc(e,uid=>distribution.listSyncLogs(uid,connectorId)));
+  Electron.ipcMain.handle('distribution:webhook:ingest',(e,input)=>wrapIpc(e,uid=>distribution.ingestWebhook(uid,input)));
+  Electron.ipcMain.handle('distribution:booking:config',(e,input)=>wrapIpc(e,uid=>distribution.saveBookingConfig(uid,input)));
+  Electron.ipcMain.handle('distribution:booking:promo',(e,input)=>wrapIpc(e,uid=>distribution.savePromo(uid,input)));
+  Electron.ipcMain.handle('distribution:booking:quote',(e,input)=>wrapIpc(e,uid=>distribution.quoteBooking(uid,input)));
+  Electron.ipcMain.handle('distribution:booking:create',(e,input)=>wrapIpc(e,uid=>distribution.createBookingOrder(uid,input)));
+  Electron.ipcMain.handle('distribution:booking:payment',(e,input)=>wrapIpc(e,uid=>distribution.confirmBookingPayment(uid,input)));
+  Electron.ipcMain.handle('distribution:dashboard',(e,hotelId:number)=>wrapIpc(e,uid=>distribution.distributionDashboard(uid,hotelId)));
 
   Electron.ipcMain.handle('pms:reservations:update',(e,reservationId:unknown,input:unknown)=>wrapIpc(e,uid=>{const o=assertObject<Record<string,unknown>>(input,'input');const clean:UpdateReservationInput={
     chambreId:o.chambreId===null?null:optionalId(o.chambreId,'chambreId'),clientId:o.clientId===null?null:optionalId(o.clientId,'clientId'),planId:optionalId(o.planId,'planId'),formuleId:o.formuleId===null?null:optionalId(o.formuleId,'formuleId'),
