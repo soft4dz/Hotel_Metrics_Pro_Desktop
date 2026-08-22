@@ -734,6 +734,15 @@ export const ipcClient: IpcApi = {
     createIntervention: (input) => api().maintenance.createIntervention(input),
     updateIntervention: (id, input) => api().maintenance.updateIntervention(id, input),
     stats: (hotelId) => api().maintenance.stats(hotelId),
+    listPlans:(hotelId)=>api().maintenance.listPlans(hotelId),
+    createPlan:(input)=>api().maintenance.createPlan(input),
+    generateWorkOrders:(through)=>api().maintenance.generateWorkOrders(through),
+    refreshSla:(hotelId)=>api().maintenance.refreshSla(hotelId),
+    consumePart:(input)=>api().maintenance.consumePart(input),
+    logLabor:(input)=>api().maintenance.logLabor(input),
+    listContracts:(hotelId)=>api().maintenance.listContracts(hotelId),
+    createContract:(input)=>api().maintenance.createContract(input),
+    costReport:(hotelId,from,to)=>api().maintenance.costReport(hotelId,from,to),
   },
   housekeeping: {
     listTaches: (hotelId, statut?, datePrevue?) =>

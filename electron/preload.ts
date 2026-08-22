@@ -808,6 +808,15 @@ const api: IpcApi = {
     createIntervention: (input: unknown) => ipcRenderer.invoke('maintenance:createIntervention', input),
     updateIntervention: (id: number, input: unknown) => ipcRenderer.invoke('maintenance:updateIntervention', id, input),
     stats: (hotelId: number) => ipcRenderer.invoke('maintenance:stats', hotelId),
+    listPlans:(hotelId:number)=>ipcRenderer.invoke('maintenance:plans:list',hotelId),
+    createPlan:(input:unknown)=>ipcRenderer.invoke('maintenance:plans:create',input),
+    generateWorkOrders:(through:string)=>ipcRenderer.invoke('maintenance:plans:generate',through),
+    refreshSla:(hotelId:number)=>ipcRenderer.invoke('maintenance:sla:refresh',hotelId),
+    consumePart:(input:unknown)=>ipcRenderer.invoke('maintenance:parts:consume',input),
+    logLabor:(input:unknown)=>ipcRenderer.invoke('maintenance:labor:log',input),
+    listContracts:(hotelId:number)=>ipcRenderer.invoke('maintenance:contracts:list',hotelId),
+    createContract:(input:unknown)=>ipcRenderer.invoke('maintenance:contracts:create',input),
+    costReport:(hotelId:number,from:string,to:string)=>ipcRenderer.invoke('maintenance:costs:report',hotelId,from,to),
   },
   housekeeping: {
     listTaches: (hotelId: number, statut?: string, datePrevue?: string) =>

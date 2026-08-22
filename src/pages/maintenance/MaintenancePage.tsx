@@ -4,7 +4,7 @@ import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { notify } from '@/lib/toast';
 import { useHotelsList } from '@/hooks/useHotelsList';
-import { Wrench, Plus, AlertTriangle, CheckCircle, Clock, Cog } from 'lucide-react';
+import { Wrench, Plus, AlertTriangle, CheckCircle, Clock, Cog, CalendarClock } from 'lucide-react';
 
 interface Equipement { id: number; code: string; designation: string; categorie: string; localisation: string | null; statut: string; dateAchat: string | null }
 interface Intervention { id: number; equipementId: number | null; equipementDesignation: string | null; titre: string; typeIntervention: string; priorite: string; statut: string; technicienNom: string | null; dateDemande: string; datePlanifiee: string | null; coutPieces: number; coutMainOeuvre: number; rapport: string | null }
@@ -17,7 +17,7 @@ export default function MaintenancePage() {
   const qc = useQueryClient();
   const { hotels } = useHotelsList();
   const [hotelId, setHotelId] = useState<number>(hotels[0]?.id ?? 1);
-  const [tab, setTab] = useState<'interventions' | 'equipements'>('interventions');
+  const [tab, setTab] = useState<'interventions' | 'equipements' | 'preventif'>('interventions');
   const [showForm, setShowForm] = useState(false);
   const [showEquipForm, setShowEquipForm] = useState(false);
   const [statutFilter, setStatutFilter] = useState('');
@@ -42,6 +42,8 @@ export default function MaintenancePage() {
     queryKey: ['maintenance-stats', hotelId],
     queryFn: async () => unwrapIpc(await ipcClient.maintenance.stats(hotelId)) as MaintenanceStats,
   });
+  const { data: plans = [] } = useQuery({queryKey:['maintenance-plans',hotelId],queryFn:async()=>unwrapIpc(await ipcClient.maintenance.listPlans(hotelId)) as Array<Record<string,unknown>>});
+  const { data: contracts = [] } = useQuery({queryKey:['maintenance-contracts',hotelId],queryFn:async()=>unwrapIpc(await ipcClient.maintenance.listContracts(hotelId)) as Array<Record<string,unknown>>});
 
   const createEquip = useMutation({
     mutationFn: async () => unwrapIpc(await ipcClient.maintenance.createEquipement({ hotelId, ...equipForm })),
@@ -105,16 +107,16 @@ export default function MaintenancePage() {
             <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
               <Plus className="w-4 h-4" /> Nouvelle intervention
             </button>
-          ) : (
+          ) : tab === 'equipements' ? (
             <button onClick={() => setShowEquipForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
               <Plus className="w-4 h-4" /> Nouvel équipement
             </button>
-          )}
+          ) : <button onClick={() => void ipcClient.maintenance.generateWorkOrders(new Date().toISOString().slice(0,10)).then(()=>{qc.invalidateQueries({queryKey:['maintenance-plans']});refreshMaintenance();notify.success('Ordres préventifs générés');})} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium"><CalendarClock className="w-4 h-4"/>Générer les OT dus</button>}
         </div>
       </div>
 
       <div className="flex gap-1 border-b">
-        {[{ id: 'interventions' as const, label: 'Interventions' }, { id: 'equipements' as const, label: 'Équipements' }].map((t) => (
+        {[{ id: 'interventions' as const, label: 'Ordres de travail' }, { id: 'equipements' as const, label: 'Équipements' }, {id:'preventif' as const,label:'Plans & contrats'}].map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>
             {t.label}
           </button>
@@ -135,7 +137,7 @@ export default function MaintenancePage() {
         ))}
       </div>
 
-      {tab === 'equipements' ? (
+      {tab === 'preventif' ? <div className="grid gap-4 lg:grid-cols-2"><section className="rounded-xl border bg-card p-4"><h2 className="font-semibold">Plans récurrents</h2><p className="mb-3 text-xs text-muted-foreground">Récurrence, prochain passage, SLA et technicien affecté.</p>{plans.length?plans.map((p:any)=><div key={p.id} className="border-t py-2 text-sm"><b>{p.code}</b> — {p.titre}<p className="text-xs text-muted-foreground">{p.frequence} · prochain {p.prochaine_date} · SLA {p.sla_heures} h</p></div>):<p className="text-sm text-muted-foreground">Aucun plan.</p>}</section><section className="rounded-xl border bg-card p-4"><h2 className="font-semibold">Garanties & contrats</h2><p className="mb-3 text-xs text-muted-foreground">Prestataire, échéance, délai contractuel et coût annuel.</p>{contracts.length?contracts.map((c:any)=><div key={c.id} className="border-t py-2 text-sm"><b>{c.numero}</b> — {c.prestataire}<p className="text-xs text-muted-foreground">{c.type} · fin {c.date_fin} · {c.statut}</p></div>):<p className="text-sm text-muted-foreground">Aucun contrat.</p>}</section></div> : tab === 'equipements' ? (
         equipements.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl"><Cog className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>Aucun équipement enregistré</p></div>
         ) : (
