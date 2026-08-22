@@ -269,6 +269,20 @@ const api: IpcApi = {
       ipcRenderer.invoke('tresorerie:caisse:add', input),
     deleteOperationCaisse: (id) =>
       ipcRenderer.invoke('tresorerie:caisse:delete', id),
+    listPaymentOrders: (hotelId) => ipcRenderer.invoke('tresorerie:ordres:list',hotelId),
+    createPaymentOrder: (input) => ipcRenderer.invoke('tresorerie:ordres:create',input),
+    decidePaymentOrder: (id,approved) => ipcRenderer.invoke('tresorerie:ordres:decide',id,approved),
+    executePaymentOrder: (id) => ipcRenderer.invoke('tresorerie:ordres:execute',id),
+    listForecast: (hotelId,from,to) => ipcRenderer.invoke('tresorerie:forecast:list',hotelId,from,to),
+    createForecast: (input) => ipcRenderer.invoke('tresorerie:forecast:create',input),
+    importBankStatement: (input) => ipcRenderer.invoke('tresorerie:bank:import',input),
+    listBankLines: (accountId) => ipcRenderer.invoke('tresorerie:bank:lines',accountId),
+    suggestReconciliation: (lineId) => ipcRenderer.invoke('tresorerie:bank:suggest',lineId),
+    confirmReconciliation: (input) => ipcRenderer.invoke('tresorerie:bank:confirm',input),
+    listCostCenters: (hotelId) => ipcRenderer.invoke('tresorerie:cost-centers:list',hotelId),
+    createCostCenter: (input) => ipcRenderer.invoke('tresorerie:cost-centers:create',input),
+    allocateCost: (input) => ipcRenderer.invoke('tresorerie:cost-centers:allocate',input),
+    analyticalReport: (hotelId,from,to) => ipcRenderer.invoke('tresorerie:analytics:report',hotelId,from,to),
   },
   facturation: {
     getDashboard: (hotelId) =>

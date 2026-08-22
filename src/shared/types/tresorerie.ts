@@ -102,3 +102,9 @@ export interface TresorerieDashboard {
   parHotel: { hotelId: number; hotelName: string; encaisse: number; enAttente: number }[];
   recentEncaissements: EncaissementItem[];
 }
+
+export interface PaymentOrder { id:number; numero:string; hotel_id:number; facture_fournisseur_id:number|null; facture_numero:string|null; compte_bancaire_id:number|null; compte_bancaire:string|null; beneficiaire:string; montant:number; mode:'virement'|'cheque'|'prelevement'|'autre'; date_echeance:string; reference:string|null; numero_cheque:string|null; statut:'brouillon'|'soumis'|'approuve'|'execute'|'rejete'|'annule' }
+export interface TreasuryForecastLine { id:number; date:string; libelle:string; categorie:string; sens:'encaissement'|'decaissement'; montant:number; probabilite:number; statut:string; source:string; impactPondere:number; soldeCumule:number }
+export interface BankStatementLine { id:number; releve_id:number; date_operation:string; date_valeur:string|null; libelle:string; reference:string|null; debit:number; credit:number; solde:number|null; statut:'non_rapprochee'|'rapprochee'|'ignoree'; nom_fichier:string }
+export interface ReconciliationSuggestion { id:number; date:string; reference:string|null; montant:number; type:'encaissement'|'paiement_fournisseur'; score:number }
+export interface CostCenter { id:number; hotel_id:number; code:string; libelle:string; responsable:string|null; actif:number }

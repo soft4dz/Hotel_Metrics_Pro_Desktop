@@ -64,6 +64,7 @@ import { EncaissementsListPage } from '@/pages/tresorerie/EncaissementsListPage'
 import { SaisieEncaissementPage } from '@/pages/tresorerie/SaisieEncaissementPage';
 import { JournalCaissePage } from '@/pages/tresorerie/JournalCaissePage';
 import { ComptesBancairesPage } from '@/pages/tresorerie/ComptesBancairesPage';
+import { TresorerieAdvancedPage } from '@/pages/tresorerie/TresorerieAdvancedPage';
 import { FacturationIndexPage } from '@/pages/facturation/FacturationIndexPage';
 import { FacturationBoard } from '@/pages/facturation/FacturationBoard';
 import { FacturesListPage } from '@/pages/facturation/FacturesListPage';
@@ -220,6 +221,7 @@ export function AppRoutes() {
               <Route path="liste" element={<EncaissementsListPage />} />
               <Route path="caisse" element={<JournalCaissePage />} />
               <Route path="comptes" element={<ComptesBancairesPage />} />
+              <Route path="avancee" element={<TresorerieAdvancedPage />} />
             </Route>
             <Route path="/encaissements/nouveau" element={<SaisieEncaissementPage />} />
 
