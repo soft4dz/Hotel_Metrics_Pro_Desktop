@@ -48,10 +48,18 @@ function seedBundledLogosIfNeeded(): void {
   const bundledDir = getProjectLogosDirectory();
   if (!existsSync(bundledDir)) return;
 
-  for (const file of ['app-logo.svg', 'default-hotel.svg']) {
+  for (const file of [
+    'app-logo.svg',
+    'app-wordmark.svg',
+    'app-wordmark-white.svg',
+    'app-bilingual.svg',
+    'app-bilingual-white.svg',
+    'default-hotel.svg',
+  ]) {
     const src = path.join(bundledDir, file);
     const dest = path.join(targetDir, file);
-    if (existsSync(src) && !existsSync(dest)) {
+    const isProductIdentityAsset = file.startsWith('app-');
+    if (existsSync(src) && (isProductIdentityAsset || !existsSync(dest))) {
       copyFileSync(src, dest);
     }
   }

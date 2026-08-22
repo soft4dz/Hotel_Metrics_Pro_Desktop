@@ -72,7 +72,7 @@ export function ModulePlaceholderPage() {
             <p className="section-label">Module n°{module.order} · {module.group}</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight lg:text-4xl">{module.name}</h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground lg:text-base">
-              Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro.
+              Ce module est inscrit dans l’architecture de pilotage interconnectée de Raqmi System.
               Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.
             </p>
           </div>
@@ -127,6 +127,25 @@ export function ModulePlaceholderPage() {
           </p>
         </div>
       </div>
+
+      {module.capabilities?.length ? (
+        <div className="app-surface p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Boxes className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="section-label">Périmètre fonctionnel</p>
+              <h2 className="text-lg font-semibold">Fonctions rattachées au module</h2>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {module.capabilities.map((capability) => (
+              <span key={capability} className="pill-soft">{capability}</span>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {relatedModules.length > 0 ? (
         <div className="app-surface p-5">

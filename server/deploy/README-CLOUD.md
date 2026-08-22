@@ -1,6 +1,6 @@
 # Déploiement sync cloud — cPanel (soft4dz.com)
 
-Ce guide installe la **base MySQL centrale** et l’**API PHP** compatible avec l’application desktop Hotel Metrics Pro.
+Ce guide installe la **base MySQL centrale** et l’**API PHP** compatible avec l’application desktop Raqmi System.
 
 ## 1. Créer la base MySQL dans cPanel
 
@@ -56,7 +56,7 @@ curl https://soft4dz.com/hmp-api/api/health
 Réponse attendue :
 
 ```json
-{"ok":true,"service":"hotel-metrics-api","version":"0.8.0"}
+{"ok":true,"service":"raqmi-system-api","version":"0.8.0"}
 ```
 
 Test push (remplacer `VOTRE_CLE`) :

@@ -1,6 +1,6 @@
 # Phase 1 — Conformité légale ERP algérien
 
-Document de restitution — Hotel Metrics Pro Desktop v0.8.0 (Raqmi System)
+Document de restitution — Raqmi System v0.8.0 (Raqmi System)
 
 ## Périmètre livré
 

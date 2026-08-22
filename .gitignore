@@ -27,3 +27,5 @@ admin_module_v1_patch.zip
 server/server.log.err
 license-manager/node_modules/
 license-manager/dist/
+output/
+tmp/

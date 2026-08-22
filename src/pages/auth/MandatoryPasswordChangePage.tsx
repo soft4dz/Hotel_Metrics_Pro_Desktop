@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { ipcClient } from '@/lib/ipcClient';
 import { useAuthStore } from '@/stores/auth.store';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
+import { APP_BILINGUAL_URL } from '@/lib/logos';
 
 function PasswordStrength({ password }: { password: string }) {
   const score = [
@@ -100,10 +101,11 @@ export function MandatoryPasswordChangePage() {
     <Card className="border-amber-500/30 shadow-elevated">
       <CardHeader className="space-y-3 pb-2">
         <div className="flex items-center gap-3 lg:hidden">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-gold to-amber-600 text-xs font-bold text-white">
-            HM
-          </div>
-          <span className="font-heading font-semibold">Hotel Metrics Pro</span>
+          <img
+            src={APP_BILINGUAL_URL}
+            alt="Raqmi System"
+            className="h-16 w-52 object-contain object-left"
+          />
         </div>
 
         <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">

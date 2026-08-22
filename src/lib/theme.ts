@@ -1,4 +1,4 @@
-/** Tokens design Hotel Metrics Pro — UI UX Pro Max (Enterprise navy + gold) */
+/** Tokens design Raqmi System — identité navy, digital blue et qaf teal. */
 export const theme = {
   navy: '#1E3A8A',
   navyDark: '#0F172A',

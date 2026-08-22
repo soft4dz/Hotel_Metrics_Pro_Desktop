@@ -1,7 +1,7 @@
 {
-  "name": "hotel-metrics-pro-desktop",
+  "name": "raqmi-system-desktop",
   "version": "0.8.0",
-  "description": "Raqmi System — ERP de pilotage hôtelier, portuaire et RH",
+  "description": "Raqmi System — ERP intégré de gestion et de pilotage d’entreprise",
   "author": "Raqmi System",
   "license": "UNLICENSED",
   "private": true,

@@ -53,7 +53,7 @@ function readJson(req, res, handler) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`);
   if (req.method === 'GET' && url.pathname === '/api/health') {
-    return json(res, 200, { ok: true, service: 'hotel-metrics-sync-api', version: '0.9.0' });
+    return json(res, 200, { ok: true, service: 'raqmi-system-sync-api', version: '0.9.0' });
   }
   if (!isAuthorized(req)) return json(res, 401, { error: 'Unauthorized' });
 
@@ -99,5 +99,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Hotel Metrics Sync API — http://127.0.0.1:${PORT}`);
+  console.log(`Raqmi System Sync API — http://127.0.0.1:${PORT}`);
 });

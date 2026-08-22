@@ -4,7 +4,7 @@ import { SyncStatusBadge } from '@/components/common/SyncStatusBadge';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/layouts/LanguageSwitcher';
-import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { APP_LOGO_URL } from '@/lib/logos';
 import { useUiStore } from '@/stores/ui.store';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 import { DATE_LOCALES, translate } from '@/lib/localization';
@@ -14,7 +14,6 @@ export function TopNavbar() {
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const locale = useUiStore((s) => s.locale);
-  const { logoUrl, companyName } = useCompanyBranding();
 
   const today = new Intl.DateTimeFormat(DATE_LOCALES[locale], {
     day: '2-digit',
@@ -52,8 +51,8 @@ export function TopNavbar() {
           className="flex shrink-0 items-center gap-2 rounded-lg py-1 pr-1 transition-colors hover:bg-white/5 sm:gap-2.5 sm:pr-2 lg:hidden"
         >
           <img
-            src={logoUrl}
-            alt={companyName}
+            src={APP_LOGO_URL}
+            alt="Raqmi System"
             className="h-8 w-8 rounded-lg object-contain ring-1 ring-white/20 sm:h-9 sm:w-9"
           />
           <div className="hidden min-w-0 sm:block">
@@ -61,7 +60,7 @@ export function TopNavbar() {
               Raqmi System
             </p>
             <p className="hidden text-[10px] leading-tight text-white/50 sm:block 2xl:text-[11px]">
-              ERP Desktop
+              ERP intégré
             </p>
           </div>
         </Link>

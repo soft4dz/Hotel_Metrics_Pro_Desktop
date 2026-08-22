@@ -75,7 +75,10 @@ describe('SidebarNav', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Raqmi System')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Raqmi System' })).toHaveAttribute(
+        'src',
+        'hmp-logo:///assets/app-wordmark-white.svg',
+      );
     });
 
     expect(screen.getByText('Pilotage')).toBeInTheDocument();

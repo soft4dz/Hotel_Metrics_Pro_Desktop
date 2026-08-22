@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
-title Hotel Metrics Pro — Synchronisation GitHub
+title Raqmi System — Synchronisation GitHub
 
 cd /d "%~dp0"
 if errorlevel 1 (

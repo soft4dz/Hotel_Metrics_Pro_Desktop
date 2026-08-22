@@ -1,4 +1,4 @@
--- Hotel Metrics Pro — base centrale MySQL (sync multi-postes)
+-- Raqmi System — base centrale MySQL (sync multi-postes)
 -- Importer via phpMyAdmin après création de la base sur cPanel.
 
 SET NAMES utf8mb4;

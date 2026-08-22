@@ -1,8 +1,8 @@
 ﻿$ErrorActionPreference = 'Stop'
 $outputDir = Join-Path $PSScriptRoot '..\documentation'
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-$docxPath = Join-Path $outputDir 'Catalogue_fonctionnel_ERP_Hotel_Metrics_Pro.docx'
-$pdfPath = Join-Path $outputDir 'Catalogue_fonctionnel_ERP_Hotel_Metrics_Pro.pdf'
+$docxPath = Join-Path $outputDir 'Catalogue_fonctionnel_ERP_Raqmi_System.docx'
+$pdfPath = Join-Path $outputDir 'Catalogue_fonctionnel_ERP_Raqmi_System.pdf'
 
 $modules = @(
   @{Name='Pilotage et tableaux de bord'; Purpose='Donner à la direction une vue consolidée, quotidienne et décisionnelle de lʼactivité.'; Features=@('Dashboard global multi-établissements et indicateurs clés','Dashboard PDG : chiffre dʼaffaires, objectifs, occupation, trésorerie, créances, RH, qualité et maintenance','Cockpit DEC avec alertes, priorités et plan dʼactions','Rapports standards, rapports composés, tableaux croisés, exports et studio de reporting','Objectifs budgétaires et opérationnels avec suivi des écarts')},
@@ -40,13 +40,13 @@ try {
   $doc.Styles.Item(-2).Font.Size=16; $doc.Styles.Item(-2).Font.Color=0x764B1A; $doc.Styles.Item(-2).ParagraphFormat.SpaceBefore=18; $doc.Styles.Item(-2).ParagraphFormat.SpaceAfter=10
   $doc.Styles.Item(-3).Font.Size=12.5; $doc.Styles.Item(-3).Font.Color=0x784F1F; $doc.Styles.Item(-3).ParagraphFormat.SpaceBefore=10; $doc.Styles.Item(-3).ParagraphFormat.SpaceAfter=5
 
-  $header=$section.Headers.Item(1).Range; $header.Text='HOTEL METRICS PRO  |  CATALOGUE FONCTIONNEL'; $header.Font.Name='Calibri'; $header.Font.Size=8; $header.Font.Color=0x777777
+  $header=$section.Headers.Item(1).Range; $header.Text='RAQMI SYSTEM  |  CATALOGUE FONCTIONNEL'; $header.Font.Name='Calibri'; $header.Font.Size=8; $header.Font.Color=0x777777
   $footer=$section.Footers.Item(1).Range; $footer.Text='Document de référence  •  '; $footer.Font.Size=8; $footer.Font.Color=0x777777; $footer.Collapse(0); $footer.Fields.Add($footer,-1,'PAGE') | Out-Null
 
   $sel=$word.Selection
   $sel.ParagraphFormat.SpaceBefore=100
   $sel.Style=-63; $sel.TypeText('Catalogue fonctionnel de lʼERP'); $sel.TypeParagraph()
-  $sel.Font.Name='Calibri'; $sel.Font.Size=16; $sel.Font.Color=0x666666; $sel.TypeText('Hotel Metrics Pro Desktop'); $sel.TypeParagraph()
+  $sel.Font.Name='Calibri'; $sel.Font.Size=16; $sel.Font.Color=0x666666; $sel.TypeText('Raqmi System'); $sel.TypeParagraph()
   $sel.Font.Size=11; $sel.Font.Color=0x777777; $sel.ParagraphFormat.SpaceBefore=20; $sel.TypeText('Inventaire consolidé des fonctionnalités par module'); $sel.TypeParagraph()
   $sel.TypeText(('Édition du {0:dd MMMM yyyy}' -f (Get-Date))); $sel.TypeParagraph()
   $sel.InsertBreak(7)
@@ -56,7 +56,7 @@ try {
   $sel.SetRange($doc.Content.End-1,$doc.Content.End-1); $sel.InsertBreak(7)
 
   $sel.Style=-2; $sel.TypeText('Vue dʼensemble'); $sel.TypeParagraph()
-  $sel.Style=-1; $sel.TypeText("Hotel Metrics Pro est un ERP hôtelier et multi-activités couvrant lʼexploitation, les finances, les ressources humaines, la conformité, les opérations annexes et la gestion portuaire. La plateforme centralise les données des établissements, applique des circuits de validation et fournit des tableaux de bord adaptés aux fonctions de direction et dʼexploitation."); $sel.TypeParagraph()
+  $sel.Style=-1; $sel.TypeText("Raqmi System est un ERP hôtelier et multi-activités couvrant lʼexploitation, les finances, les ressources humaines, la conformité, les opérations annexes et la gestion portuaire. La plateforme centralise les données des établissements, applique des circuits de validation et fournit des tableaux de bord adaptés aux fonctions de direction et dʼexploitation."); $sel.TypeParagraph()
   $sel.TypeText("Les fonctions sont organisées autour de $($modules.Count) domaines fonctionnels. Les accès sont contrôlés par rôles et permissions ; les opérations sensibles alimentent le journal dʼaudit."); $sel.TypeParagraph()
   $sel.Style=-3; $sel.TypeText('Principes transverses'); $sel.TypeParagraph()
   foreach($item in @('Architecture desktop Electron avec interface React et base SQLite locale.','Gestion multi-établissements et filtrage par unité.','Workflows de validation, notifications et traçabilité.','Interface multilingue et préférences utilisateur.','Exports, rapports et indicateurs consolidés.','Sécurité par rôles, permissions, audit, sauvegarde et synchronisation.')){$sel.Style=-49;$sel.TypeText($item);$sel.TypeParagraph()}

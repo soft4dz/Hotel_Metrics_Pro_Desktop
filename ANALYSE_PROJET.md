@@ -1,8 +1,8 @@
-# Analyse du projet Hotel Metrics Pro Desktop
+# Analyse du projet Raqmi System
 
 ## Vue d'ensemble
 
-**Hotel Metrics Pro Desktop** est une application desktop métier de pilotage hôtelier et portuaire (module PortMaster), développée en **Electron + React + TypeScript** avec une base de données **SQLite** embarquée. Le projet est ambitieux — il couvre non seulement la gestion hôtelière classique (recettes, objectifs, dashboard), mais aussi un écosystème complet : RH avancé, facturation, trésorerie, hébergement, tarifs, GED, maintenance, stocks, achats, commercial, parking, plage, et anomalies.
+**Raqmi System** est une application desktop métier de pilotage hôtelier et portuaire (module PortMaster), développée en **Electron + React + TypeScript** avec une base de données **SQLite** embarquée. Le projet est ambitieux — il couvre non seulement la gestion hôtelière classique (recettes, objectifs, dashboard), mais aussi un écosystème complet : RH avancé, facturation, trésorerie, hébergement, tarifs, GED, maintenance, stocks, achats, commercial, parking, plage, et anomalies.
 
 > **Phase actuelle** : 8 (Sync, mouvements & recouvrement) | **Version** : 0.8.0
 
@@ -169,7 +169,7 @@ Aucun fichier GitHub Actions, GitLab CI, ou Azure DevOps visible. Le build et la
 
 ## Conclusion
 
-**Hotel Metrics Pro Desktop est un projet métier très impressionnant** par la richesse fonctionnelle et la couverture sectorielle (hôtel + port + RH + finance). Cependant, il a atteint un point où **la dette technique commence à freiner la vélocité** :
+**Raqmi System est un projet métier très impressionnant** par la richesse fonctionnelle et la couverture sectorielle (hôtel + port + RH + finance). Cependant, il a atteint un point où **la dette technique commence à freiner la vélocité** :
 - La duplication IPC est le problème #1 à résoudre
 - Le manque de tests est un risque pour la stabilité des releases
 - La taille du main process nécessite un refactoring

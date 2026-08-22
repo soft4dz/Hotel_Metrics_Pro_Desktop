@@ -130,7 +130,7 @@ export async function exportPdgReportMensuelXlsx(actorUserId: number, periode?: 
 
   const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Hotel Metrics Pro';
+  wb.creator = 'Raqmi System';
   wb.created = new Date();
 
   const synth = wb.addWorksheet('Synthèse CA');

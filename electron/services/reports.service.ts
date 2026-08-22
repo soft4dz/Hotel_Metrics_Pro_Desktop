@@ -349,7 +349,7 @@ async function writeExcel(
 ): Promise<ReportExportResult> {
   const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Hotel Metrics Pro';
+  wb.creator = 'Raqmi System';
   const sheet = wb.addWorksheet('Rapport');
   sheet.columns = columnDefs.map((c) => ({ header: c.label, key: c.key, width: c.width ?? 16 }));
   const headerRow = sheet.getRow(1);

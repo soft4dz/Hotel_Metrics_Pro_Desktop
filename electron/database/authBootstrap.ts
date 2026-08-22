@@ -13,7 +13,7 @@ const BOOTSTRAP_ACCOUNTS: Array<{
   roleCode: string;
 }> = [
   {
-    email: 'admin@hotelmetrics.local',
+    email: 'admin@raqmi.local',
     password: DEFAULT_ADMIN_PASSWORD,
     fullName: 'Super Administrateur',
     roleCode: 'SUPERADMIN',

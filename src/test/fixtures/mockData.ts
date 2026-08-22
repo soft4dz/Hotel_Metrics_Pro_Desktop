@@ -6,7 +6,7 @@ import { MODULES } from '@/modules/moduleCatalog';
 export const mockAdminUser: AuthUserDto = {
   id: 1,
   uuid: '00000000-0000-4000-8000-000000000001',
-  email: 'admin@hotelmetrics.local',
+  email: 'admin@raqmi.local',
   fullName: 'Administrateur test',
   role: 'ADMIN_DEC',
   roleLabel: 'Admin décisionnel',
@@ -75,9 +75,9 @@ export const mockDashboard: DashboardDto = {
 export const mockEnabledModuleIds = MODULES.map((m) => m.id);
 
 export const mockBranding = {
-  companyName: 'Hotel Metrics Pro Test',
+  companyName: 'Raqmi System Test',
   companyLogoUrl: null as string | null,
-  reportHeader: 'Hotel Metrics Pro - Rapport interne',
+  reportHeader: 'Raqmi System - Rapport interne',
   reportFooter: 'Document genere automatiquement',
   reportHeaderImageUrl: null as string | null,
   reportFooterImageUrl: null as string | null,

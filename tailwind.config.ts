@@ -17,8 +17,8 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
-        heading: ['"Fira Code"', '"Fira Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Manrope"', '"Noto Kufi Arabic"', '"Segoe UI"', 'system-ui', 'sans-serif'],
+        heading: ['"Manrope"', '"Noto Kufi Arabic"', '"Segoe UI"', 'system-ui', 'sans-serif'],
         mono: ['"Fira Code"', 'ui-monospace', 'monospace'],
       },
       colors: {
@@ -52,16 +52,16 @@ const config: Config = {
           foreground: 'hsl(var(--card-foreground))',
         },
         brand: {
-          night: '#0F172A',
-          navy: '#1E3A8A',
-          blue: '#3B82F6',
-          gold: '#CA8A04',
-          turquoise: '#0891B2',
+          night: '#071525',
+          navy: '#073B78',
+          blue: '#145CAB',
+          gold: '#0AA3AD',
+          turquoise: '#0AA3AD',
           success: '#16A34A',
           danger: '#DC2626',
           warning: '#F97316',
-          muted: '#F8FAFC',
-          text: '#334155',
+          muted: '#F4F7FA',
+          text: '#283746',
         },
         gold: {
           DEFAULT: 'hsl(var(--gold))',

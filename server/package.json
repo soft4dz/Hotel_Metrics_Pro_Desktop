@@ -1,7 +1,7 @@
 {
-  "name": "hotel-metrics-server",
+  "name": "raqmi-system-server",
   "version": "1.0.0",
-  "description": "Hotel Metrics Pro — API centrale NestJS + PostgreSQL",
+  "description": "Raqmi System — API centrale NestJS + PostgreSQL",
   "private": true,
   "scripts": {
     "build": "nest build",

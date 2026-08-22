@@ -1,4 +1,4 @@
-# Hotel Metrics Pro Desktop
+# Raqmi System
 
 Application desktop **offline-first** de pilotage hôtelier multi-établissements (Algérie), avec module marina **PortMaster** et suite **RH algérienne** (paie DZ, conformité, registres légaux).
 
@@ -39,7 +39,7 @@ Application desktop **offline-first** de pilotage hôtelier multi-établissement
 
 ## Présentation
 
-Hotel Metrics Pro Desktop centralise le pilotage d'un groupe hôtelier : recettes, trésorerie, facturation, hébergement (PMS), stocks, achats, qualité, RH et marina. L'application fonctionne **sans connexion Internet** : la base SQLite locale est la source de vérité.
+Raqmi System centralise le pilotage d'un groupe hôtelier : recettes, trésorerie, facturation, hébergement (PMS), stocks, achats, qualité, RH et marina. L'application fonctionne **sans connexion Internet** : la base SQLite locale est la source de vérité.
 
 **Points clés :**
 
@@ -101,7 +101,7 @@ Uniquement si vous déployez l'API NestJS + PostgreSQL pour la synchronisation m
 
 1. Télécharger l'installateur depuis `release/` (après `npm run dist`) ou depuis votre canal de distribution interne.
 2. Lancer l'installateur NSIS x64.
-3. Ouvrir **Hotel Metrics Pro** depuis le menu Démarrer ou le raccourci bureau.
+3. Ouvrir **Raqmi System** depuis le menu Démarrer ou le raccourci bureau.
 4. Se connecter avec un compte fourni par l'administrateur (voir [Première utilisation](#première-utilisation)).
 
 ### Développeur (sources)
@@ -138,7 +138,7 @@ Electron est fixé en **36.x** pour bénéficier des binaires précompilés sans
 
 | E-mail | Mot de passe | Rôle |
 |--------|--------------|------|
-| `admin@hotelmetrics.local` | `Admin@2026!` | SUPERADMIN |
+| `admin@raqmi.local` | `Admin@2026!` | SUPERADMIN |
 
 Ce compte est recréé/garanti au démarrage si absent (`electron/database/authBootstrap.ts`).
 
@@ -290,7 +290,7 @@ Hub Applications : `/portmaster` — sous-applications :
 
 **Seed démo :** au premier démarrage sur base vide, des emplacements, bateaux et contrats de démonstration sont créés automatiquement.
 
-**Compte port démo :** `port@hotelmetrics.local` — créé uniquement si le seed PortMaster s'exécute ; le **mot de passe est généré aléatoirement** et affiché **une fois dans les logs** du processus principal (console / fichier log). Changer le mot de passe à la première connexion.
+**Compte port démo :** `port@raqmi.local` — créé uniquement si le seed PortMaster s'exécute ; le **mot de passe est généré aléatoirement** et affiché **une fois dans les logs** du processus principal (console / fichier log). Changer le mot de passe à la première connexion.
 
 ---
 
@@ -426,7 +426,7 @@ npm run dist
 
 | Paramètre | Valeur |
 |-----------|--------|
-| `appId` | `com.hotelmetricspro.desktop` |
+| `appId` | `dz.raqmisystem.desktop` |
 | Architecture | x64 uniquement |
 | Raccourcis | Bureau + menu Démarrer |
 | Migrations SQL | embarquées dans `extraResources` |
@@ -552,4 +552,4 @@ Usage privé / projet métier — voir votre contrat de licence.
 
 ---
 
-**Hotel Metrics Pro** — Pilotage hôtelier & marina · Algérie
+**Raqmi System** — Pilotage hôtelier & marina · Algérie

@@ -1,6 +1,6 @@
 # Dossier de certification ERP — Raqmi System (Algérie)
 
-**Application :** Hotel Metrics Pro Desktop / Raqmi System  
+**Application :** Raqmi System
 **Version :** 0.8.0  
 **Date du dossier :** 24 juillet 2026  
 **Périmètre :** EGT Sidi Fredj — pilotage hôtelier multi-unités, marina PortMaster, RH algérienne, conformité légale Phases 1–3  
@@ -341,4 +341,4 @@ npm run generate:license PRO 2027-12-31
 
 ---
 
-**Hotel Metrics Pro / Raqmi System** — Dossier certification ERP Algérie v0.8.0
+**Raqmi System** — Dossier certification ERP Algérie v0.8.0

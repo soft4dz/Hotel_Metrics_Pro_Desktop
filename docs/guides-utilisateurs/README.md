@@ -1,4 +1,4 @@
-# Guides utilisateurs — Hotel Metrics Pro Desktop
+# Guides utilisateurs — Raqmi System
 
 Ce dossier regroupe les guides par profil utilisateur. L'objectif est simple : chaque utilisateur doit savoir quoi faire, où le faire, et ce qu'il ne doit surtout pas bricoler dans l'application.
 

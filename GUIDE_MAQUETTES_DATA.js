@@ -47,7 +47,7 @@ const SECTIONS = [
   desc: 'Écran d\'authentification avec e-mail, mot de passe et option « Se souvenir de moi ».',
   tags: ['auth'],
   html: `<div class="login-mock">
-    <div class="login-left"><div class="login-left-text"><h2>Hotel Metrics Pro</h2><p>Pilotage hôtelier & portuaire</p></div></div>
+    <div class="login-left"><div class="login-left-text"><h2>Raqmi System</h2><p>Pilotage hôtelier & portuaire</p></div></div>
     <div class="login-right">
       <h3>Connexion</h3><p>Accédez à votre espace de pilotage.</p>
       <div class="form-field" style="margin-bottom:.5rem"><div class="form-label">Adresse e-mail</div><div class="form-input">direction@hotel.dz</div></div>

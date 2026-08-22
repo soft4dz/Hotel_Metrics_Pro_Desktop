@@ -1,4 +1,4 @@
-# Hotel Metrics Pro — API Centrale (NestJS + PostgreSQL)
+# Raqmi System — API Centrale (NestJS + PostgreSQL)
 
 ## Prérequis
 
@@ -39,7 +39,7 @@ CREATE DATABASE hotel_metrics_pro;
 npx prisma migrate dev --name init
 npx prisma generate
 npm run db:seed
-# → admin@hotelmetrics.local / Admin@2025! (à changer à la 1ère connexion)
+# → admin@raqmi.local / Admin@2025! (à changer à la 1ère connexion)
 ```
 
 ### 5. Démarrer

@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
-title Hotel Metrics Pro - Mode developpement
+title Raqmi System - Mode developpement
 
 cd /d "%~dp0"
 if errorlevel 1 (
@@ -36,7 +36,7 @@ if not errorlevel 1 (
 
 echo.
 echo  ============================================
-echo   Hotel Metrics Pro Desktop — TEST DEV
+echo   Raqmi System — TEST DEV
 echo  ============================================
 echo.
 
@@ -98,8 +98,8 @@ echo [INFO] Demarrage Electron + Vite ^(npm run dev^)...
 echo.
 echo  - Fenetre Electron : application complete
 echo  - Ne pas utiliser seulement le navigateur Chrome
-echo  - Auto-connexion dev : admin@hotelmetrics.local ^(desactiver : set VITE_AUTO_LOGIN=false^)
-echo  - Connexion manuelle : dec@egt-sidifredj.dz  ou  admin@hotelmetrics.local / Admin@2026!
+echo  - Auto-connexion dev : admin@raqmi.local ^(desactiver : set VITE_AUTO_LOGIN=false^)
+echo  - Connexion manuelle : dec@egt-sidifredj.dz  ou  admin@raqmi.local / Admin@2026!
 echo  - Si echec connexion : fermez l'app puis lancez fix-auth.bat
 echo.
 echo  Arret : fermez la fenetre Electron ou Ctrl+C ici

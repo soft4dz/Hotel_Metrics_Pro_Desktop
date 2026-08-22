@@ -1,6 +1,6 @@
 # Phase 5 — Complétude modules MVP & chaîne exploitation
 
-**Application :** Hotel Metrics Pro Desktop / Raqmi System v0.8.0  
+**Application :** Raqmi System v0.8.0
 **Prérequis :** Phases 1–3 validées (`npm run validate:certification` OK)  
 **Objectif :** Passer de ~72 % à ~85 % de complétude ERP exploitation en combinant les 10 lacunes P1 identifiées dans l’audit module par module.
 

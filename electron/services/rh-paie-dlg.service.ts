@@ -561,7 +561,7 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
   writeFileSync(
     readmeFile,
     [
-      'PASSERELLE Hotel Metrics Pro → DLG PC PAIE',
+      'PASSERELLE Raqmi System → DLG PC PAIE',
       `Période : ${periode}`,
       `Généré le : ${new Date().toISOString()}`,
       '',
@@ -588,7 +588,7 @@ export function exportVersDlg(actorUserId: number, periode: string): RhDlgExchan
     manifestFile,
     JSON.stringify(
       {
-        source: 'Hotel_Metrics_Pro',
+        source: 'Raqmi_System',
         target: 'DLG_PC_PAIE',
         periode,
         fichiers: ['SALARIES.csv', path.basename(variablesFile)],

@@ -449,5 +449,5 @@ export function getPageTitle(pathname: string): { title: string; subtitle?: stri
     return { title: 'Détail facture', subtitle: `Facture #${facturationDetail[1]}` };
   }
 
-  return { title: 'Hotel Metrics Pro', subtitle: undefined };
+  return { title: 'Raqmi System', subtitle: undefined };
 }

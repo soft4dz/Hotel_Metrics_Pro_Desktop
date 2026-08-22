@@ -27,7 +27,7 @@ for (const u of users) {
 
 // Test passwords
 const tests = [
-  ['admin@hotelmetrics.local', 'Admin@2026!'],
+  ['admin@raqmi.local', 'Admin@2026!'],
   ['dec@egt-sidifredj.dz', 'Admin@2026!'],
   ['dec@egt-sidifredj.dz', 'password'],
   ['dec@egt-sidifredj.dz', 'Dec@2026!'],

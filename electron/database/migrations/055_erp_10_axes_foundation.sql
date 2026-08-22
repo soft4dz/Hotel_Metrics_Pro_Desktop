@@ -1,5 +1,5 @@
 -- Migration 055 : Fondation ERP — 10 axes d'amélioration
--- Objectif : poser les tables transversales nécessaires pour transformer Hotel Metrics Pro
+-- Objectif : poser les tables transversales nécessaires pour structurer Raqmi System
 -- en ERP opérationnel EGT Sidi Fredj : cockpit DEC, clôture journalière,
 -- workflows, créances globales, fiches de poste, checklists, rapprochement,
 -- reporting directionnel, sauvegarde/sync et suivi de mise en œuvre.

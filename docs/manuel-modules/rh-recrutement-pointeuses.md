@@ -59,7 +59,7 @@ Ouverte au clic sur une carte/ligne : coordonnées, offre, source, actions d'ava
 
 Note : cette fonction agit sur le flux « recrutement » historique (`rh:recrutements:valider`) ; le flux ATS pipeline utilisé par `RecrutementsTab` (`rh:ats:candidatures:avancer`) suit une logique d'avancement d'étape équivalente jusqu'à l'étape `embauche`. Dans les deux cas, l'embauche déclenche :
 1. Résolution du **rôle système** associé au poste (`role_system_associe` sur `rh_postes`) — erreur si aucun rôle correspondant n'existe.
-2. Génération d'un e-mail par défaut si absent (`prenom.nom@hotelmetrics.local`), rejet si e-mail invalide ou déjà utilisé par un compte existant.
+2. Génération d'un e-mail par défaut si absent (`prenom.nom@raqmi.local`), rejet si e-mail invalide ou déjà utilisé par un compte existant.
 3. Création de la **fiche employé** (`rh_employes`, statut `actif`, date d'embauche = aujourd'hui) et initialisation de son onboarding.
 4. Création d'un **compte utilisateur en attente d'activation** (`account_status = 'en_attente'`, mot de passe temporaire à changer à la première connexion) lié à l'employé.
 5. Création d'un **contrat CDI** par défaut (35 h hebdo, salaire = salaire minimum du poste).

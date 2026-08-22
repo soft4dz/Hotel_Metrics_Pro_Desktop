@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/auth.store';
-import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { APP_BILINGUAL_URL } from '@/lib/logos';
 import { DEFAULT_HOME_PATH } from '@/shared/constants/routes';
 import { ipcClient } from '@/lib/ipcClient';
 import { DEMO_PROFILE_PASSWORD } from '@/shared/constants/demoProfileAccounts';
@@ -23,7 +23,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { logoUrl, companyName } = useCompanyBranding();
   const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
@@ -92,13 +91,12 @@ export function LoginPage() {
   return (
     <Card className="border-border/80 shadow-elevated">
       <CardHeader className="space-y-1 pb-2">
-        <div className="mb-3 flex items-center gap-2 lg:hidden">
+        <div className="mb-4 lg:hidden">
           <img
-            src={logoUrl}
-            alt={companyName}
-            className="h-10 w-10 rounded-lg object-contain"
+            src={APP_BILINGUAL_URL}
+            alt="Raqmi System"
+            className="h-20 w-60 object-contain object-left"
           />
-          <span className="font-heading font-semibold text-primary">{companyName}</span>
         </div>
         <CardTitle className="text-2xl text-foreground">{t('Connexion')}</CardTitle>
         <CardDescription>
@@ -180,7 +178,7 @@ export function LoginPage() {
               <p>
                 <strong className="text-foreground">{t('Comptes administrateur')}</strong>
                 <br />
-                <span className="text-foreground">admin@hotelmetrics.local</span> — mot de passe initial
+                <span className="text-foreground">admin@raqmi.local</span> — mot de passe initial
                 dans <span className="font-mono">INITIAL_ADMIN_CREDENTIALS.txt</span>
               </p>
 

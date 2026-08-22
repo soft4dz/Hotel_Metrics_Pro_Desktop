@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Hotel Metrics Pro — Restauration des données
+title Raqmi System — Restauration des données
 
 cd /d "%~dp0"
 
@@ -21,7 +21,7 @@ if not exist "%BACKUP%" (
 
 echo.
 echo  ============================================
-echo   Restauration Hotel Metrics Pro
+echo   Restauration Raqmi System
 echo  ============================================
 echo.
 echo  Sauvegarde : %BACKUP%

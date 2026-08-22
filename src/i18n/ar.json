@@ -576,7 +576,7 @@
   "CC 100%)": "CC 100%)",
   "CDD ≤ 60 j": "عقد محدد المدة ≥ 60 يومًا",
   "ce module": "هذه الوحدة",
-  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "تعد هذه الوحدة جزءًا من بنية الإدارة المترابطة لـ Hotel Metrics Pro. يتم توضيح حالتها الفعلية أدناه من أجل التمييز بين الوحدات التشغيلية والوحدات التي سيتم تطويرها.",
+  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Raqmi System. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "تعد هذه الوحدة جزءًا من بنية الإدارة المترابطة لنظام رقمي سيستم. يتم توضيح حالتها الفعلية أدناه من أجل التمييز بين الوحدات التشغيلية والوحدات التي سيتم تطويرها.",
   "Ce mois est verrouillé — plus de modification possible.": "هذا الشهر مغلق - لا توجد تغييرات ممكنة.",
   "cell-": "خلية-",
   "center": "مركز",
@@ -1487,7 +1487,7 @@
   "Hôtel *": "الفندق *",
   "Hôtel et dates sont obligatoires.": "الفندق والتواريخ مطلوبة.",
   "Hôtel introuvable": "لم يتم العثور على الفندق",
-  "Hotel Metrics Pro": "فندق ميتريكس برو",
+  "Raqmi System": "رقمي سيستم",
   "Hôtellerie & tourisme": "الضيافة والسياحة",
   "Hôtels / unités": "الفنادق/الوحدات",
   "Housekeeping": "التدبير المنزلي",
@@ -3099,5 +3099,7 @@
   "Workflows": "سير العمل",
   "Workflows en attente": "سير العمل المعلق",
   "XX XXXX XXXX XXXX XXXX XXXX XX": "×××××××××××××××××××××××××",
-  "Zones, types et paramètres": "المناطق والأنواع والمعلمات"
+  "Zones, types et paramètres": "المناطق والأنواع والمعلمات",
+  "Un système.": "نظام واحد.",
+  "Toute votre entreprise.": "مؤسستك بالكامل."
 }

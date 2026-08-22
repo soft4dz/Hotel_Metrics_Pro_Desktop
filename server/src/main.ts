@@ -21,7 +21,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   const swagger = new DocumentBuilder()
-    .setTitle('Hotel Metrics Pro API')
+    .setTitle('Raqmi System API')
     .setDescription('API centrale — système d\'information hôtelier')
     .setVersion('1.0')
     .addBearerAuth()
@@ -31,7 +31,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`Hotel Metrics API running on http://localhost:${port}/api/v1`);
+  console.log(`Raqmi System API running on http://localhost:${port}/api/v1`);
   console.log(`Swagger docs at http://localhost:${port}/api/docs`);
 }
 

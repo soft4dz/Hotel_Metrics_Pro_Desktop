@@ -1,6 +1,6 @@
 # Phase 3 — Certification, conformité avancée & industrialisation
 
-**Application :** Hotel Metrics Pro Desktop v0.8.0  
+**Application :** Raqmi System v0.8.0
 **Prérequis :** Phases 1 et 2 validées
 
 ## Lot 1 — Conformité Loi 18-07 / ANPDP (livré)

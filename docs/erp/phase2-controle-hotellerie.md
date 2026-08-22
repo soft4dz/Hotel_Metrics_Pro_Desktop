@@ -2,7 +2,7 @@
 
 > **Document déplacé** — voir le document canonique : [`phase2-controle-hotellerie-archivage.md`](./phase2-controle-hotellerie-archivage.md)
 
-**Application :** Hotel Metrics Pro Desktop v0.8.0  
+**Application :** Raqmi System v0.8.0
 **Prérequis :** Phase 1 conformité légale validée (`docs/erp/phase1-conformite-legale.md`)
 
 ## Objectif

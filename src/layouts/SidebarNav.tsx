@@ -312,6 +312,7 @@ export function SidebarNav({
   const {
     modules,
     brandLogoUrl,
+    brandWordmarkUrl,
     openModuleId,
     flyoutModuleId,
     handleToggle,
@@ -339,16 +340,12 @@ export function SidebarNav({
       >
         {!collapsed ? (
           <>
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center">
               <img
-                src={brandLogoUrl}
+                src={brandWordmarkUrl}
                 alt="Raqmi System"
-                className="h-8 w-8 shrink-0 rounded-lg object-contain ring-1 ring-white/20"
+                className="h-11 w-[164px] shrink-0 object-contain object-left"
               />
-              <div className="min-w-0 sidebar-nav-label">
-                <p className="truncate text-sm font-bold text-white">Raqmi System</p>
-                <p className="text-[11px] text-white/50">Pro Desktop</p>
-              </div>
             </div>
             {showCollapseControl && onToggleCollapse && (
               <button

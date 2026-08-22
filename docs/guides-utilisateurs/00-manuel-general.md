@@ -2,7 +2,7 @@
 
 ## Bienvenue
 
-Ce manuel regroupe l'ensemble des guides par profil utilisateur pour **Raqmi System** (Hotel Metrics Pro Desktop). Chaque guide décrit les accès autorisés, les tâches quotidiennes et les procédures pas à pas.
+Ce manuel regroupe l'ensemble des guides par profil utilisateur pour **Raqmi System** (Raqmi System). Chaque guide décrit les accès autorisés, les tâches quotidiennes et les procédures pas à pas.
 
 ## Comment utiliser ce module
 

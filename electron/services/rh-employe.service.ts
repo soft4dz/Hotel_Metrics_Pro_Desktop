@@ -330,7 +330,7 @@ export function validerRecrutement(actorUserId: number, recrutementId: number): 
 
   const prenom = (rec.candidat_prenom as string) || '';
   const nom = rec.candidat_nom as string;
-  const emailRaw = (rec.candidat_email as string) || `${prenom}.${nom}@hotelmetrics.local`.toLowerCase().replace(/\s+/g, '.');
+  const emailRaw = (rec.candidat_email as string) || `${prenom}.${nom}@raqmi.local`.toLowerCase().replace(/\s+/g, '.');
   if (!isValidEmail(emailRaw)) throw new Error('E-mail candidat invalide.');
 
   const email = normalizeEmail(emailRaw);

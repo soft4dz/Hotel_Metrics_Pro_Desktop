@@ -48,7 +48,7 @@ const DEV_AUTO_ADMIN_ACTOR =
   process.env.HMP_DEV_AUTO_ADMIN === '1' ||
   (process.env.NODE_ENV !== 'production' && process.env.HMP_DEV_AUTO_ADMIN !== '0');
 
-const DEV_ADMIN_EMAIL = 'admin@hotelmetrics.local';
+const DEV_ADMIN_EMAIL = 'admin@raqmi.local';
 
 let cachedDevAdminUserId: number | null | undefined;
 

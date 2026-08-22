@@ -1,4 +1,4 @@
-# Hotel Metrics Pro Desktop — lancement mode développement (test)
+# Raqmi System — lancement mode développement (test)
 # Usage : clic droit > Exécuter avec PowerShell
 #         ou : .\dev.ps1
 
@@ -8,7 +8,7 @@ Set-Location $ProjectRoot
 
 Write-Host ""
 Write-Host " ============================================" -ForegroundColor Cyan
-Write-Host "  Hotel Metrics Pro Desktop — TEST DEV" -ForegroundColor Cyan
+Write-Host "  Raqmi System — TEST DEV" -ForegroundColor Cyan
 Write-Host " ============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -39,8 +39,8 @@ $env:HMP_DEV_AUTO_ADMIN = "1"
 Write-Host "[INFO] Démarrage Electron + Vite avec auto-connexion admin..." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  - Fenetre Electron = application complete"
-Write-Host "  - Connexion test  : admin@hotelmetrics.local"
-Write-Host "  - Auto-connexion  : admin@hotelmetrics.local"
+Write-Host "  - Connexion test  : admin@raqmi.local"
+Write-Host "  - Auto-connexion  : admin@raqmi.local"
 Write-Host "  - Arrêt           : fermer Electron ou Ctrl+C"
 Write-Host ""
 

@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
 const DEFAULT_PASSWORD = 'Admin@2026!';
-const SUPERADMIN_EMAIL = 'admin@hotelmetrics.local';
+const SUPERADMIN_EMAIL = 'admin@raqmi.local';
 
 const DB_CANDIDATES = [
   path.join(process.env.APPDATA ?? '', 'hotel-metrics-pro-desktop', 'data', 'hotel_metrics_local.db'),

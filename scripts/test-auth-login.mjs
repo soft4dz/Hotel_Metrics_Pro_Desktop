@@ -10,7 +10,7 @@ sqlite.initDatabase();
 authBootstrap.ensureBootstrapAuthAccounts();
 
 for (const [email, pwd] of [
-  ['admin@hotelmetrics.local', 'Admin@2026!'],
+  ['admin@raqmi.local', 'Admin@2026!'],
   ['dec@egt-sidifredj.dz', 'Admin@2026!'],
 ]) {
   const r = authService.login(email, pwd);

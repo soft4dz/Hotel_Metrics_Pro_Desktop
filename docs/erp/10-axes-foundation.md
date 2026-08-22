@@ -2,7 +2,7 @@
 
 Ce document décrit les 10 axes d'amélioration posés dans la migration `055_erp_10_axes_foundation.sql` et le catalogue TypeScript `src/shared/erpImprovementCatalog.ts`.
 
-L'objectif n'est pas d'empiler de nouveaux écrans sans logique métier. L'objectif est de transformer Hotel Metrics Pro Desktop en ERP interne cohérent pour l'EGT Sidi Fredj : données communes, workflow commun, clôture journalière, pilotage DEC/PDG et traçabilité.
+L'objectif n'est pas d'empiler de nouveaux écrans sans logique métier. L'objectif est de transformer Raqmi System en ERP interne cohérent pour l'EGT Sidi Fredj : données communes, workflow commun, clôture journalière, pilotage DEC/PDG et traçabilité.
 
 ---
 

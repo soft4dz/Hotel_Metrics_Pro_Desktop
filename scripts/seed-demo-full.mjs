@@ -510,10 +510,10 @@ function seedPort(db) {
 function seedAssignDemoUsers(db, hotels) {
   const hotel = hotels.find((h) => h.code === 'AZUR') ?? hotels[0];
   const emails = [
-    'directeur@demo.hotelmetrics.local',
-    'controleur@demo.hotelmetrics.local',
-    'compta@demo.hotelmetrics.local',
-    'reception@demo.hotelmetrics.local',
+    'directeur@demo.raqmi.local',
+    'controleur@demo.raqmi.local',
+    'compta@demo.raqmi.local',
+    'reception@demo.raqmi.local',
   ];
   const upd = db.prepare(`UPDATE users SET hotel_id = ? WHERE email = ? COLLATE NOCASE AND deleted_at IS NULL`);
   let n = 0;
@@ -797,7 +797,7 @@ console.log('DB:', dbPath);
 const db = new Database(dbPath);
 applyMigrations(db);
 
-const admin = db.prepare(`SELECT id FROM users WHERE email = 'admin@hotelmetrics.local' COLLATE NOCASE AND deleted_at IS NULL`).get();
+const admin = db.prepare(`SELECT id FROM users WHERE email = 'admin@raqmi.local' COLLATE NOCASE AND deleted_at IS NULL`).get();
 const adminId = admin?.id ?? db.prepare(`SELECT id FROM users WHERE deleted_at IS NULL AND is_active = 1 ORDER BY id LIMIT 1`).get()?.id ?? null;
 
 console.log('\n=== Seed démo complet ===\n');

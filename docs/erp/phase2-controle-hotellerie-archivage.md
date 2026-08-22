@@ -1,6 +1,6 @@
 # Phase 2 — Contrôle interne, hôtellerie légale & archivage
 
-**Application :** Hotel Metrics Pro Desktop v0.8.0  
+**Application :** Raqmi System v0.8.0
 **Prérequis :** Phase 1 conformité légale validée (`docs/erp/phase1-conformite-legale.md`)
 
 > Document canonique Phase 2. L’ancien fichier `phase2-controle-hotellerie.md` est conservé comme alias historique.

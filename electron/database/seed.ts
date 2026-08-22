@@ -136,7 +136,7 @@ export function runSeedIfNeeded(): void {
     )
   `).run({
     uuid: randomUUID(),
-    email: 'admin@hotelmetrics.local',
+    email: 'admin@raqmi.local',
     password_hash: passwordHash,
     full_name: 'Administrateur système',
     role_id: adminRoleIdFinal,
@@ -146,10 +146,10 @@ export function runSeedIfNeeded(): void {
   writeFileSync(
     credFile,
     [
-      'Hotel Metrics Pro — identifiants administrateur initial',
+      'Raqmi System — identifiants administrateur initial',
       '======================================================',
       '',
-      'E-mail    : admin@hotelmetrics.local',
+      'E-mail    : admin@raqmi.local',
       `Mot de passe : ${DEFAULT_ADMIN_PASSWORD}`,
       '',
       'IMPORTANT : changez ce mot de passe à la première connexion.',
@@ -171,5 +171,5 @@ export function runSeedIfNeeded(): void {
     INSERT OR REPLACE INTO app_settings (key, value) VALUES ('lockout_minutes', '15')
   `).run();
 
-  logger.info(`Seed terminé — admin@hotelmetrics.local créé. Identifiants : ${credFile}`);
+  logger.info(`Seed terminé — admin@raqmi.local créé. Identifiants : ${credFile}`);
 }

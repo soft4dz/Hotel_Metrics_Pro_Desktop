@@ -21,6 +21,8 @@ const EDITION_MODULE_ALLOWLIST: Record<LicenseEdition, ReadonlySet<ConfiguredMod
     'facturation',
     'clients',
     'encaissements-tresorerie',
+    'comptabilite-scf',
+    'fiscalite-dgi',
     'audit-controle-interne',
     'alertes-notifications',
     'tableaux-bord-directionnels',

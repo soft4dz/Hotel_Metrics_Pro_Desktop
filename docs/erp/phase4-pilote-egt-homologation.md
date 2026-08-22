@@ -1,6 +1,6 @@
 # Phase 4 — Pilote EGT Sidi Fredj & homologation externe
 
-**Application :** Hotel Metrics Pro Desktop / Raqmi System v0.8.0  
+**Application :** Raqmi System v0.8.0
 **Prérequis :** Phases 1, 2 et 3 validées + dossier `CERTIFICATION_ERP_ALGERIE.md`  
 **Objectif :** Déployer en pilote contrôlé, obtenir les visas métier externes, combler les écarts résiduels, préparer la mise en production généralisée EGT.
 

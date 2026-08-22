@@ -26,7 +26,7 @@ function hmp_valid_sync_item(mixed $item): bool
 if ($method === 'GET' && $route === 'health') {
     hmp_json(200, [
         'ok' => true,
-        'service' => 'hotel-metrics-api',
+        'service' => 'raqmi-system-api',
         'version' => '0.9.0',
     ]);
 }

@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
-title Hotel Metrics Pro — Envoi vers GitHub
+title Raqmi System — Envoi vers GitHub
 
 cd /d "%~dp0"
 if errorlevel 1 (
@@ -51,7 +51,7 @@ if %HAS_UNSTAGED%==0 if %HAS_STAGED%==0 (
 )
 
 set /p MSG=Message de commit : 
-if "!MSG!"=="" set MSG=Mise a jour Hotel Metrics Pro Desktop
+if "!MSG!"=="" set MSG=Mise a jour Raqmi System
 
 git add -A
 git commit -m "%MSG%"

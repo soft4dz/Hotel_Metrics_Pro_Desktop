@@ -30,7 +30,7 @@ const DEFAULT_SETTINGS: AppSettingsDto = {
   autoBackupTime: '18:00',
   backupRetentionCount: 30,
   auditEnabled: true,
-  reportHeader: 'Hotel Metrics Pro - Rapport interne',
+  reportHeader: 'Raqmi System - Rapport interne',
   reportFooter: 'Document généré automatiquement',
   companyLogoFile: null,
   companyLogoUrl: null,

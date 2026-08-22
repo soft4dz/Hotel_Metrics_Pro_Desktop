@@ -576,7 +576,7 @@
   "CC 100%)": "CC 100%)",
   "CDD ≤ 60 j": "Fixed-term contract ≤ 60 days",
   "ce module": "this module",
-  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "This module is part of the interconnected management architecture of Hotel Metrics Pro. Its actual state is indicated below in order to distinguish operational modules from modules to be developed.",
+  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Raqmi System. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "This module is part of the interconnected management architecture of Raqmi System. Its actual state is indicated below in order to distinguish operational modules from modules to be developed.",
   "Ce mois est verrouillé — plus de modification possible.": "This month is locked — no changes possible.",
   "cell-": "cell-",
   "center": "center",
@@ -1487,7 +1487,7 @@
   "Hôtel *": "Hotel *",
   "Hôtel et dates sont obligatoires.": "Hotel and dates are required.",
   "Hôtel introuvable": "Hotel not found",
-  "Hotel Metrics Pro": "Hotel Metrics Pro",
+  "Raqmi System": "Raqmi System",
   "Hôtellerie & tourisme": "Hospitality & tourism",
   "Hôtels / unités": "Hotels/units",
   "Housekeeping": "Housekeeping",
@@ -3099,5 +3099,7 @@
   "Workflows": "Workflows",
   "Workflows en attente": "Pending workflows",
   "XX XXXX XXXX XXXX XXXX XXXX XX": "XX XXXX XXXX XXXX XXXX XXXX XX",
-  "Zones, types et paramètres": "Zones, types and parameters"
+  "Zones, types et paramètres": "Zones, types and parameters",
+  "Un système.": "One system.",
+  "Toute votre entreprise.": "Your entire business."
 }

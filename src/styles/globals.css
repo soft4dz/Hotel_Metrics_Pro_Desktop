@@ -9,34 +9,34 @@
     --layout-px: 0.625rem;
     --layout-py: 0.5rem;
     --section-gap: 0.75rem;
-    --background: 220 20% 97%;
-    --foreground: 222 47% 10%;
+    --background: 210 37% 97%;
+    --foreground: 212 68% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 212 68% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 212 68% 9%;
+    --primary: 212 89% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 36% 94%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 214 32% 95%;
+    --secondary: 210 37% 94%;
+    --secondary-foreground: 212 68% 9%;
+    --muted: 210 37% 95%;
     --muted-foreground: 215 16% 47%;
-    --accent: 192 82% 35%;
+    --accent: 184 89% 36%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 16% 90%;
     --input: 220 16% 90%;
-    --ring: 221 83% 53%;
+    --ring: 184 89% 36%;
     --radius: 0.75rem;
-    --sidebar: 221 83% 53%;
-    --sidebar-from: 221 83% 12%;
-    --sidebar-via: 221 83% 40%;
-    --sidebar-to: 221 83% 22%;
-    --gold: 43 74% 42%;
+    --sidebar: 212 89% 25%;
+    --sidebar-from: 212 68% 9%;
+    --sidebar-via: 212 89% 25%;
+    --sidebar-to: 211 79% 17%;
+    --gold: 184 89% 36%;
     --gold-foreground: 0 0% 100%;
     --chart-primary: hsl(var(--primary));
-    --chart-secondary: hsl(217 91% 60%);
+    --chart-secondary: hsl(211 79% 37%);
     --chart-accent: hsl(var(--accent));
     --chart-gold: hsl(var(--gold));
     --chart-success: #16A34A;
@@ -48,13 +48,13 @@
   }
 
   .accent-navy {
-    --primary: 224 64% 31%;
+    --primary: 212 89% 25%;
     --primary-foreground: 210 40% 98%;
-    --ring: 224 64% 33%;
-    --sidebar: 224 64% 18%;
-    --sidebar-from: 222 47% 11%;
-    --sidebar-via: 224 64% 33%;
-    --sidebar-to: 224 64% 18%;
+    --ring: 184 89% 36%;
+    --sidebar: 212 89% 25%;
+    --sidebar-from: 212 68% 9%;
+    --sidebar-via: 212 89% 25%;
+    --sidebar-to: 211 79% 17%;
   }
   .accent-blue { --primary: 217 91% 60%; --primary-foreground: 0 0% 100%; --ring: 217 91% 60%; --sidebar: 217 91% 22%; --sidebar-from: 217 91% 12%; --sidebar-via: 217 91% 45%; --sidebar-to: 217 91% 22%; }
   .accent-violet { --primary: 262 83% 58%; --primary-foreground: 0 0% 100%; --ring: 262 83% 58%; --sidebar: 262 83% 18%; --sidebar-from: 262 83% 10%; --sidebar-via: 262 83% 42%; --sidebar-to: 262 83% 18%; }

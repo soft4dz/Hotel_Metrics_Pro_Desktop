@@ -126,6 +126,7 @@ function createWindow(): void {
     minWidth: 1100,
     minHeight: 700,
     show: false,
+    backgroundColor: '#071525',
     autoHideMenuBar: true,
     title: APP_DISPLAY_NAME,
     webPreferences: {

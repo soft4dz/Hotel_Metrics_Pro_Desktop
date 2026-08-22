@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { getDatabase } from './sqlite';
 import { logger } from '../utils/logger';
 
-const PORT_DEMO_EMAIL = 'port@hotelmetrics.local';
+const PORT_DEMO_EMAIL = 'port@raqmi.local';
 
 function generateDemoPassword(): string {
   return `Port-${randomBytes(8).toString('base64url')}!1`;
@@ -197,7 +197,7 @@ export function runPortSeedIfNeeded(): void {
     | { id: number }
     | undefined;
   const hasPortUser = db
-    .prepare(`SELECT 1 FROM users WHERE email = 'port@hotelmetrics.local' COLLATE NOCASE`)
+    .prepare(`SELECT 1 FROM users WHERE email = 'port@raqmi.local' COLLATE NOCASE`)
     .get();
   if (rolePort && !hasPortUser) {
     const demoPassword = generateDemoPassword();

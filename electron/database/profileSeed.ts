@@ -119,7 +119,7 @@ function writeDemoCredentialsFile(): void {
     '',
     `Mot de passe commun : ${DEMO_PROFILE_PASSWORD}`,
     '',
-    'Compte admin initial : admin@hotelmetrics.local (voir INITIAL_ADMIN_CREDENTIALS.txt)',
+    'Compte admin initial : admin@raqmi.local (voir INITIAL_ADMIN_CREDENTIALS.txt)',
     '',
     'Profils métier :',
     ...DEMO_PROFILE_ACCOUNTS.map((a) => `  ${a.email.padEnd(36)} ${a.roleCode}`),

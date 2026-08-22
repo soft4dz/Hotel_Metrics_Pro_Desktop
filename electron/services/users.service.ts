@@ -349,7 +349,7 @@ export function deactivateUser(actorUserId: number, id: number, reason: string):
   const existing = getUser(actorUserId, id);
   if (!existing) throw new Error('Utilisateur introuvable.');
 
-  if (existing.email === 'admin@hotelmetrics.local') {
+  if (existing.email === 'admin@raqmi.local') {
     throw new Error('Le compte administrateur système ne peut pas être désactivé.');
   }
 

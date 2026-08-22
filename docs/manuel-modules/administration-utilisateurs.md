@@ -58,7 +58,7 @@ Guide utilisateur associé : [`01-super-admin.md`](../guides-utilisateurs/01-sup
 
 **Activer un compte en attente** : bouton « Activer le compte » → `ipcClient.users.activatePending` → `users:activatePending` → passe `account_status` à `actif` et `is_active` à 1.
 
-**Désactiver un utilisateur** : motif obligatoire → `ipcClient.users.deactivate` → `users:deactivate` → `deactivateUser()` : refuse l'auto-désactivation, refuse la désactivation du compte système `admin@hotelmetrics.local`, exige un SUPERADMIN pour désactiver un autre SUPERADMIN ; effectue une suppression logique (`deleted_at`, `sync_status = pending_delete`).
+**Désactiver un utilisateur** : motif obligatoire → `ipcClient.users.deactivate` → `users:deactivate` → `deactivateUser()` : refuse l'auto-désactivation, refuse la désactivation du compte système `admin@raqmi.local`, exige un SUPERADMIN pour désactiver un autre SUPERADMIN ; effectue une suppression logique (`deleted_at`, `sync_status = pending_delete`).
 
 **Créer/modifier un hôtel** : `ipcClient.hotels.create` / `hotels.update` → `hotels:create` / `hotels:update` → vérifie l'unicité du code, met à jour `hotel_rubriques` si des rubriques sont transmises.
 
@@ -84,7 +84,7 @@ Aucune règle fiscale/légale algérienne spécifique à ce module. La politique
 
 - **« Seul un super-administrateur peut créer/modifier/désactiver ce compte »** : le compte ciblé (ou le rôle demandé) est SUPERADMIN et l'acteur connecté a le rôle ADMIN_DEC ou un autre rôle — connectez-vous avec un compte SUPERADMIN.
 - **« Vous ne pouvez pas désactiver votre propre compte »** : protection anti-verrouillage — désactivation à faire par un autre administrateur.
-- **« Le compte administrateur système ne peut pas être désactivé »** : le compte `admin@hotelmetrics.local` est protégé en dur dans `users.service.ts`.
+- **« Le compte administrateur système ne peut pas être désactivé »** : le compte `admin@raqmi.local` est protégé en dur dans `users.service.ts`.
 - **« Ce code hôtel existe déjà » / « Cet e-mail est déjà utilisé »** : contrainte d'unicité vérifiée côté service (pas seulement en base) — choisir un code/e-mail distinct.
 - **« Le siège ne peut pas être supprimé » / « Des utilisateurs sont rattachés à cet hôtel »** : détacher ou désactiver d'abord les comptes utilisateurs liés avant de désactiver un hôtel.
 - **Rôle SUPERADMIN absent de la liste déroulante à la création d'utilisateur** : normal si l'acteur connecté n'est pas lui-même SUPERADMIN (`UserFormPage.tsx` filtre `roles` sur `r.code !== 'SUPERADMIN'`).

@@ -1,6 +1,6 @@
 # Phase 9 — Stabilisation production
 
-Ce document fixe les corrections prioritaires avant un déploiement réel de Hotel Metrics Pro Desktop.
+Ce document fixe les corrections prioritaires avant un déploiement réel de Raqmi System.
 
 ## Objectif
 

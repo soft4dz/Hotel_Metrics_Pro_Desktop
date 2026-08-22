@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { MODULES, MODULE_GROUPS } from '@/modules/moduleCatalog';
+import { CONFIGURED_MODULE_IDS } from '@/shared/constants/configuredModules';
 
 describe('moduleCatalog', () => {
-  it('contient au moins 25 modules', () => {
-    expect(MODULES.length).toBeGreaterThanOrEqual(25);
+  it('contient les 49 modules du catalogue consolidé', () => {
+    expect(MODULES).toHaveLength(49);
   });
 
   it('a des identifiants uniques', () => {
@@ -26,6 +27,17 @@ describe('moduleCatalog', () => {
   it('a un ordre strictement positif', () => {
     for (const mod of MODULES) {
       expect(mod.order).toBeGreaterThan(0);
+    }
+  });
+
+  it('aligne exactement le catalogue et les modules configurables', () => {
+    expect(new Set(CONFIGURED_MODULE_IDS)).toEqual(new Set(MODULES.map((module) => module.id)));
+  });
+
+  it('décrit les fonctions rattachées aux modules métier', () => {
+    for (const mod of MODULES) {
+      expect(mod.capabilities?.length).toBeGreaterThan(0);
+      expect(new Set(mod.capabilities).size).toBe(mod.capabilities?.length);
     }
   });
 });

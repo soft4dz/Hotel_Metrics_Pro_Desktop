@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Hotel Metrics Pro — Import base legacy
+title Raqmi System — Import base legacy
 
 cd /d "%~dp0"
 

@@ -30,7 +30,7 @@ function readSetting(key: string, fallback = ''): string {
 
 export function getEmployeurLegalInfo(): RhEmployeurLegalInfo {
   return {
-    raisonSociale: readSetting('company_legal_name', readSetting('company_name', 'Hotel Metrics Pro')),
+    raisonSociale: readSetting('company_legal_name', readSetting('company_name', 'Raqmi System')),
     adresse: readSetting('company_address', 'Algérie'),
     telephone: readSetting('company_phone', ''),
     email: readSetting('company_email', ''),

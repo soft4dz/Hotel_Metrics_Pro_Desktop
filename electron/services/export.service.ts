@@ -204,7 +204,7 @@ export async function exportFacturePdf(
     ctx.y -= size + 8;
   };
 
-  draw('HOTEL METRICS PRO — PORTMASTER', 14, true);
+  draw('RAQMI SYSTEM — PORTMASTER', 14, true);
   draw(`Facture n° ${f.numero}`, 12, true);
   draw(`Date : ${f.dateFacture}`);
   draw(`Client : ${f.clientName}`);
@@ -338,7 +338,7 @@ export async function exportDashboardPdf(
   }
 
   ctx.y -= 6;
-  draw('Document de synthese interne — Hotel Metrics Pro Desktop.', 8);
+  draw('Document de synthese interne — Raqmi System.', 8);
 
   const suffix = filters.mois ? `${filters.annee}_${String(filters.mois).padStart(2, '0')}` : String(filters.annee);
   const bytes = await ctx.finalize();

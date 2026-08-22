@@ -34,7 +34,7 @@ const admin = db
     WHERE u.email = ? AND u.deleted_at IS NULL
   `,
   )
-  .get('admin@hotelmetrics.local');
+  .get('admin@raqmi.local');
 
 if (admin && admin.is_active && bcrypt.compareSync('Admin@2026!', admin.password_hash)) {
   ok('auth.admin_password', admin.email);
@@ -56,7 +56,7 @@ const perm = db
     WHERE u.email = ? AND p.code = 'users.manage'
   `,
   )
-  .get('admin@hotelmetrics.local');
+  .get('admin@raqmi.local');
 (perm ? ok : fail)('permissions.admin_users_manage');
 
 // --- Rubriques hiérarchie ---

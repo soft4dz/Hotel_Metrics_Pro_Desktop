@@ -3,10 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { ipcClient } from '@/lib/ipcClient';
 import { unwrapIpc } from '@/lib/ipcHelpers';
 import { useAuthStore } from '@/stores/auth.store';
-import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { APP_LOGO_URL, APP_WORDMARK_WHITE_URL } from '@/lib/logos';
 import { useBusinessSector } from '@/hooks/useBusinessSector';
 import { useEnabledModules } from '@/hooks/useEnabledModules';
 import { canManageRh, canManageUsers, canValidateRhTeam } from '@/shared/permissions';
+import { resolveModuleIdForPath } from '@/routes/routeModuleAccess';
 import {
   buildSidebarModules,
   findActiveModuleId,
@@ -22,7 +23,6 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
   const enabledModules = useEnabledModules();
   const { sectorId } = useBusinessSector();
   const { pathname } = useLocation();
-  const { logoUrl: brandLogoUrl } = useCompanyBranding();
   const [pendingUsers, setPendingUsers] = useState(0);
   const [pendingValidationsN1, setPendingValidationsN1] = useState(0);
   const [openModuleId, setOpenModuleId] = useState<string | null>(null);
@@ -34,7 +34,12 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
       buildSidebarModules(role, pendingUsers, pendingValidationsN1, sectorId).map((mod) => ({
         ...mod,
         title: translate(locale, mod.title),
-        items: mod.items.map((item) => ({ ...item, label: translate(locale, item.label) })),
+        items: mod.items
+          .filter((item) => {
+            const moduleId = resolveModuleIdForPath(item.to);
+            return !moduleId || enabledModules.size === 0 || enabledModules.has(moduleId);
+          })
+          .map((item) => ({ ...item, label: translate(locale, item.label) })),
       })).filter((mod) => {
         if (mod.visible === false) return false;
         if (mod.moduleId && enabledModules.size > 0 && !enabledModules.has(mod.moduleId)) return false;
@@ -96,7 +101,8 @@ export function useSidebarNav(options?: { autoExpandOnNavigate?: boolean }) {
 
   return {
     modules,
-    brandLogoUrl,
+    brandLogoUrl: APP_LOGO_URL,
+    brandWordmarkUrl: APP_WORDMARK_WHITE_URL,
     openModuleId,
     flyoutModuleId,
     handleToggle,

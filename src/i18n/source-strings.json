@@ -576,7 +576,7 @@
   "CC 100%)": "CC 100%)",
   "CDD ≤ 60 j": "CDD ≤ 60 j",
   "ce module": "ce module",
-  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "Ce module est inscrit dans l’architecture de pilotage interconnectée de Hotel Metrics Pro. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.",
+  "Ce module est inscrit dans l’architecture de pilotage interconnectée de Raqmi System. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.": "Ce module est inscrit dans l’architecture de pilotage interconnectée de Raqmi System. Son état réel est indiqué ci-dessous afin de distinguer les modules opérationnels des modules à développer.",
   "Ce mois est verrouillé — plus de modification possible.": "Ce mois est verrouillé — plus de modification possible.",
   "cell-": "cell-",
   "center": "center",
@@ -1487,7 +1487,7 @@
   "Hôtel *": "Hôtel *",
   "Hôtel et dates sont obligatoires.": "Hôtel et dates sont obligatoires.",
   "Hôtel introuvable": "Hôtel introuvable",
-  "Hotel Metrics Pro": "Hotel Metrics Pro",
+  "Raqmi System": "Raqmi System",
   "Hôtellerie & tourisme": "Hôtellerie & tourisme",
   "Hôtels / unités": "Hôtels / unités",
   "Housekeeping": "Housekeeping",
@@ -3099,5 +3099,7 @@
   "Workflows": "Workflows",
   "Workflows en attente": "Workflows en attente",
   "XX XXXX XXXX XXXX XXXX XXXX XX": "XX XXXX XXXX XXXX XXXX XXXX XX",
-  "Zones, types et paramètres": "Zones, types et paramètres"
+  "Zones, types et paramètres": "Zones, types et paramètres",
+  "Un système.": "Un système.",
+  "Toute votre entreprise.": "Toute votre entreprise."
 }

@@ -1,4 +1,4 @@
-# Catalogue fonctionnel de l’ERP Hotel Metrics Pro
+# Catalogue fonctionnel de l’ERP Raqmi System
 
 Document de référence — inventaire consolidé des fonctionnalités par module.
 
