@@ -23,6 +23,7 @@ export const SMOKE_ROUTES: string[] = [
   '/portmaster/recouvrement',
   '/encaissements',
   '/encaissements/liste',
+  '/encaissements/avancee',
   '/facturation',
   '/facturation/factures',
   '/clients',

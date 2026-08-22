@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, BookOpen, Building2, ListChecks } from 'lucide-react';
+import { BarChart3, BookOpen, Building2, ListChecks, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -7,6 +7,7 @@ const TABS = [
   { to: '/encaissements/liste', label: 'Encaissements', icon: ListChecks, end: false },
   { to: '/encaissements/caisse', label: 'Journal de caisse', icon: BookOpen, end: false },
   { to: '/encaissements/comptes', label: 'Comptes bancaires', icon: Building2, end: false },
+  { to: '/encaissements/avancee', label: 'Trésorerie avancée', icon: Landmark, end: false },
 ];
 
 export function TresorerieIndexPage() {

@@ -123,6 +123,7 @@ import type {
   EncaissementItem,
   JournalCaisseEntry,
   TresorerieDashboard,
+  PaymentOrder, TreasuryForecastLine, BankStatementLine, ReconciliationSuggestion, CostCenter,
 } from './tresorerie';
 import type {
   AddPaiementInput as AddPaiementFactInput,
@@ -695,6 +696,20 @@ export interface IpcApi {
     getJournalCaisse: (hotelId: number, dateDebut: string, dateFin: string) => Promise<IpcResult<JournalCaisseEntry[]>>;
     addOperationCaisse: (input: AddCaisseInput) => Promise<IpcResult<JournalCaisseEntry>>;
     deleteOperationCaisse: (id: number) => Promise<IpcResult<boolean>>;
+    listPaymentOrders: (hotelId?: number) => Promise<IpcResult<PaymentOrder[]>>;
+    createPaymentOrder: (input: {hotelId:number;factureFournisseurId?:number;compteBancaireId?:number;beneficiaire:string;montant:number;mode:'virement'|'cheque'|'prelevement'|'autre';dateEcheance:string;reference?:string;numeroCheque?:string}) => Promise<IpcResult<PaymentOrder>>;
+    decidePaymentOrder: (id:number, approved:boolean) => Promise<IpcResult<PaymentOrder>>;
+    executePaymentOrder: (id:number) => Promise<IpcResult<PaymentOrder>>;
+    listForecast: (hotelId:number,dateFrom:string,dateTo:string) => Promise<IpcResult<TreasuryForecastLine[]>>;
+    createForecast: (input:{hotelId:number;datePrevue:string;libelle:string;categorie:string;sens:'encaissement'|'decaissement';montant:number;probabilite?:number}) => Promise<IpcResult<{id:number}>>;
+    importBankStatement: (input:{compteBancaireId:number;nomFichier:string;csv:string;soldeOuverture?:number;soldeCloture?:number}) => Promise<IpcResult<{id:number;nbLignes:number}>>;
+    listBankLines: (compteBancaireId:number) => Promise<IpcResult<BankStatementLine[]>>;
+    suggestReconciliation: (lineId:number) => Promise<IpcResult<ReconciliationSuggestion[]>>;
+    confirmReconciliation: (input:{lineId:number;typeSource:'encaissement'|'paiement_fournisseur'|'ecriture';sourceId:number;montantSource:number;score?:number}) => Promise<IpcResult<{id:number;ecart:number}>>;
+    listCostCenters: (hotelId:number) => Promise<IpcResult<CostCenter[]>>;
+    createCostCenter: (input:{hotelId:number;code:string;libelle:string;responsable?:string}) => Promise<IpcResult<CostCenter>>;
+    allocateCost: (input:{ligneEcritureId:number;centreCoutId:number;montant:number;pourcentage:number}) => Promise<IpcResult<boolean>>;
+    analyticalReport: (hotelId:number,dateFrom:string,dateTo:string) => Promise<IpcResult<Array<{code:string;libelle:string;montant:number;ecritures:number}>>>;
   };
   hebergement: {
     listTypesChambre: (hotelId?: number) => Promise<IpcResult<TypeChambre[]>>;
