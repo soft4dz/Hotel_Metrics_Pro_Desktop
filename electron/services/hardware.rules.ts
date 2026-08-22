@@ -1,0 +1,4 @@
+export function parseTcpEndpoint(endpoint:string){const m=endpoint.trim().match(/^(?:tcp:\/\/)?([^:]+):(\d{1,5})$/);if(!m)throw new Error('Adresse TCP attendue : hôte:port.');const port=Number(m[2]);if(port<1||port>65535)throw new Error('Port TCP invalide.');return{host:m[1]!,port};}
+export function retryDelayMinutes(attempt:number){return Math.min(60,2**Math.max(1,attempt));}
+export function canTransitionPayment(from:string,to:string){const map:Record<string,string[]>={initiee:['envoyee','erreur','annulee'],envoyee:['autorisee','refusee','remboursee','erreur','annulee'],autorisee:['remboursee','annulee'],refusee:[],annulee:[],remboursee:[],erreur:['envoyee','annulee']};return(map[from]??[]).includes(to);}
+export function escPosReceipt(lines:string[]){const clean=lines.map(x=>x.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'')).join('\n');return Buffer.concat([Buffer.from([0x1b,0x40]),Buffer.from(`${clean}\n\n`,'utf8'),Buffer.from([0x1d,0x56,0x00])]);}

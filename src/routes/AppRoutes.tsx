@@ -133,6 +133,7 @@ import ReclamationsPage from '@/pages/reclamations/ReclamationsPage';
 import StocksPage from '@/pages/stocks/StocksPage';
 import CuisinePage from '@/pages/cuisine/CuisinePage';
 import PosPage from '@/pages/pos/PosPage';
+import HardwareIntegrationsPage from '@/pages/hardware/HardwareIntegrationsPage';
 import AchatsPage from '@/pages/achats/AchatsPage';
 import MaintenancePage from '@/pages/maintenance/MaintenancePage';
 import HousekeepingPage from '@/pages/housekeeping/HousekeepingPage';
@@ -311,6 +312,7 @@ export function AppRoutes() {
             <Route path="/stocks" element={<StocksPage />} />
             <Route path="/cuisine" element={<CuisinePage />} />
             <Route path="/pos" element={<PosPage />} />
+            <Route path="/integrations-materielles" element={<HardwareIntegrationsPage />} />
             <Route path="/achats" element={<AchatsPage />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
             <Route path="/housekeeping" element={<HousekeepingPage />} />
