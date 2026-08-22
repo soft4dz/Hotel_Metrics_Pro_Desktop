@@ -64,6 +64,7 @@ import { registerCuisineIpc } from './ipc/cuisine.ipc';
 import { registerPosIpc } from './ipc/pos.ipc';
 import { registerGuideIpc } from './ipc/guide.ipc';
 import { registerPmsExtensionsIpc } from './ipc/pms-extensions.ipc';
+import { registerHardwareIpc } from './ipc/hardware.ipc';
 import { ensureLicenseBootstrap } from './services/license.service';
 import { startPhase6BisScheduler } from './services/phase6-bis-scheduler.service';
 import { runPortSeedIfNeeded } from './database/portSeed';
@@ -295,6 +296,7 @@ function bootstrap(): void {
     registerPosIpc();
     registerGuideIpc();
     registerPmsExtensionsIpc();
+    registerHardwareIpc();
     startPhase6BisScheduler();
     startAutomaticSyncScheduler();
     createWindow();

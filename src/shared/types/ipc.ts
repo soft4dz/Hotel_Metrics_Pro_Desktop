@@ -1129,6 +1129,26 @@ export interface IpcApi {
     traceability:(hotelId:number,search:string)=>Promise<IpcResult<unknown[]>>;
     menuEngineering:(hotelId:number,from:string,to:string)=>Promise<IpcResult<unknown[]>>;
   };
+  hardware: {
+    dashboard:(hotelId:number)=>Promise<IpcResult<unknown>>;
+    listDevices:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    saveDevice:(input:unknown)=>Promise<IpcResult<boolean>>;
+    queueCommand:(input:unknown)=>Promise<IpcResult<unknown>>;
+    nextCommands:(hotelId:number,limit?:number)=>Promise<IpcResult<unknown[]>>;
+    dispatchCommand:(id:number)=>Promise<IpcResult<unknown>>;
+    commandLogs:(hotelId:number,deviceId?:number)=>Promise<IpcResult<unknown[]>>;
+    startPayment:(input:unknown)=>Promise<IpcResult<unknown>>;
+    reversePayment:(id:number,operation:'remboursement'|'annulation',amount?:number)=>Promise<IpcResult<unknown>>;
+    listPayments:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    issueRoomKey:(input:unknown)=>Promise<IpcResult<unknown>>;
+    revokeRoomKey:(id:number)=>Promise<IpcResult<unknown>>;
+    listRoomKeys:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    ingestPbxCall:(input:unknown)=>Promise<IpcResult<unknown>>;
+    listPbxCalls:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    setIptvAccess:(input:unknown)=>Promise<IpcResult<unknown>>;
+    captureScan:(input:unknown)=>Promise<IpcResult<unknown>>;
+    queueFiscalPrint:(input:unknown)=>Promise<IpcResult<unknown>>;
+  };
   pos: {
     listKds: (pointVenteId:number) => Promise<IpcResult<Array<Record<string,unknown>>>>;
     updateKds: (id:number,statut:string) => Promise<IpcResult<Record<string,unknown>>>;

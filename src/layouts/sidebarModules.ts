@@ -119,6 +119,7 @@ export function buildSidebarModules(
         { label: 'Stocks & consommations', to: '/stocks' },
         { label: 'Production & fiches techniques', to: '/cuisine', visible: routeVisible('/cuisine') },
         { label: 'Points de vente (POS)', to: '/pos', visible: routeVisible('/pos') },
+        { label: 'Intégrations matérielles', to: '/integrations-materielles', visible: routeVisible('/integrations-materielles') },
         { label: 'Achats & fournisseurs', to: '/achats' },
         { label: 'Maintenance', to: '/maintenance' },
       ],
