@@ -1064,6 +1064,19 @@ export interface IpcApi {
     validerBon: (id: number) => Promise<IpcResult<unknown>>;
     envoyerBon: (id: number) => Promise<IpcResult<unknown>>;
     livrerBon: (id: number, input?: unknown) => Promise<IpcResult<unknown>>;
+    listDemandes:(hotelId?:number)=>Promise<IpcResult<import('./achats').DemandeAchat[]>>;
+    createDemande:(input:import('./achats').CreateDemandeAchatInput)=>Promise<IpcResult<import('./achats').DemandeAchat>>;
+    submitDemande:(id:number)=>Promise<IpcResult<import('./achats').DemandeAchat>>;
+    decideDemande:(id:number,approved:boolean)=>Promise<IpcResult<import('./achats').DemandeAchat>>;
+    listConsultations:(hotelId?:number)=>Promise<IpcResult<import('./achats').ConsultationAchat[]>>;
+    createConsultation:(input:{demandeId:number;dateLimite:string;fournisseurIds:number[]})=>Promise<IpcResult<import('./achats').ConsultationAchat>>;
+    listOffres:(consultationId:number)=>Promise<IpcResult<import('./achats').OffreFournisseur[]>>;
+    createOffre:(input:import('./achats').CreateOffreInput)=>Promise<IpcResult<import('./achats').OffreFournisseur>>;
+    awardOffre:(id:number)=>Promise<IpcResult<number>>;
+    listFactures:(hotelId?:number)=>Promise<IpcResult<import('./achats').FactureFournisseur[]>>;
+    createFacture:(input:import('./achats').CreateFactureFournisseurInput)=>Promise<IpcResult<import('./achats').FactureFournisseur>>;
+    validateFacture:(id:number,force?:boolean)=>Promise<IpcResult<import('./achats').FactureFournisseur>>;
+    payFacture:(id:number,input:{datePaiement:string;montant:number;mode:'virement'|'cheque'|'especes'|'prelevement'|'autre';reference?:string;compteBancaireId?:number})=>Promise<IpcResult<import('./achats').FactureFournisseur>>;
   };
   maintenance: {
     listEquipements: (hotelId: number) => Promise<IpcResult<unknown[]>>;
