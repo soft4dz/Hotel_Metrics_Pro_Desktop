@@ -11,6 +11,7 @@ import {
   updateIntervention,
   getMaintenanceStats,
 } from '../services/maintenance.service';
+import * as advanced from '../services/maintenance-advanced.service';
 import { assertAmount, assertDateJournal, assertEnum, assertObject, assertPositiveInteger, assertText } from './validation';
 
 function optionalDate(value: unknown, label: string): string | null | undefined {
@@ -75,4 +76,13 @@ export function registerMaintenanceIpc(): void {
     }));
   Electron.ipcMain.handle('maintenance:stats', (event, hotelId: unknown) =>
     wrapIpc(event, (uid) => getMaintenanceStats(uid, assertPositiveInteger(hotelId, 'hotelId'))));
+  Electron.ipcMain.handle('maintenance:plans:list',(event,hotelId:number)=>wrapIpc(event,uid=>advanced.listPlans(uid,hotelId)));
+  Electron.ipcMain.handle('maintenance:plans:create',(event,input)=>wrapIpc(event,uid=>advanced.createPlan(uid,input)));
+  Electron.ipcMain.handle('maintenance:plans:generate',(event,through:string)=>wrapIpc(event,uid=>advanced.generateWorkOrders(uid,through)));
+  Electron.ipcMain.handle('maintenance:sla:refresh',(event,hotelId:number)=>wrapIpc(event,uid=>advanced.refreshSla(uid,hotelId)));
+  Electron.ipcMain.handle('maintenance:parts:consume',(event,input)=>wrapIpc(event,uid=>advanced.consumePart(uid,input)));
+  Electron.ipcMain.handle('maintenance:labor:log',(event,input)=>wrapIpc(event,uid=>advanced.logLabor(uid,input)));
+  Electron.ipcMain.handle('maintenance:contracts:list',(event,hotelId:number)=>wrapIpc(event,uid=>advanced.listContracts(uid,hotelId)));
+  Electron.ipcMain.handle('maintenance:contracts:create',(event,input)=>wrapIpc(event,uid=>advanced.createContract(uid,input)));
+  Electron.ipcMain.handle('maintenance:costs:report',(event,hotelId:number,from:string,to:string)=>wrapIpc(event,uid=>advanced.costReport(uid,hotelId,from,to)));
 }

@@ -1115,6 +1115,15 @@ export interface IpcApi {
     createIntervention: (input: unknown) => Promise<IpcResult<unknown>>;
     updateIntervention: (id: number, input: unknown) => Promise<IpcResult<unknown>>;
     stats: (hotelId: number) => Promise<IpcResult<unknown>>;
+    listPlans:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    createPlan:(input:unknown)=>Promise<IpcResult<unknown>>;
+    generateWorkOrders:(through:string)=>Promise<IpcResult<number>>;
+    refreshSla:(hotelId:number)=>Promise<IpcResult<number>>;
+    consumePart:(input:unknown)=>Promise<IpcResult<{coutTotal:number}>>;
+    logLabor:(input:unknown)=>Promise<IpcResult<{coutTotal:number}>>;
+    listContracts:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    createContract:(input:unknown)=>Promise<IpcResult<{id:number}>>;
+    costReport:(hotelId:number,from:string,to:string)=>Promise<IpcResult<unknown[]>>;
   };
   housekeeping: {
     listTaches: (hotelId: number, statut?: string, datePrevue?: string) => Promise<IpcResult<unknown[]>>;
