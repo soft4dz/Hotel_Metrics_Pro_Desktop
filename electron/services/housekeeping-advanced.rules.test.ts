@@ -1,0 +1,2 @@
+import{describe,expect,it}from'vitest';import{balanceWorkload,taskPoints}from'./housekeeping-advanced.rules';describe('planning housekeeping',()=>{it('affecte la tâche lourde à la charge la plus faible',()=>{const r=balanceWorkload([{id:1,points:3,priority:5},{id:2,points:1,priority:3}],[{id:10,currentPoints:4},{id:11,currentPoints:0}]);expect(r[0]).toMatchObject({taskId:1,assigneeId:11});});it('pondère le grand ménage',()=>expect(taskPoints('grand_menage')).toBe(3));});
+

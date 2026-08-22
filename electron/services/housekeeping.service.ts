@@ -257,6 +257,7 @@ export function updateTache(actorUserId: number, id: number, input: UpdateHousek
   const current = getTacheById(id);
   const sets: string[] = ['updated_at = datetime(\'now\')'];
   const params: unknown[] = [];
+  let releaseRoom = false;
 
   if (input.assigneeId !== undefined) {
     sets.push('assignee_id = ?');
@@ -280,7 +281,7 @@ export function updateTache(actorUserId: number, id: number, input: UpdateHousek
     if (input.statut === 'terminee') {
       sets.push('date_fin = ?');
       params.push(todayIso());
-      db.prepare(`UPDATE chambres SET statut = 'libre', updated_at = datetime('now') WHERE id = ?`).run(current.chambreId);
+      releaseRoom = true;
     }
     if (input.statut === 'annulee') {
       db.prepare(`UPDATE chambres SET statut = 'libre', updated_at = datetime('now') WHERE id = ? AND statut = 'menage'`).run(current.chambreId);
@@ -289,6 +290,7 @@ export function updateTache(actorUserId: number, id: number, input: UpdateHousek
 
   params.push(id);
   db.prepare(`UPDATE housekeeping_taches SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+  if (releaseRoom) db.prepare(`UPDATE chambres SET statut = 'libre', updated_at = datetime('now') WHERE id = ?`).run(current.chambreId);
 
   writeAuditLog({
     userId: actorUserId,

@@ -23,6 +23,7 @@ import type {
   TypeTacheHousekeeping,
 } from '@/shared/types/housekeeping';
 import type { Chambre, StatutChambre } from '@/shared/types/hebergement';
+import { HousekeepingAdvancedPanel } from './HousekeepingAdvancedPanel';
 
 const STATUT_TACHE_LABEL: Record<StatutTacheHousekeeping, string> = {
   a_faire: 'À faire',
@@ -51,7 +52,7 @@ export default function HousekeepingPage() {
   const qc = useQueryClient();
   const { operationalHotels, defaultHotelId, loading: hotelsLoading } = useHotelsList();
   const [hotelId, setHotelId] = useState<number>(0);
-  const [tab, setTab] = useState<'taches' | 'plan'>('taches');
+  const [tab, setTab] = useState<'taches' | 'plan' | 'operations'>('taches');
   const [statutFilter, setStatutFilter] = useState<StatutTacheHousekeeping | ''>('');
   const [selectedTacheId, setSelectedTacheId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -276,6 +277,7 @@ export default function HousekeepingPage() {
         {[
           { id: 'taches' as const, label: 'Tâches' },
           { id: 'plan' as const, label: 'Plan chambres' },
+          { id: 'operations' as const, label: 'Planning mobile & opérations' },
         ].map((t) => (
           <button
             key={t.id}
@@ -291,7 +293,7 @@ export default function HousekeepingPage() {
         ))}
       </div>
 
-      {tab === 'plan' ? (
+      {tab === 'operations' ? <HousekeepingAdvancedPanel hotelId={hotelId}/> : tab === 'plan' ? (
         chambres.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground bg-card border rounded-xl">
             <BedDouble className="w-10 h-10 mx-auto mb-2 opacity-30" />
