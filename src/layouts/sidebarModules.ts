@@ -90,6 +90,7 @@ export function buildSidebarModules(
         { label: 'Clôture journalière', to: '/recettes/cloture', visible: routeVisible('/recettes/cloture', canValidateRecettes(role)) },
         { label: 'Clients', to: '/clients', visible: canManageClients(role) },
         { label: 'CRM & expérience client', to: '/crm', visible: canManageClients(role) },
+        { label: 'Groupes & MICE', to: '/mice', visible: routeVisible('/mice') },
         { label: 'Facturation', to: '/facturation' },
         { label: 'Conformité hôtelière', to: '/hotel-legal', visible: routeVisible('/hotel-legal') },
         { label: 'Données personnelles (18-07)', to: '/conformite/donnees-personnelles', visible: canManageUsers(role) },

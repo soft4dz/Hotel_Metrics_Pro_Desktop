@@ -28,6 +28,7 @@ export const SMOKE_ROUTES: string[] = [
   '/facturation/factures',
   '/clients',
   '/crm',
+  '/mice',
   '/hebergement',
   '/tarifs',
   '/rh',
