@@ -1205,6 +1205,42 @@ export interface IpcApi {
     validateFacture:(id:number,force?:boolean)=>Promise<IpcResult<import('./achats').FactureFournisseur>>;
     payFacture:(id:number,input:{datePaiement:string;montant:number;mode:'virement'|'cheque'|'especes'|'prelevement'|'autre';reference?:string;compteBancaireId?:number})=>Promise<IpcResult<import('./achats').FactureFournisseur>>;
   };
+  appelsOffres: {
+    list:(hotelId?:number)=>Promise<IpcResult<import('./appelsOffres').AppelOffres[]>>;
+    create:(input:import('./appelsOffres').CreateAppelOffresInput)=>Promise<IpcResult<import('./appelsOffres').AppelOffres>>;
+    publier:(id:number,dateLimiteDepot:string)=>Promise<IpcResult<import('./appelsOffres').AppelOffres>>;
+    annuler:(id:number,motif:string)=>Promise<IpcResult<import('./appelsOffres').AppelOffres>>;
+    listLots:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').LotAppelOffres[]>>;
+    createLot:(input:import('./appelsOffres').CreateLotInput)=>Promise<IpcResult<import('./appelsOffres').LotAppelOffres>>;
+    deleteLot:(id:number)=>Promise<IpcResult<boolean>>;
+    listDocuments:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').DocumentAppelOffres[]>>;
+    uploadDocument:(input:import('./appelsOffres').UploadDocumentAoInput)=>Promise<IpcResult<import('./appelsOffres').DocumentAppelOffres>>;
+    ouvrirDocument:(id:number)=>Promise<IpcResult<void>>;
+    deleteDocument:(id:number)=>Promise<IpcResult<boolean>>;
+    listFournisseurs:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').FournisseurInviteAo[]>>;
+    inviteFournisseurs:(appelOffresId:number,fournisseurIds:number[])=>Promise<IpcResult<import('./appelsOffres').FournisseurInviteAo[]>>;
+    removeFournisseurInvite:(id:number)=>Promise<IpcResult<boolean>>;
+    listCriteres:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').CritereEvaluation[]>>;
+    createCritere:(input:import('./appelsOffres').CreateCritereInput)=>Promise<IpcResult<import('./appelsOffres').CritereEvaluation>>;
+    deleteCritere:(id:number)=>Promise<IpcResult<boolean>>;
+    saveNote:(input:import('./appelsOffres').NoteEvaluation)=>Promise<IpcResult<boolean>>;
+    listNotes:(lotId:number)=>Promise<IpcResult<import('./appelsOffres').NoteEvaluation[]>>;
+    listOffres:(appelOffresId:number,lotId?:number)=>Promise<IpcResult<import('./appelsOffres').OffreAo[]>>;
+    createOffre:(input:import('./appelsOffres').CreateOffreAoInput)=>Promise<IpcResult<import('./appelsOffres').OffreAo>>;
+    listCommission:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').MembreCommission[]>>;
+    listPv:(appelOffresId:number)=>Promise<IpcResult<import('./appelsOffres').ProcesVerbalAo[]>>;
+    ouvrirPlis:(input:import('./appelsOffres').OuvrirPlisInput)=>Promise<IpcResult<import('./appelsOffres').ProcesVerbalAo>>;
+    attribuerLot:(input:import('./appelsOffres').AttribuerLotInput)=>Promise<IpcResult<{lot:import('./appelsOffres').LotAppelOffres;bonId:number}>>;
+    marquerLotInfructueux:(lotId:number)=>Promise<IpcResult<import('./appelsOffres').LotAppelOffres>>;
+  };
+  veille: {
+    list:(filters?:{hotelId?:number;categorie?:string;statutConformite?:string;search?:string})=>Promise<IpcResult<import('./veilleReglementaire').TexteReglementaire[]>>;
+    create:(input:import('./veilleReglementaire').CreateTexteReglementaireInput)=>Promise<IpcResult<import('./veilleReglementaire').TexteReglementaire>>;
+    update:(id:number,input:import('./veilleReglementaire').UpdateTexteReglementaireInput)=>Promise<IpcResult<import('./veilleReglementaire').TexteReglementaire>>;
+    remove:(id:number)=>Promise<IpcResult<boolean>>;
+    attachDocument:(id:number)=>Promise<IpcResult<import('./veilleReglementaire').TexteReglementaire>>;
+    ouvrirDocument:(id:number)=>Promise<IpcResult<void>>;
+  };
   maintenance: {
     listEquipements: (hotelId: number) => Promise<IpcResult<unknown[]>>;
     createEquipement: (input: unknown) => Promise<IpcResult<unknown>>;

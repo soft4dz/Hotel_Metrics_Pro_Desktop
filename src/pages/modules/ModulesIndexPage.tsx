@@ -10,7 +10,6 @@ import {
   Building2,
   Cable,
   CalendarDays,
-  Car,
   ClipboardCheck,
   ClipboardList,
   Cloud,
@@ -27,6 +26,7 @@ import {
   Lock,
   MoonStar,
   Receipt,
+  ScrollText,
   Search,
   Settings,
   Shield,
@@ -35,7 +35,6 @@ import {
   UtensilsCrossed,
   Users,
   Wallet,
-  Waves,
   Workflow,
   Wrench,
   X,
@@ -87,6 +86,7 @@ const MODULE_ICONS: Record<string, IconType> = {
   'cuisine-qualite': UtensilsCrossed,
   'pos-restauration': Receipt,
   'achats-approvisionnements': ListTree,
+  'appels-offres': Gavel,
   'maintenance-interventions': Wrench,
   'integrations-materielles': Cable,
   'rh-productivite': Users,
@@ -101,8 +101,7 @@ const MODULE_ICONS: Record<string, IconType> = {
   'conformite-hoteliere': Shield,
   'protection-donnees-personnelles': Shield,
   'modules-legaux': Gavel,
-  parking: Car,
-  'plage-piscine': Waves,
+  'veille-reglementaire': ScrollText,
   portmaster: Anchor,
   clients: Users,
   'commercial-partenariats': TrendingUp,
@@ -139,6 +138,7 @@ const MODULE_DESC: Record<string, string> = {
   'cuisine-qualite': 'Production, HACCP et qualité',
   'pos-restauration': 'Points de vente restauration',
   'achats-approvisionnements': 'Achats et fournisseurs',
+  'appels-offres': 'Consultations et marchés',
   'maintenance-interventions': 'Maintenance',
   'integrations-materielles': 'TPE, serrures et périphériques',
   'rh-productivite': 'RH et effectifs',
@@ -153,8 +153,7 @@ const MODULE_DESC: Record<string, string> = {
   'conformite-hoteliere': 'Police, séjour et tourisme',
   'protection-donnees-personnelles': 'Loi 18-07 et ANPDP',
   'modules-legaux': 'Immobilisations, CASNOS, inventaire',
-  parking: 'Accès et recettes parking',
-  'plage-piscine': 'Accès plage et piscine',
+  'veille-reglementaire': 'Textes de loi et mise en conformité',
   portmaster: 'Capitainerie',
   clients: 'Fichier clients',
   'commercial-partenariats': 'Commercial',
@@ -205,8 +204,7 @@ const MODULE_ACCESS: Record<string, (role?: string) => boolean> = {
   'conformite-hoteliere': isAdminRole,
   'protection-donnees-personnelles': canManageUsers,
   'modules-legaux': canManageUsers,
-  parking: isAdminRole,
-  'plage-piscine': isAdminRole,
+  'veille-reglementaire': isAdminRole,
   portmaster: canAccessPortmaster,
   clients: isAdminRole,
   'commercial-partenariats': isAdminRole,
@@ -244,6 +242,7 @@ const MODULE_COLORS: Record<string, string> = {
   'cuisine-qualite': '#EA580C',
   'pos-restauration': '#C2410C',
   'achats-approvisionnements': '#7C6576',
+  'appels-offres': '#8E6C3B',
   'maintenance-interventions': '#4A4F59',
   'integrations-materielles': '#0369A1',
   'rh-productivite': '#A24689',
@@ -258,8 +257,7 @@ const MODULE_COLORS: Record<string, string> = {
   'conformite-hoteliere': '#0F766E',
   'protection-donnees-personnelles': '#1D4ED8',
   'modules-legaux': '#475569',
-  parking: '#334155',
-  'plage-piscine': '#0891B2',
+  'veille-reglementaire': '#0E7490',
   portmaster: '#1A5276',
   clients: '#3498DB',
   'commercial-partenariats': '#E67E22',
@@ -397,14 +395,9 @@ export function ModulesIndexPage() {
     });
   }, [accessibleModules, activeGroup, normalizedQuery]);
 
-  const groupedModules = useMemo(() => {
-    if (activeGroup !== 'all' || normalizedQuery) {
-      return [{ group: activeGroup === 'all' ? 'Résultats' : activeGroup, modules: filteredModules }];
-    }
-    return MODULE_GROUPS.map((group) => ({
-      group,
-      modules: filteredModules.filter((m) => m.group === group),
-    })).filter((section) => section.modules.length > 0);
+  const orderedModules = useMemo(() => {
+    if (activeGroup !== 'all' || normalizedQuery) return filteredModules;
+    return MODULE_GROUPS.flatMap((group) => filteredModules.filter((m) => m.group === group));
   }, [filteredModules, activeGroup, normalizedQuery]);
 
   const visibleGroups = useMemo(
@@ -481,22 +474,13 @@ export function ModulesIndexPage() {
           <p className="mt-1 text-xs text-slate-400">Modifiez votre recherche ou changez de catégorie</p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {groupedModules.map(({ group, modules }) => (
-            <section key={group}>
-              {(activeGroup === 'all' && !normalizedQuery) || group !== 'Résultats' ? (
-                <h3 className="odoo-apps-section-title">{group}</h3>
-              ) : null}
-              <div className="odoo-apps-grid">
-                {modules.map((module) => (
-                  <OdooAppTile
-                    key={module.id}
-                    module={module}
-                    disabledByConfig={isModuleDisabled(module.id)}
-                  />
-                ))}
-              </div>
-            </section>
+        <div className="odoo-apps-grid">
+          {orderedModules.map((module) => (
+            <OdooAppTile
+              key={module.id}
+              module={module}
+              disabledByConfig={isModuleDisabled(module.id)}
+            />
           ))}
         </div>
       )}

@@ -93,21 +93,9 @@ export function OdooAppLauncher({
     });
   }, [apps, activeGroup, normalizedQuery]);
 
-  const groupedApps = useMemo(() => {
-    if (activeGroup !== 'all' || normalizedQuery) {
-      return [
-        {
-          group: activeGroup === 'all' ? 'Résultats' : activeGroup,
-          apps: filteredApps,
-        },
-      ];
-    }
-    return groups
-      .map((group) => ({
-        group,
-        apps: filteredApps.filter((app) => app.group === group),
-      }))
-      .filter((section) => section.apps.length > 0);
+  const orderedApps = useMemo(() => {
+    if (activeGroup !== 'all' || normalizedQuery) return filteredApps;
+    return groups.flatMap((group) => filteredApps.filter((app) => app.group === group));
   }, [filteredApps, activeGroup, normalizedQuery, groups]);
 
   const visibleGroups = useMemo(
@@ -177,18 +165,9 @@ export function OdooAppLauncher({
           <p className="mt-1 text-xs text-slate-400">Modifiez votre recherche ou changez de catégorie</p>
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-5">
-          {groupedApps.map(({ group, apps: sectionApps }) => (
-            <section key={group}>
-              {(activeGroup === 'all' && !normalizedQuery) || group !== 'Résultats' ? (
-                <h3 className="odoo-apps-section-title">{group}</h3>
-              ) : null}
-              <div className="odoo-apps-grid">
-                {sectionApps.map((app) => (
-                  <OdooAppTile key={app.id} app={app} />
-                ))}
-              </div>
-            </section>
+        <div className="odoo-apps-grid">
+          {orderedApps.map((app) => (
+            <OdooAppTile key={app.id} app={app} />
           ))}
         </div>
       )}

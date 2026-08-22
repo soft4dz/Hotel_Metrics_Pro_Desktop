@@ -135,6 +135,9 @@ import CuisinePage from '@/pages/cuisine/CuisinePage';
 import PosPage from '@/pages/pos/PosPage';
 import HardwareIntegrationsPage from '@/pages/hardware/HardwareIntegrationsPage';
 import AchatsPage from '@/pages/achats/AchatsPage';
+import { AppelsOffresPage } from '@/pages/appels-offres/AppelsOffresPage';
+import { AppelOffresDetailPage } from '@/pages/appels-offres/AppelOffresDetailPage';
+import { VeilleReglementairePage } from '@/pages/veille-reglementaire/VeilleReglementairePage';
 import MaintenancePage from '@/pages/maintenance/MaintenancePage';
 import HousekeepingPage from '@/pages/housekeeping/HousekeepingPage';
 import CrmPage from '@/pages/crm/CrmPage';
@@ -314,6 +317,9 @@ export function AppRoutes() {
             <Route path="/pos" element={<PosPage />} />
             <Route path="/integrations-materielles" element={<HardwareIntegrationsPage />} />
             <Route path="/achats" element={<AchatsPage />} />
+            <Route path="/appels-offres" element={<AppelsOffresPage />} />
+            <Route path="/appels-offres/:id" element={<AppelOffresDetailPage />} />
+            <Route path="/veille-reglementaire" element={<VeilleReglementairePage />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
             <Route path="/housekeeping" element={<HousekeepingPage />} />
             <Route path="/commercial" element={<CommercialPage />} />

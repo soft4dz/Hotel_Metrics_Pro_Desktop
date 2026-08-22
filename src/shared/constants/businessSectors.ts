@@ -44,8 +44,6 @@ export const HOTEL_ONLY_MODULE_IDS: readonly ConfiguredModuleId[] = [
   'crm-experience-client',
   'groupes-mice',
   'conformite-hoteliere',
-  'parking',
-  'plage-piscine',
   'comparatif-inter-unites',
 ];
 
@@ -72,6 +70,7 @@ const CORE_ERP_MODULES: readonly ConfiguredModuleId[] = [
   'fiscalite-dgi',
   'stocks-consommations',
   'achats-approvisionnements',
+  'appels-offres',
   'maintenance-interventions',
   'integrations-materielles',
   'rh-productivite',
@@ -85,6 +84,7 @@ const CORE_ERP_MODULES: readonly ConfiguredModuleId[] = [
   'qualite-reclamations',
   'protection-donnees-personnelles',
   'modules-legaux',
+  'veille-reglementaire',
   'commercial-partenariats',
   'tableaux-bord-directionnels',
   'dashboard-pdg',

@@ -145,6 +145,12 @@ export const MODULES: ModuleDefinition[] = [
     capabilities: ['Fournisseurs', 'Demandes d’achat', 'Consultations et devis', 'Bons de commande', 'Réceptions', 'Factures fournisseurs'],
   },
   {
+    id: 'appels-offres', order: 12.5, name: 'Appels d\'offres', group: 'Exploitation', status: 'operationnel',
+    route: moduleRoute('appels-offres'), existingRoute: '/appels-offres',
+    connectedTo: ['Achats & approvisionnements'],
+    capabilities: ['Dossiers multi-lots', 'Documents et cahier des charges', 'Ouverture des plis', 'Grille d\'évaluation', 'Attribution'],
+  },
+  {
     id: 'maintenance-interventions', order: 13, name: 'Maintenance & interventions', group: 'Exploitation', status: 'operationnel',
     route: moduleRoute('maintenance-interventions'), existingRoute: '/maintenance',
     connectedTo: ['Stocks & consommations', 'Qualité & réclamations clients', 'Achats & approvisionnements', 'Journal des anomalies'],
@@ -167,18 +173,6 @@ export const MODULES: ModuleDefinition[] = [
     route: moduleRoute('qualite-reclamations'), existingRoute: '/reclamations',
     connectedTo: ['Hébergement & occupation', 'Maintenance & interventions', 'Journal des anomalies', 'CRM & expérience client'],
     capabilities: ['Réclamations', 'Traitement et délais', 'Analyse des causes'],
-  },
-  {
-    id: 'parking', order: 19, name: 'Parking', group: 'Exploitation', status: 'socle',
-    route: moduleRoute('parking'),
-    connectedTo: ['Points de vente (POS)', 'CA journalier (ERP)', 'Encaissements & trésorerie', 'Audit & contrôle interne'],
-    capabilities: ['Paramétrage tarifaire', 'Tickets et accès', 'Recettes parking'],
-  },
-  {
-    id: 'plage-piscine', order: 19.2, name: 'Plage & piscine', group: 'Exploitation', status: 'socle',
-    route: moduleRoute('plage-piscine'),
-    connectedTo: ['Points de vente (POS)', 'CA journalier (ERP)', 'Encaissements & trésorerie', 'Audit & contrôle interne'],
-    capabilities: ['Capacités', 'Contrôle des entrées', 'Tarification et recettes'],
   },
 
   {
@@ -255,6 +249,12 @@ export const MODULES: ModuleDefinition[] = [
     route: moduleRoute('modules-legaux'), existingRoute: '/conformite/modules-legaux',
     connectedTo: ['Comptabilité SCF', 'RH & productivité', 'Gestion documentaire', 'Audit & contrôle interne'],
     capabilities: ['Immobilisations', 'CASNOS', 'Inventaire légal'],
+  },
+  {
+    id: 'veille-reglementaire', order: 23.6, name: 'Veille juridique & réglementaire', group: 'Conformité & légal', status: 'operationnel',
+    route: moduleRoute('veille-reglementaire'), existingRoute: '/veille-reglementaire',
+    connectedTo: ['Conformité hôtelière', 'Appels d\'offres', 'Audit & contrôle interne', 'Gestion documentaire'],
+    capabilities: ['Répertoire des textes', 'Suivi de mise en conformité', 'Rappels d\'échéance', 'Documents attachés'],
   },
 
   {

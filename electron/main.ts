@@ -7,6 +7,7 @@ import { runSeedIfNeeded } from './database/seed';
 import { ensureBootstrapAuthAccounts } from './database/authBootstrap';
 import { importLegacyDatabase } from './database/importLegacyData';
 import { installLicenseWriteGuard } from './ipc/installLicenseWriteGuard';
+import { resolveAppIconPath } from './utils/paths';
 import { registerAuthIpc } from './ipc/auth.ipc';
 import { registerUsersIpc } from './ipc/users.ipc';
 import { registerHotelsIpc } from './ipc/hotels.ipc';
@@ -36,6 +37,8 @@ import { registerDecisionsIpc } from './ipc/decisions.ipc';
 import { registerReclamationsIpc } from './ipc/reclamations.ipc';
 import { registerStocksIpc } from './ipc/stocks.ipc';
 import { registerAchatsIpc } from './ipc/achats.ipc';
+import { registerAppelsOffresIpc } from './ipc/appels-offres.ipc';
+import { registerVeilleReglementaireIpc } from './ipc/veille-reglementaire.ipc';
 import { registerMaintenanceIpc } from './ipc/maintenance.ipc';
 import { registerHousekeepingIpc } from './ipc/housekeeping.ipc';
 import { registerCommercialIpc } from './ipc/commercial.ipc';
@@ -129,6 +132,7 @@ function createWindow(): void {
     backgroundColor: '#071525',
     autoHideMenuBar: true,
     title: APP_DISPLAY_NAME,
+    icon: resolveAppIconPath(),
     webPreferences: {
       preload: resolvePreloadPath(),
       contextIsolation: true,
@@ -269,6 +273,8 @@ function bootstrap(): void {
     registerReclamationsIpc();
     registerStocksIpc();
     registerAchatsIpc();
+    registerAppelsOffresIpc();
+    registerVeilleReglementaireIpc();
     registerMaintenanceIpc();
     registerHousekeepingIpc();
     registerCommercialIpc();

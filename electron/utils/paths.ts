@@ -43,6 +43,18 @@ export function resolveBundledLogosDirectory(): string {
   return path.join(process.cwd(), 'assets', 'logos');
 }
 
+/** Icône de l'application (fenêtre + taskbar) — dev, build, installateur. */
+export function resolveAppIconPath(): string | undefined {
+  const candidates = [
+    path.join(process.cwd(), 'assets', 'icon.ico'),
+    path.join(ELECTRON_MODULE_DIR, '..', '..', 'assets', 'icon.ico'),
+    path.join(ELECTRON_MODULE_DIR, '..', 'assets', 'icon.ico'),
+    path.join(process.resourcesPath, 'icon.ico'),
+  ];
+
+  return candidates.find((p) => existsSync(p));
+}
+
 /** Dossier des guides utilisateurs (dev, build, installateur). */
 export function resolveGuidesDirectory(): string {
   const candidates = [
