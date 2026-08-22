@@ -1149,6 +1149,20 @@ export interface IpcApi {
     stats: (hotelId: number) => Promise<IpcResult<unknown>>;
     syncFromChambres: (hotelId: number) => Promise<IpcResult<number>>;
     chambresMenageSansTache: (hotelId: number) => Promise<IpcResult<Array<{ id: number; numero: string; etage: number }>>>;
+    mobilePlanning:(hotelId:number,date:string,assigneeId?:number)=>Promise<IpcResult<unknown[]>>;
+    balancePlanning:(hotelId:number,date:string,userIds:number[])=>Promise<IpcResult<unknown[]>>;
+    createInspection:(input:unknown)=>Promise<IpcResult<{id:number}>>;
+    addHousekeepingPhoto:(input:unknown)=>Promise<IpcResult<{id:number}>>;
+    recordMinibar:(input:unknown)=>Promise<IpcResult<{id:number;montantTotal:number}>>;
+    listLinen:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    saveLinenArticle:(input:unknown)=>Promise<IpcResult<boolean>>;
+    moveLinen:(input:unknown)=>Promise<IpcResult<boolean>>;
+    listLostFound:(hotelId:number)=>Promise<IpcResult<unknown[]>>;
+    createLostFound:(input:unknown)=>Promise<IpcResult<{id:number;numero:string}>>;
+    updateLostFound:(id:number,input:unknown)=>Promise<IpcResult<boolean>>;
+    blockRoom:(input:unknown)=>Promise<IpcResult<{id:number}>>;
+    releaseRoom:(id:number)=>Promise<IpcResult<boolean>>;
+    advancedDashboard:(hotelId:number,date:string)=>Promise<IpcResult<unknown>>;
   };
   commercial: {
     listPartenaires: () => Promise<IpcResult<unknown[]>>;
