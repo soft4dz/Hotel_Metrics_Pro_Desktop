@@ -10,6 +10,14 @@ import * as portValidations from '../services/portmaster-validations.service';
 import * as portMouvements from '../services/portmaster-mouvements.service';
 import * as portRecouvrement from '../services/portmaster-recouvrement.service';
 import { wrapIpc } from './ipcHelpers';
+import {
+  assertPositiveInteger,
+  assertText,
+  assertObject,
+  assertAmount,
+  assertDateJournal,
+  assertEnum,
+} from './validation';
 import type { DashboardFilters } from '../../src/shared/types/dashboard';
 
 export function registerPortmasterIpc(): void {
@@ -21,23 +29,30 @@ export function registerPortmasterIpc(): void {
     wrapIpc(event, (actorUserId) => portService.listBateaux(actorUserId, search)),
   );
 
-  Electron.ipcMain.handle('portmaster:bateaux:get', (event, id: number) =>
-    wrapIpc(event, (actorUserId) => portService.getBateau(actorUserId, id)),
+  Electron.ipcMain.handle('portmaster:bateaux:get', (event, id: unknown) =>
+    wrapIpc(event, (actorUserId) => portService.getBateau(actorUserId, assertPositiveInteger(id, 'id'))),
   );
 
-  Electron.ipcMain.handle('portmaster:bateaux:create', (event, input: portService.SaveBateauInput) =>
-    wrapIpc(event, (actorUserId) => portService.createBateau(actorUserId, input)),
+  Electron.ipcMain.handle('portmaster:bateaux:create', (event, input: unknown) =>
+    wrapIpc(event, (actorUserId) => {
+      const o = assertObject<Record<string, unknown>>(input, 'input');
+      assertText(o.nom, 'nom', { required: true, maxLength: 200 });
+      return portService.createBateau(actorUserId, input as portService.SaveBateauInput);
+    }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:bateaux:update',
-    (event, id: number, input: portService.SaveBateauInput) =>
-      wrapIpc(event, (actorUserId) => portService.updateBateau(actorUserId, id, input)),
+    (event, id: unknown, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        assertObject(input, 'input');
+        return portService.updateBateau(actorUserId, assertPositiveInteger(id, 'id'), input as portService.SaveBateauInput);
+      }),
   );
 
-  Electron.ipcMain.handle('portmaster:bateaux:deactivate', (event, id: number) =>
+  Electron.ipcMain.handle('portmaster:bateaux:deactivate', (event, id: unknown) =>
     wrapIpc(event, (actorUserId) => {
-      portService.deactivateBateau(actorUserId, id);
+      portService.deactivateBateau(actorUserId, assertPositiveInteger(id, 'id'));
       return true;
     }),
   );
@@ -54,27 +69,41 @@ export function registerPortmasterIpc(): void {
     wrapIpc(event, (actorUserId) => portService.listContrats(actorUserId, statut)),
   );
 
-  Electron.ipcMain.handle('portmaster:contrats:get', (event, id: number) =>
-    wrapIpc(event, (actorUserId) => portService.getContrat(actorUserId, id)),
+  Electron.ipcMain.handle('portmaster:contrats:get', (event, id: unknown) =>
+    wrapIpc(event, (actorUserId) => portService.getContrat(actorUserId, assertPositiveInteger(id, 'id'))),
   );
 
   Electron.ipcMain.handle(
     'portmaster:contrats:save',
-    (event, input: portService.SaveContratInput, id?: number) =>
-      wrapIpc(event, (actorUserId) => portService.saveContrat(actorUserId, input, id)),
+    (event, input: unknown, id?: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        assertObject(input, 'input');
+        return portService.saveContrat(
+          actorUserId,
+          input as portService.SaveContratInput,
+          id !== undefined ? assertPositiveInteger(id, 'id') : undefined,
+        );
+      }),
   );
 
-  Electron.ipcMain.handle('portmaster:contrats:submit', (event, id: number) =>
+  Electron.ipcMain.handle('portmaster:contrats:submit', (event, id: unknown) =>
     wrapIpc(event, (actorUserId) => {
-      portService.submitContratForValidation(actorUserId, id);
+      portService.submitContratForValidation(actorUserId, assertPositiveInteger(id, 'id'));
       return true;
     }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:encaissements:add',
-    (event, input: portService.AddEncaissementInput) =>
-      wrapIpc(event, (actorUserId) => portService.addEncaissement(actorUserId, input)),
+    (event, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertPositiveInteger(o.contratId, 'contratId');
+        assertAmount(o.montant, 'montant');
+        assertDateJournal(o.datePaiement, 'datePaiement');
+        if (o.mode !== undefined) assertEnum(o.mode, 'mode', ['especes', 'cheque', 'virement', 'carte', 'autre'] as const);
+        return portService.addEncaissement(actorUserId, input as portService.AddEncaissementInput);
+      }),
   );
 
   Electron.ipcMain.handle('portmaster:bateaux:options', (event) =>
@@ -85,14 +114,22 @@ export function registerPortmasterIpc(): void {
     wrapIpc(event, (actorUserId) => portClients.listClients(actorUserId, search)),
   );
 
-  Electron.ipcMain.handle('portmaster:clients:get', (event, id: number) =>
-    wrapIpc(event, (actorUserId) => portClients.getClient(actorUserId, id)),
+  Electron.ipcMain.handle('portmaster:clients:get', (event, id: unknown) =>
+    wrapIpc(event, (actorUserId) => portClients.getClient(actorUserId, assertPositiveInteger(id, 'id'))),
   );
 
   Electron.ipcMain.handle(
     'portmaster:clients:save',
-    (event, input: portClients.SaveClientInput, id?: number) =>
-      wrapIpc(event, (actorUserId) => portClients.saveClient(actorUserId, input, id)),
+    (event, input: unknown, id?: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertText(o.nom, 'nom', { required: true, maxLength: 200 });
+        return portClients.saveClient(
+          actorUserId,
+          input as portClients.SaveClientInput,
+          id !== undefined ? assertPositiveInteger(id, 'id') : undefined,
+        );
+      }),
   );
 
   Electron.ipcMain.handle('portmaster:clients:options', (event) =>
@@ -129,53 +166,82 @@ export function registerPortmasterIpc(): void {
     wrapIpc(event, (actorUserId) => portTarifs.listTarifs(actorUserId)),
   );
 
-  Electron.ipcMain.handle('portmaster:tarifs:get', (event, id: number) =>
-    wrapIpc(event, (actorUserId) => portTarifs.getTarif(actorUserId, id)),
+  Electron.ipcMain.handle('portmaster:tarifs:get', (event, id: unknown) =>
+    wrapIpc(event, (actorUserId) => portTarifs.getTarif(actorUserId, assertPositiveInteger(id, 'id'))),
   );
 
   Electron.ipcMain.handle(
     'portmaster:tarifs:save',
-    (event, input: portTarifs.SaveTarifInput, id?: number) =>
-      wrapIpc(event, (actorUserId) => portTarifs.saveTarif(actorUserId, input, id)),
+    (event, input: unknown, id?: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        assertObject(input, 'input');
+        return portTarifs.saveTarif(
+          actorUserId,
+          input as portTarifs.SaveTarifInput,
+          id !== undefined ? assertPositiveInteger(id, 'id') : undefined,
+        );
+      }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:tarifs:simuler',
-    (event, tarifId: number, longueurM: number) =>
-      wrapIpc(event, (actorUserId) => portTarifs.simulerTarif(actorUserId, tarifId, longueurM)),
+    (event, tarifId: unknown, longueurM: unknown) =>
+      wrapIpc(event, (actorUserId) =>
+        portTarifs.simulerTarif(
+          actorUserId,
+          assertPositiveInteger(tarifId, 'tarifId'),
+          assertAmount(longueurM, 'longueurM'),
+        ),
+      ),
   );
 
   Electron.ipcMain.handle('portmaster:factures:list', (event, statut?: string) =>
     wrapIpc(event, (actorUserId) => portFactures.listFactures(actorUserId, statut)),
   );
 
-  Electron.ipcMain.handle('portmaster:factures:get', (event, id: number) =>
-    wrapIpc(event, (actorUserId) => portFactures.getFacture(actorUserId, id)),
+  Electron.ipcMain.handle('portmaster:factures:get', (event, id: unknown) =>
+    wrapIpc(event, (actorUserId) => portFactures.getFacture(actorUserId, assertPositiveInteger(id, 'id'))),
   );
 
   Electron.ipcMain.handle(
     'portmaster:factures:create',
-    (event, input: portFactures.CreateFactureInput) =>
-      wrapIpc(event, (actorUserId) => portFactures.createFacture(actorUserId, input)),
+    (event, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertPositiveInteger(o.contratId, 'contratId');
+        return portFactures.createFacture(actorUserId, input as portFactures.CreateFactureInput);
+      }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:factures:fromContrat',
-    (event, contratId: number, tarifId?: number) =>
-      wrapIpc(event, (actorUserId) => portFactures.createFactureFromContrat(actorUserId, contratId, tarifId)),
+    (event, contratId: unknown, tarifId?: unknown) =>
+      wrapIpc(event, (actorUserId) =>
+        portFactures.createFactureFromContrat(
+          actorUserId,
+          assertPositiveInteger(contratId, 'contratId'),
+          tarifId !== undefined ? assertPositiveInteger(tarifId, 'tarifId') : undefined,
+        ),
+      ),
   );
 
-  Electron.ipcMain.handle('portmaster:factures:submit', (event, id: number) =>
+  Electron.ipcMain.handle('portmaster:factures:submit', (event, id: unknown) =>
     wrapIpc(event, (actorUserId) => {
-      portFactures.submitFacture(actorUserId, id);
+      portFactures.submitFacture(actorUserId, assertPositiveInteger(id, 'id'));
       return true;
     }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:factures:addPaiement',
-    (event, input: portFactures.AddPaiementFactureInput) =>
-      wrapIpc(event, (actorUserId) => portFactures.addPaiementFacture(actorUserId, input)),
+    (event, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertPositiveInteger(o.factureId, 'factureId');
+        assertAmount(o.montant, 'montant');
+        assertDateJournal(o.datePaiement, 'datePaiement');
+        return portFactures.addPaiementFacture(actorUserId, input as portFactures.AddPaiementFactureInput);
+      }),
   );
 
   Electron.ipcMain.handle('portmaster:validations:list', (event) =>
@@ -184,18 +250,28 @@ export function registerPortmasterIpc(): void {
 
   Electron.ipcMain.handle(
     'portmaster:validations:valider',
-    (event, entityType: string, entityId: number, motif?: string) =>
+    (event, entityType: unknown, entityId: unknown, motif?: unknown) =>
       wrapIpc(event, (actorUserId) => {
-        portValidations.validerEntite(actorUserId, entityType, entityId, motif);
+        portValidations.validerEntite(
+          actorUserId,
+          assertText(entityType, 'entityType', { required: true, maxLength: 50 }),
+          assertPositiveInteger(entityId, 'entityId'),
+          motif !== undefined ? assertText(motif, 'motif', { maxLength: 500 }) : undefined,
+        );
         return true;
       }),
   );
 
   Electron.ipcMain.handle(
     'portmaster:validations:rejeter',
-    (event, entityType: string, entityId: number, motif: string) =>
+    (event, entityType: unknown, entityId: unknown, motif: unknown) =>
       wrapIpc(event, (actorUserId) => {
-        portValidations.rejeterEntite(actorUserId, entityType, entityId, motif);
+        portValidations.rejeterEntite(
+          actorUserId,
+          assertText(entityType, 'entityType', { required: true, maxLength: 50 }),
+          assertPositiveInteger(entityId, 'entityId'),
+          assertText(motif, 'motif', { required: true, maxLength: 500 }),
+        );
         return true;
       }),
   );
@@ -206,8 +282,13 @@ export function registerPortmasterIpc(): void {
 
   Electron.ipcMain.handle(
     'portmaster:mouvements:create',
-    (event, input: portMouvements.SaveMouvementInput) =>
-      wrapIpc(event, (actorUserId) => portMouvements.createMouvement(actorUserId, input)),
+    (event, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertPositiveInteger(o.bateauId, 'bateauId');
+        assertDateJournal(o.dateMouvement, 'dateMouvement');
+        return portMouvements.createMouvement(actorUserId, input as portMouvements.SaveMouvementInput);
+      }),
   );
 
   Electron.ipcMain.handle('portmaster:recouvrement:summary', (event) =>
@@ -224,13 +305,18 @@ export function registerPortmasterIpc(): void {
 
   Electron.ipcMain.handle(
     'portmaster:recouvrement:relanceCreate',
-    (event, input: portRecouvrement.CreateRelanceInput) =>
-      wrapIpc(event, (actorUserId) => portRecouvrement.createRelance(actorUserId, input)),
+    (event, input: unknown) =>
+      wrapIpc(event, (actorUserId) => {
+        const o = assertObject<Record<string, unknown>>(input, 'input');
+        assertPositiveInteger(o.creanceId, 'creanceId');
+        assertText(o.type, 'type', { required: true, maxLength: 50 });
+        return portRecouvrement.createRelance(actorUserId, input as portRecouvrement.CreateRelanceInput);
+      }),
   );
 
-  Electron.ipcMain.handle('portmaster:recouvrement:relanceEnvoyee', (event, id: number) =>
+  Electron.ipcMain.handle('portmaster:recouvrement:relanceEnvoyee', (event, id: unknown) =>
     wrapIpc(event, (actorUserId) => {
-      portRecouvrement.marquerRelanceEnvoyee(actorUserId, id);
+      portRecouvrement.marquerRelanceEnvoyee(actorUserId, assertPositiveInteger(id, 'id'));
       return true;
     }),
   );

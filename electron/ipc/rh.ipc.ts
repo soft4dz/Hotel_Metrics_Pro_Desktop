@@ -19,7 +19,56 @@ import * as rhPointeuseSync from '../services/rh-pointeuse-sync.service';
 import * as rhAts from '../services/rh-ats.service';
 import * as rhTemps from '../services/rh-temps-reconciliation.service';
 import * as rhGpec from '../services/rh-gpec.service';
-import { assertPositiveInteger, assertText } from './validation';
+import { assertPositiveInteger, assertText, assertObject, assertEnum, assertDateJournal, assertAmount, assertArray } from './validation';
+import type {
+  CreateAbsenceInput,
+  CreateAffectationInput,
+  CreateContratInput,
+  CreateDepartementInput,
+  CreateDirectionInput,
+  CreateEmployeInput,
+  CreateEmployeWizardInput,
+  CreatePosteInput,
+  CreateRecrutementInput,
+  StatutAbsence,
+  StatutAffectation,
+  StatutRecrutement,
+  AddEquipeMembreInput,
+  CreatePlanningInput,
+  AssignEmployeFormationInput,
+  CreateCompetenceInput,
+  CreateEntretienInput,
+  CreateFormationCatalogInput,
+  CreatePrimeInput,
+  SetPosteCompetenceInput,
+  SortirEmployeInput,
+  TypeDocumentRh,
+  UpdateEmployeFormationInput,
+  UpdateEntretienInput,
+  UpdateFormationCatalogInput,
+  UpdateEmployeTypeActiviteInput,
+  UpdateDlgConfigInput,
+  UpdateDepartementInput,
+  UpdateDirectionInput,
+  UpdateEmployeInput,
+  UpdatePosteInput,
+  UpsertOrganisationInput,
+  UpsertPointageInput,
+  UpsertSoldeCongesInput,
+  CreateRhAccidentInput,
+  CreateRhVisiteMedicaleInput,
+  ProcessRuptureInput,
+} from '../../src/shared/types/rh';
+
+export function registerRhIpc(): void {
+  Electron.ipcMain.handle(
+    'rh:dashboard',
+    (event, dateDebut?: string, dateFin?: string, hotelId?: number) =>
+      wrapIpc(event, (uid) => rh.getRhDashboard(uid, dateDebut, dateFin, hotelId)),
+  );
+
+  Electron.ipcMain.handle('rh:pendingAccountsCount', (event) =>
+    wrapIpc(event, (uid) => rh.countPendingAccounts(uid)));
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
@@ -75,52 +124,52 @@ export function registerRhIpc(): void {
 
   Electron.ipcMain.handle('rh:directions:list', (event) =>
     wrapIpc(event, (uid) => rh.listDirections(uid)));
-  Electron.ipcMain.handle('rh:directions:create', (event, input: CreateDirectionInput) =>
-    wrapIpc(event, (uid) => rh.createDirection(uid, input)));
+  Electron.ipcMain.handle('rh:directions:create', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { const o = assertObject<Record<string,unknown>>(input,'input'); assertText(o.libelle,'libelle',{required:true,maxLength:200}); return rh.createDirection(uid, input as CreateDirectionInput); }));
   Electron.ipcMain.handle(
     'rh:directions:update',
-    (event, id: number, input: UpdateDirectionInput) =>
-      wrapIpc(event, (uid) => rh.updateDirection(uid, id, input)),
+    (event, id: unknown, input: unknown) =>
+      wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.updateDirection(uid, assertPositiveInteger(id,'id'), input as UpdateDirectionInput); }),
   );
 
   Electron.ipcMain.handle('rh:departements:list', (event, directionId?: number) =>
     wrapIpc(event, (uid) => rh.listDepartements(uid, directionId)));
-  Electron.ipcMain.handle('rh:departements:create', (event, input: CreateDepartementInput) =>
-    wrapIpc(event, (uid) => rh.createDepartement(uid, input)));
+  Electron.ipcMain.handle('rh:departements:create', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { const o = assertObject<Record<string,unknown>>(input,'input'); assertText(o.libelle,'libelle',{required:true,maxLength:200}); return rh.createDepartement(uid, input as CreateDepartementInput); }));
   Electron.ipcMain.handle(
     'rh:departements:update',
-    (event, id: number, input: UpdateDepartementInput) =>
-      wrapIpc(event, (uid) => rh.updateDepartement(uid, id, input)),
+    (event, id: unknown, input: unknown) =>
+      wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.updateDepartement(uid, assertPositiveInteger(id,'id'), input as UpdateDepartementInput); }),
   );
 
   Electron.ipcMain.handle('rh:postes:list', (event, departementId?: number) =>
     wrapIpc(event, (uid) => rh.listPostes(uid, departementId)));
-  Electron.ipcMain.handle('rh:postes:create', (event, input: CreatePosteInput) =>
-    wrapIpc(event, (uid) => rh.createPoste(uid, input)));
-  Electron.ipcMain.handle('rh:postes:update', (event, id: number, input: UpdatePosteInput) =>
-    wrapIpc(event, (uid) => rh.updatePoste(uid, id, input)));
+  Electron.ipcMain.handle('rh:postes:create', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { const o = assertObject<Record<string,unknown>>(input,'input'); assertText(o.libelle,'libelle',{required:true,maxLength:200}); return rh.createPoste(uid, input as CreatePosteInput); }));
+  Electron.ipcMain.handle('rh:postes:update', (event, id: unknown, input: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.updatePoste(uid, assertPositiveInteger(id,'id'), input as UpdatePosteInput); }));
 
   Electron.ipcMain.handle('rh:employes:list', (event, search?: string) =>
     wrapIpc(event, (uid) => rh.listEmployes(uid, search)));
-  Electron.ipcMain.handle('rh:employes:get', (event, id: number) =>
-    wrapIpc(event, (uid) => rh.getEmploye(uid, id)));
-  Electron.ipcMain.handle('rh:employes:create', (event, input: CreateEmployeInput) =>
-    wrapIpc(event, (uid) => rh.createEmploye(uid, input)));
-  Electron.ipcMain.handle('rh:employes:createWizard', (event, input: CreateEmployeWizardInput) =>
-    wrapIpc(event, (uid) => rh.createEmployeWizard(uid, input)));
-  Electron.ipcMain.handle('rh:employes:update', (event, id: number, input: UpdateEmployeInput) =>
-    wrapIpc(event, (uid) => rh.updateEmploye(uid, id, input)));
-  Electron.ipcMain.handle('rh:employes:sortir', (event, id: number, input: SortirEmployeInput) =>
-    wrapIpc(event, (uid) => rh.sortirEmploye(uid, id, input)));
+  Electron.ipcMain.handle('rh:employes:get', (event, id: unknown) =>
+    wrapIpc(event, (uid) => rh.getEmploye(uid, assertPositiveInteger(id,'id'))));
+  Electron.ipcMain.handle('rh:employes:create', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { const o = assertObject<Record<string,unknown>>(input,'input'); assertText(o.nom,'nom',{required:true,maxLength:200}); return rh.createEmploye(uid, input as CreateEmployeInput); }));
+  Electron.ipcMain.handle('rh:employes:createWizard', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.createEmployeWizard(uid, input as CreateEmployeWizardInput); }));
+  Electron.ipcMain.handle('rh:employes:update', (event, id: unknown, input: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.updateEmploye(uid, assertPositiveInteger(id,'id'), input as UpdateEmployeInput); }));
+  Electron.ipcMain.handle('rh:employes:sortir', (event, id: unknown, input: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rh.sortirEmploye(uid, assertPositiveInteger(id,'id'), input as SortirEmployeInput); }));
 
   Electron.ipcMain.handle('rh:recrutements:list', (event, statut?: StatutRecrutement) =>
     wrapIpc(event, (uid) => rh.listRecrutements(uid, statut)));
   Electron.ipcMain.handle('rh:recrutements:create', (event, input: CreateRecrutementInput) =>
     wrapIpc(event, (uid) => rh.createRecrutement(uid, input)));
-  Electron.ipcMain.handle('rh:recrutements:valider', (event, id: number) =>
-    wrapIpc(event, (uid) => rh.validerRecrutement(uid, id)));
-  Electron.ipcMain.handle('rh:recrutements:refuser', (event, id: number, motif?: string) =>
-    wrapIpc(event, (uid) => rh.refuserRecrutement(uid, id, motif)));
+  Electron.ipcMain.handle('rh:recrutements:valider', (event, id: unknown) =>
+    wrapIpc(event, (uid) => rh.validerRecrutement(uid, assertPositiveInteger(id,'id'))));
+  Electron.ipcMain.handle('rh:recrutements:refuser', (event, id: unknown, motif?: unknown) =>
+    wrapIpc(event, (uid) => rh.refuserRecrutement(uid, assertPositiveInteger(id,'id'), motif ? assertText(motif,'motif',{maxLength:500}) : undefined)));
 
   Electron.ipcMain.handle('rh:ats:offres:list', (event, statut?: import('../../src/shared/types/rh').StatutOffreEmploi) =>
     wrapIpc(event, (uid) => rhAts.listOffresEmploi(uid, statut)));
@@ -183,10 +232,10 @@ export function registerRhIpc(): void {
   Electron.ipcMain.handle('rh:gpec:evaluations:valider', (event, ligneId: number) =>
     wrapIpc(event, (uid) => rhGpec.validerEvaluationLigne(uid, ligneId)));
 
-  Electron.ipcMain.handle('rh:contrats:list', (event, employeId: number) =>
-    wrapIpc(event, (uid) => rh.listContrats(uid, employeId)));
-  Electron.ipcMain.handle('rh:contrats:create', (event, input: CreateContratInput) =>
-    wrapIpc(event, (uid) => rh.createContrat(uid, input)));
+  Electron.ipcMain.handle('rh:contrats:list', (event, employeId: unknown) =>
+    wrapIpc(event, (uid) => rh.listContrats(uid, assertPositiveInteger(employeId,'employeId'))));
+  Electron.ipcMain.handle('rh:contrats:create', (event, input: unknown) =>
+    wrapIpc(event, (uid) => { const o = assertObject<Record<string,unknown>>(input,'input'); assertPositiveInteger(o.employeId,'employeId'); return rh.createContrat(uid, input as CreateContratInput); }));
   Electron.ipcMain.handle('rh:contrats:listAll', (event) =>
     wrapIpc(event, (uid) => rh.listAllContrats(uid)));
 
@@ -194,10 +243,10 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rh.listPointages(uid, dateDebut, dateFin, employeId)));
   Electron.ipcMain.handle('rh:pointages:upsert', (event, input: UpsertPointageInput) =>
     wrapIpc(event, (uid) => rh.upsertPointage(uid, input)));
-  Electron.ipcMain.handle('rh:pointages:soumettre', (event, id: number) =>
-    wrapIpc(event, (uid) => rh.soumettrePointage(uid, id)));
-  Electron.ipcMain.handle('rh:pointages:valider', (event, id: number, approuve: boolean) =>
-    wrapIpc(event, (uid) => rh.validerPointage(uid, id, approuve)));
+  Electron.ipcMain.handle('rh:pointages:soumettre', (event, id: unknown) =>
+    wrapIpc(event, (uid) => rh.soumettrePointage(uid, assertPositiveInteger(id,'id'))));
+  Electron.ipcMain.handle('rh:pointages:valider', (event, id: unknown, approuve: unknown) =>
+    wrapIpc(event, (uid) => rh.validerPointage(uid, assertPositiveInteger(id,'id'), approuve === true)));
 
   Electron.ipcMain.handle(
     'rh:absences:list',
@@ -209,8 +258,8 @@ export function registerRhIpc(): void {
   );
   Electron.ipcMain.handle('rh:absences:create', (event, input: CreateAbsenceInput) =>
     wrapIpc(event, (uid) => rh.createAbsence(uid, input)));
-  Electron.ipcMain.handle('rh:absences:decider', (event, id: number, approuve: boolean) =>
-    wrapIpc(event, (uid) => rh.deciderAbsence(uid, id, approuve)));
+  Electron.ipcMain.handle('rh:absences:decider', (event, id: unknown, approuve: unknown) =>
+    wrapIpc(event, (uid) => rh.deciderAbsence(uid, assertPositiveInteger(id,'id'), approuve === true)));
   Electron.ipcMain.handle('rh:absences:cancel', (event, id: unknown, motif?: unknown) =>
     wrapIpc(event, (uid) => rh.cancelAbsence(uid, assertPositiveInteger(id, 'id'), motif ? assertText(motif, 'motif', { maxLength: 500 }) : undefined)));
 
@@ -221,16 +270,16 @@ export function registerRhIpc(): void {
   );
   Electron.ipcMain.handle('rh:affectations:create', (event, input: CreateAffectationInput) =>
     wrapIpc(event, (uid) => rh.createAffectation(uid, input)));
-  Electron.ipcMain.handle('rh:affectations:terminer', (event, id: number, dateFin?: string) =>
-    wrapIpc(event, (uid) => rh.terminerAffectation(uid, id, dateFin)));
+  Electron.ipcMain.handle('rh:affectations:terminer', (event, id: unknown, dateFin?: unknown) =>
+    wrapIpc(event, (uid) => rh.terminerAffectation(uid, assertPositiveInteger(id,'id'), dateFin ? assertDateJournal(dateFin,'dateFin') : undefined)));
 
   Electron.ipcMain.handle('rh:organisation:list', (event, hotelId?: number) =>
     wrapIpc(event, (uid) => rh.listOrganisation(uid, hotelId)));
   Electron.ipcMain.handle('rh:organisation:upsert', (event, input: UpsertOrganisationInput) =>
     wrapIpc(event, (uid) => rh.upsertOrganisation(uid, input)));
-  Electron.ipcMain.handle('rh:organisation:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:organisation:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rh.deleteOrganisation(uid, id);
+      rh.deleteOrganisation(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -249,9 +298,9 @@ export function registerRhIpc(): void {
   );
   Electron.ipcMain.handle('rh:plannings:create', (event, input: CreatePlanningInput) =>
     wrapIpc(event, (uid) => rh.createPlanning(uid, input)));
-  Electron.ipcMain.handle('rh:plannings:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:plannings:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rh.deletePlanning(uid, id);
+      rh.deletePlanning(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
   Electron.ipcMain.handle(
@@ -266,9 +315,9 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rh.listEquipes(uid, chefEmployeId)));
   Electron.ipcMain.handle('rh:equipes:add', (event, input: AddEquipeMembreInput) =>
     wrapIpc(event, (uid) => rh.addEquipeMembre(uid, input)));
-  Electron.ipcMain.handle('rh:equipes:remove', (event, id: number) =>
+  Electron.ipcMain.handle('rh:equipes:remove', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rh.removeEquipeMembre(uid, id);
+      rh.removeEquipeMembre(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -276,8 +325,8 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhPaie.listBulletins(uid, periode)));
   Electron.ipcMain.handle('rh:paie:generate', (event, periode: string) =>
     wrapIpc(event, (uid) => rhPaie.generatePrePaie(uid, periode)));
-  Electron.ipcMain.handle('rh:paie:bulletins:valider', (event, id: number) =>
-    wrapIpc(event, (uid) => rhPaie.validerBulletin(uid, id)));
+  Electron.ipcMain.handle('rh:paie:bulletins:valider', (event, id: unknown) =>
+    wrapIpc(event, (uid) => rhPaie.validerBulletin(uid, assertPositiveInteger(id,'id'))));
 
   Electron.ipcMain.handle('rh:paie:cloture:get', (event, periode: string) =>
     wrapIpc(event, (uid) => rhPaieCloture.getPaieCloture(uid, periode)));
@@ -291,17 +340,17 @@ export function registerRhIpc(): void {
     wrapIpc(event, () => rhPaieCloture.getPaieParams()));
   Electron.ipcMain.handle(
     'rh:paie:bulletins:comptabiliser',
-    (event, id: number, hotelId: number, dateOperation: string) =>
-      wrapIpc(event, (uid) => rhPaie.comptabiliserBulletinTresorerie(uid, id, hotelId, dateOperation)),
+    (event, id: unknown, hotelId: unknown, dateOperation: unknown) =>
+      wrapIpc(event, (uid) => rhPaie.comptabiliserBulletinTresorerie(uid, assertPositiveInteger(id,'id'), assertPositiveInteger(hotelId,'hotelId'), assertDateJournal(dateOperation,'dateOperation'))),
   );
 
   Electron.ipcMain.handle('rh:paie:primes:list', (event, periode?: string, employeId?: number) =>
     wrapIpc(event, (uid) => rhPaie.listPrimes(uid, periode, employeId)));
   Electron.ipcMain.handle('rh:paie:primes:create', (event, input: CreatePrimeInput) =>
     wrapIpc(event, (uid) => rhPaie.createPrime(uid, input)));
-  Electron.ipcMain.handle('rh:paie:primes:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:paie:primes:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhPaie.deletePrime(uid, id);
+      rhPaie.deletePrime(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -341,9 +390,9 @@ export function registerRhIpc(): void {
     (event, id: number, input: UpdateEmployeFormationInput) =>
       wrapIpc(event, (uid) => rhTalent.updateEmployeFormation(uid, id, input)),
   );
-  Electron.ipcMain.handle('rh:formations:employe:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:formations:employe:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhTalent.deleteEmployeFormation(uid, id);
+      rhTalent.deleteEmployeFormation(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -355,9 +404,9 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhTalent.listPosteCompetences(uid, posteId)));
   Electron.ipcMain.handle('rh:competences:poste:set', (event, input: SetPosteCompetenceInput) =>
     wrapIpc(event, (uid) => rhTalent.setPosteCompetence(uid, input)));
-  Electron.ipcMain.handle('rh:competences:poste:remove', (event, id: number) =>
+  Electron.ipcMain.handle('rh:competences:poste:remove', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhTalent.removePosteCompetence(uid, id);
+      rhTalent.removePosteCompetence(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -368,11 +417,11 @@ export function registerRhIpc(): void {
   );
   Electron.ipcMain.handle('rh:entretiens:create', (event, input: CreateEntretienInput) =>
     wrapIpc(event, (uid) => rhTalent.createEntretien(uid, input)));
-  Electron.ipcMain.handle('rh:entretiens:update', (event, id: number, input: UpdateEntretienInput) =>
-    wrapIpc(event, (uid) => rhTalent.updateEntretien(uid, id, input)));
-  Electron.ipcMain.handle('rh:entretiens:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:entretiens:update', (event, id: unknown, input: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rhTalent.updateEntretien(uid, assertPositiveInteger(id,'id'), input as UpdateEntretienInput); }));
+  Electron.ipcMain.handle('rh:entretiens:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhTalent.deleteEntretien(uid, id);
+      rhTalent.deleteEntretien(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -383,14 +432,14 @@ export function registerRhIpc(): void {
     (event, employeId: number, type: TypeDocumentRh, nom?: string) =>
       wrapIpc(event, (uid) => rhTalent.pickAndUploadDocument(uid, employeId, type, nom)),
   );
-  Electron.ipcMain.handle('rh:documents:delete', (event, id: number) =>
+  Electron.ipcMain.handle('rh:documents:delete', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhTalent.deleteDocument(uid, id);
+      rhTalent.deleteDocument(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
-  Electron.ipcMain.handle('rh:documents:open', (event, id: number) =>
+  Electron.ipcMain.handle('rh:documents:open', (event, id: unknown) =>
     wrapIpc(event, (uid) => {
-      rhTalent.openDocument(uid, id);
+      rhTalent.openDocument(uid, assertPositiveInteger(id,'id'));
       return true;
     }));
 
@@ -449,26 +498,26 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhGed.scanDossierFromFolder(uid, employeId, modeleCode)));
   Electron.ipcMain.handle('rh:ged:scanSingle', (event, employeId: number, modeleCode: string) =>
     wrapIpc(event, (uid) => rhGed.pickAndScanSingleDocument(uid, employeId, modeleCode)));
-  Electron.ipcMain.handle('rh:ged:soumettre', (event, documentId: number) =>
-    wrapIpc(event, (uid) => rhGed.soumettreDocumentValidation(uid, documentId)));
+  Electron.ipcMain.handle('rh:ged:soumettre', (event, documentId: unknown) =>
+    wrapIpc(event, (uid) => rhGed.soumettreDocumentValidation(uid, assertPositiveInteger(documentId,'documentId'))));
 
   Electron.ipcMain.handle('rh:validations:n1:list', (event) =>
     wrapIpc(event, (uid) => rhValidation.listValidationsN1(uid)));
   Electron.ipcMain.handle('rh:validations:n1:count', (event) =>
     wrapIpc(event, (uid) => rhValidation.countValidationsN1EnAttente(uid)));
-  Electron.ipcMain.handle('rh:validations:n1:absence', (event, id: number, approuve: boolean, commentaire?: string) =>
+  Electron.ipcMain.handle('rh:validations:n1:absence', (event, id: unknown, approuve: unknown, commentaire?: unknown) =>
     wrapIpc(event, (uid) => {
-      rhValidation.validerN1Absence(uid, id, approuve, commentaire);
+      rhValidation.validerN1Absence(uid, assertPositiveInteger(id,'id'), approuve === true, commentaire ? assertText(commentaire,'commentaire',{maxLength:1000}) : undefined);
       return true;
     }));
-  Electron.ipcMain.handle('rh:validations:n1:pointage', (event, id: number, approuve: boolean) =>
+  Electron.ipcMain.handle('rh:validations:n1:pointage', (event, id: unknown, approuve: unknown) =>
     wrapIpc(event, (uid) => {
-      rhValidation.validerN1Pointage(uid, id, approuve);
+      rhValidation.validerN1Pointage(uid, assertPositiveInteger(id,'id'), approuve === true);
       return true;
     }));
-  Electron.ipcMain.handle('rh:validations:n1:document', (event, id: number, approuve: boolean) =>
+  Electron.ipcMain.handle('rh:validations:n1:document', (event, id: unknown, approuve: unknown) =>
     wrapIpc(event, (uid) => {
-      rhValidation.validerN1Document(uid, id, approuve);
+      rhValidation.validerN1Document(uid, assertPositiveInteger(id,'id'), approuve === true);
       return true;
     }));
 
@@ -495,8 +544,8 @@ export function registerRhIpc(): void {
   Electron.ipcMain.handle('rh:registres:visites:exportPdf', (event) =>
     wrapIpcAsync(event, (uid) => rhRegistres.exportRegistreVisitesPdf(uid)));
 
-  Electron.ipcMain.handle('rh:paie:bulletin:exportPdf', (event, bulletinId: number) =>
-    wrapIpcAsync(event, (uid) => rhBulletinPdf.exportBulletinPaiePdf(uid, bulletinId)));
+  Electron.ipcMain.handle('rh:paie:bulletin:exportPdf', (event, bulletinId: unknown) =>
+    wrapIpcAsync(event, (uid) => rhBulletinPdf.exportBulletinPaiePdf(uid, assertPositiveInteger(bulletinId,'bulletinId'))));
 
   Electron.ipcMain.handle('rh:rupture:previewStc', (event, input: ProcessRuptureInput) =>
     wrapIpc(event, (uid) => rhRupture.previewStc(uid, input)));
@@ -504,10 +553,10 @@ export function registerRhIpc(): void {
     wrapIpc(event, (uid) => rhRupture.processRuptureContrat(uid, input)));
   Electron.ipcMain.handle('rh:rupture:list', (event) =>
     wrapIpc(event, (uid) => rhRupture.listRuptures(uid)));
-  Electron.ipcMain.handle('rh:rupture:certificat:exportPdf', (event, ruptureId: number) =>
-    wrapIpcAsync(event, (uid) => rhRupture.exportCertificatTravailPdf(uid, ruptureId)));
-  Electron.ipcMain.handle('rh:rupture:stc:exportPdf', (event, ruptureId: number) =>
-    wrapIpcAsync(event, (uid) => rhRupture.exportStcPdf(uid, ruptureId)));
+  Electron.ipcMain.handle('rh:rupture:certificat:exportPdf', (event, ruptureId: unknown) =>
+    wrapIpcAsync(event, (uid) => rhRupture.exportCertificatTravailPdf(uid, assertPositiveInteger(ruptureId,'ruptureId'))));
+  Electron.ipcMain.handle('rh:rupture:stc:exportPdf', (event, ruptureId: unknown) =>
+    wrapIpcAsync(event, (uid) => rhRupture.exportStcPdf(uid, assertPositiveInteger(ruptureId,'ruptureId'))));
 
   Electron.ipcMain.handle('rh:declarations:exportDas', (event, annee: number) =>
     wrapIpcAsync(event, (uid) => rhDeclarations.exportDasAnnuelle(uid, annee)));
@@ -531,31 +580,31 @@ export function registerRhIpc(): void {
   Electron.ipcMain.handle('rh:egt:exportCsv', (event, hotelId?: number) =>
     wrapIpc(event, (uid) => rhEgt.exportOrganigrammeCsv(uid, hotelId)));
 
-  Electron.ipcMain.handle('rh:pointeuses:list', (event, hotelId: number) =>
-    wrapIpc(event, () => rhPointeuse.listPointeuses(hotelId)));
-  Electron.ipcMain.handle('rh:pointeuses:upsert', (event, input: rhPointeuse.UpsertPointeuseInput, id?: number) =>
-    wrapIpc(event, (uid) => rhPointeuse.upsertPointeuse(uid, input, id)));
-  Electron.ipcMain.handle('rh:pointeuses:importCsv', (event, hotelId: number, csvContent: string, pointeuseId?: number) =>
+  Electron.ipcMain.handle('rh:pointeuses:list', (event, hotelId: unknown) =>
+    wrapIpc(event, () => rhPointeuse.listPointeuses(assertPositiveInteger(hotelId,'hotelId'))));
+  Electron.ipcMain.handle('rh:pointeuses:upsert', (event, input: unknown, id?: unknown) =>
+    wrapIpc(event, (uid) => { assertObject(input,'input'); return rhPointeuse.upsertPointeuse(uid, input as rhPointeuse.UpsertPointeuseInput, id !== undefined ? assertPositiveInteger(id,'id') : undefined); }));
+  Electron.ipcMain.handle('rh:pointeuses:importCsv', (event, hotelId: unknown, csvContent: unknown, pointeuseId?: unknown) =>
     wrapIpc(event, (uid) => {
-      const rows = rhPointeuse.parseCsvPunches(csvContent);
-      return rhPointeuse.importPunches(uid, hotelId, rows, pointeuseId);
+      const rows = rhPointeuse.parseCsvPunches(assertText(csvContent,'csvContent',{required:true,maxLength:10_000_000}));
+      return rhPointeuse.importPunches(uid, assertPositiveInteger(hotelId,'hotelId'), rows, pointeuseId !== undefined ? assertPositiveInteger(pointeuseId,'pointeuseId') : undefined);
     }));
-  Electron.ipcMain.handle('rh:pointeuses:rawPunches', (event, hotelId: number, traite?: boolean) =>
-    wrapIpc(event, () => rhPointeuse.listRawPunches(hotelId, traite)));
-  Electron.ipcMain.handle('rh:pointeuses:traiter', (event, hotelId: number, dateDebut?: string, dateFin?: string) =>
-    wrapIpc(event, (uid) => rhPointeuse.traiterRawPunches(uid, hotelId, dateDebut, dateFin)));
-  Electron.ipcMain.handle('rh:pointeuses:setBadge', (event, employeId: number, badgeId: string | null) =>
+  Electron.ipcMain.handle('rh:pointeuses:rawPunches', (event, hotelId: unknown, traite?: unknown) =>
+    wrapIpc(event, () => rhPointeuse.listRawPunches(assertPositiveInteger(hotelId,'hotelId'), traite === true ? true : traite === false ? false : undefined)));
+  Electron.ipcMain.handle('rh:pointeuses:traiter', (event, hotelId: unknown, dateDebut?: unknown, dateFin?: unknown) =>
+    wrapIpc(event, (uid) => rhPointeuse.traiterRawPunches(uid, assertPositiveInteger(hotelId,'hotelId'), dateDebut ? assertDateJournal(dateDebut,'dateDebut') : undefined, dateFin ? assertDateJournal(dateFin,'dateFin') : undefined)));
+  Electron.ipcMain.handle('rh:pointeuses:setBadge', (event, employeId: unknown, badgeId: unknown) =>
     wrapIpc(event, (uid) => {
-      rhPointeuse.setEmployeBadge(uid, employeId, badgeId);
+      rhPointeuse.setEmployeBadge(uid, assertPositiveInteger(employeId,'employeId'), badgeId !== null && badgeId !== undefined ? assertText(badgeId,'badgeId',{maxLength:100}) : null);
       return true;
     }));
-  Electron.ipcMain.handle('rh:pointeuses:syncNow', (event, pointeuseId: number) =>
-    wrapIpcAsync(event, (uid) => rhPointeuseSync.syncPointeuseNow(uid, pointeuseId)));
-  Electron.ipcMain.handle('rh:pointeuses:setSyncAuto', (event, pointeuseId: number, syncAuto: boolean, intervalMin?: number) =>
+  Electron.ipcMain.handle('rh:pointeuses:syncNow', (event, pointeuseId: unknown) =>
+    wrapIpcAsync(event, (uid) => rhPointeuseSync.syncPointeuseNow(uid, assertPositiveInteger(pointeuseId,'pointeuseId'))));
+  Electron.ipcMain.handle('rh:pointeuses:setSyncAuto', (event, pointeuseId: unknown, syncAuto: unknown, intervalMin?: unknown) =>
     wrapIpc(event, (uid) => {
-      rhPointeuseSync.setPointeuseSyncAuto(uid, pointeuseId, syncAuto, intervalMin);
+      rhPointeuseSync.setPointeuseSyncAuto(uid, assertPositiveInteger(pointeuseId,'pointeuseId'), syncAuto === true, intervalMin !== undefined ? assertPositiveInteger(intervalMin,'intervalMin') : undefined);
       return true;
     }));
-  Electron.ipcMain.handle('rh:pointeuses:listExtended', (event, hotelId: number) =>
-    wrapIpc(event, () => rhPointeuseSync.listPointeusesWithSync(hotelId)));
+  Electron.ipcMain.handle('rh:pointeuses:listExtended', (event, hotelId: unknown) =>
+    wrapIpc(event, () => rhPointeuseSync.listPointeusesWithSync(assertPositiveInteger(hotelId,'hotelId'))));
 }

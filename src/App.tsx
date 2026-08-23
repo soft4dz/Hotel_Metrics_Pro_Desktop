@@ -55,7 +55,7 @@ export default function App() {
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <HashRouter>
+        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SessionBootstrap />
           <DocumentTranslator />
           <AppRoutes />

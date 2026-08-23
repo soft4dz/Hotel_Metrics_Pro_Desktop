@@ -33,7 +33,7 @@ export function navigateTo(route: string): void {
 function TestShell() {
   return (
     <GlobalErrorBoundary>
-      <HashRouter>
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppRoutes />
       </HashRouter>
     </GlobalErrorBoundary>

@@ -61,7 +61,7 @@ vi.mock('@/components/common/SyncStatusBadge', () => ({
 }));
 
 function renderWithRouter(ui: React.ReactElement, route = '/dashboard') {
-  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[route]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>);
 }
 
 describe('SidebarNav', () => {
