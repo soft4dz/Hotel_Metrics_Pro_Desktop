@@ -146,7 +146,7 @@ export function registerTresorerieIpc(): void {
   Electron.ipcMain.handle('tresorerie:ordres:create', (event, input: unknown) =>
     wrapIpc(event, (actor) => {
       assertObject(input, 'input');
-      return advanced.createPaymentOrder(actor, input);
+      return advanced.createPaymentOrder(actor, input as Parameters<typeof advanced.createPaymentOrder>[1]);
     }),
   );
 
@@ -173,11 +173,11 @@ export function registerTresorerieIpc(): void {
   );
 
   Electron.ipcMain.handle('tresorerie:forecast:create', (event, input: unknown) =>
-    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.createForecast(actor, input); }),
+    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.createForecast(actor, input as Parameters<typeof advanced.createForecast>[1]); }),
   );
 
   Electron.ipcMain.handle('tresorerie:bank:import', (event, input: unknown) =>
-    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.importBankStatement(actor, input); }),
+    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.importBankStatement(actor, input as Parameters<typeof advanced.importBankStatement>[1]); }),
   );
 
   Electron.ipcMain.handle('tresorerie:bank:lines', (event, accountId: unknown) =>
@@ -189,7 +189,7 @@ export function registerTresorerieIpc(): void {
   );
 
   Electron.ipcMain.handle('tresorerie:bank:confirm', (event, input: unknown) =>
-    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.confirmReconciliation(actor, input); }),
+    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.confirmReconciliation(actor, input as Parameters<typeof advanced.confirmReconciliation>[1]); }),
   );
 
   Electron.ipcMain.handle('tresorerie:cost-centers:list', (event, hotelId: unknown) =>
@@ -197,11 +197,11 @@ export function registerTresorerieIpc(): void {
   );
 
   Electron.ipcMain.handle('tresorerie:cost-centers:create', (event, input: unknown) =>
-    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.createCostCenter(actor, input); }),
+    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.createCostCenter(actor, input as Parameters<typeof advanced.createCostCenter>[1]); }),
   );
 
   Electron.ipcMain.handle('tresorerie:cost-centers:allocate', (event, input: unknown) =>
-    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.allocateCost(actor, input); }),
+    wrapIpc(event, (actor) => { assertObject(input, 'input'); return advanced.allocateCost(actor, input as Parameters<typeof advanced.allocateCost>[1]); }),
   );
 
   Electron.ipcMain.handle('tresorerie:analytics:report', (event, hotelId: unknown, from: unknown, to: unknown) =>

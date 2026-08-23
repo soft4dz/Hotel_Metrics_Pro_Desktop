@@ -19,56 +19,7 @@ import * as rhPointeuseSync from '../services/rh-pointeuse-sync.service';
 import * as rhAts from '../services/rh-ats.service';
 import * as rhTemps from '../services/rh-temps-reconciliation.service';
 import * as rhGpec from '../services/rh-gpec.service';
-import { assertPositiveInteger, assertText, assertObject, assertEnum, assertDateJournal, assertAmount, assertArray } from './validation';
-import type {
-  CreateAbsenceInput,
-  CreateAffectationInput,
-  CreateContratInput,
-  CreateDepartementInput,
-  CreateDirectionInput,
-  CreateEmployeInput,
-  CreateEmployeWizardInput,
-  CreatePosteInput,
-  CreateRecrutementInput,
-  StatutAbsence,
-  StatutAffectation,
-  StatutRecrutement,
-  AddEquipeMembreInput,
-  CreatePlanningInput,
-  AssignEmployeFormationInput,
-  CreateCompetenceInput,
-  CreateEntretienInput,
-  CreateFormationCatalogInput,
-  CreatePrimeInput,
-  SetPosteCompetenceInput,
-  SortirEmployeInput,
-  TypeDocumentRh,
-  UpdateEmployeFormationInput,
-  UpdateEntretienInput,
-  UpdateFormationCatalogInput,
-  UpdateEmployeTypeActiviteInput,
-  UpdateDlgConfigInput,
-  UpdateDepartementInput,
-  UpdateDirectionInput,
-  UpdateEmployeInput,
-  UpdatePosteInput,
-  UpsertOrganisationInput,
-  UpsertPointageInput,
-  UpsertSoldeCongesInput,
-  CreateRhAccidentInput,
-  CreateRhVisiteMedicaleInput,
-  ProcessRuptureInput,
-} from '../../src/shared/types/rh';
-
-export function registerRhIpc(): void {
-  Electron.ipcMain.handle(
-    'rh:dashboard',
-    (event, dateDebut?: string, dateFin?: string, hotelId?: number) =>
-      wrapIpc(event, (uid) => rh.getRhDashboard(uid, dateDebut, dateFin, hotelId)),
-  );
-
-  Electron.ipcMain.handle('rh:pendingAccountsCount', (event) =>
-    wrapIpc(event, (uid) => rh.countPendingAccounts(uid)));
+import { assertPositiveInteger, assertText, assertObject, assertDateJournal } from './validation';
 import type {
   CreateAbsenceInput,
   CreateAffectationInput,
