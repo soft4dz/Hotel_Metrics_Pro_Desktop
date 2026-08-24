@@ -11,8 +11,8 @@ export function AuthLayout() {
 
   return (
     <div className="flex min-h-full">
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-[#071525] p-12 text-white lg:flex">
-        <div className="relative z-10">
+      <div className="hidden w-1/2 flex-col justify-between border-r border-white/10 bg-[#071525] p-12 text-white lg:flex">
+        <div>
           <img
             src={APP_BILINGUAL_WHITE_URL}
             alt="Raqmi System"
@@ -20,7 +20,7 @@ export function AuthLayout() {
           />
         </div>
 
-        <div className="relative z-10 space-y-6">
+        <div className="space-y-6">
           <h1 className="max-w-lg text-balance text-3xl font-semibold leading-tight tracking-tight">
             {t('Un système.')}
             <span className="mt-2 block text-brand-gold">{t('Toute votre entreprise.')}</span>
@@ -45,18 +45,9 @@ export function AuthLayout() {
           </ul>
         </div>
 
-        <p className="relative z-10 text-xs text-white/40">
+        <p className="text-xs text-white/40">
           © {new Date().getFullYear()} Raqmi System
         </p>
-
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-gold/20 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-16 left-1/4 h-64 w-64 rounded-full bg-brand-blue/30 blur-3xl"
-          aria-hidden
-        />
       </div>
 
       <div className="page-mesh flex flex-1 items-center justify-center p-4 sm:p-6 lg:p-10">

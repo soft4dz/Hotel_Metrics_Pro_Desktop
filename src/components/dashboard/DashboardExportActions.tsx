@@ -14,7 +14,7 @@ function DashboardExportActionsComponent({ onExcel, onPdf }: DashboardExportActi
         type="button"
         variant="outline"
         size="sm"
-        className="cursor-pointer border-white/30 bg-white/10 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20"
+        className="cursor-pointer border-border bg-card text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
         onClick={onExcel}
       >
         <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -24,7 +24,7 @@ function DashboardExportActionsComponent({ onExcel, onPdf }: DashboardExportActi
         type="button"
         variant="outline"
         size="sm"
-        className="cursor-pointer border-white/30 bg-white/10 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20"
+        className="cursor-pointer border-border bg-card text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
         onClick={onPdf}
       >
         <Download className="mr-2 h-4 w-4" />
@@ -34,7 +34,7 @@ function DashboardExportActionsComponent({ onExcel, onPdf }: DashboardExportActi
         type="button"
         variant="outline"
         size="sm"
-        className="cursor-pointer border-white/30 bg-white/10 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20"
+        className="cursor-pointer border-border bg-card text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
         onClick={() => window.print()}
       >
         <Printer className="mr-2 h-4 w-4" />

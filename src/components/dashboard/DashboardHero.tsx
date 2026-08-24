@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { TrendingDown, TrendingUp, Sparkles } from 'lucide-react';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { formatMoney, formatPercent } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { DashboardKpis } from '@/shared/types/dashboard';
@@ -18,40 +18,36 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
   return (
     <div
       className={cn(
-        'dashboard-hero relative overflow-hidden rounded-[var(--radius)] p-4 shadow-elevated sm:p-5 lg:p-6',
+        'dashboard-hero overflow-hidden rounded-[var(--radius)] border border-border border-l-4 border-l-primary p-4 shadow-card sm:p-5 lg:p-6',
         className,
       )}
       role="region"
       aria-label="Synthèse du chiffre d'affaires"
     >
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" aria-hidden />
-      <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" aria-hidden />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-
-      <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center md:gap-5">
+      <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-stretch">
         <div className="flex-1">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5 text-white/80" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="section-label text-primary">Synthèse de direction</span>
+            <span className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
               {periodeLabel}
             </span>
           </div>
 
-          <p className="mb-2 font-mono text-4xl font-bold tracking-tight text-white drop-shadow-sm lg:text-5xl">
+          <p className="mb-1 font-mono text-3xl font-bold tabular-nums tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem]">
             {formatMoney(kpis.caMois)}
           </p>
-          <p className="mb-4 text-sm font-medium text-white/70">
-            Chiffre d'affaires global généré
+          <p className="mb-4 text-sm text-muted-foreground">
+            Chiffre d'affaires consolidé du mois
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
             {variationPct !== undefined && (
               <div
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-wide backdrop-blur-md',
+                  'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold',
                   varPos
-                    ? 'border border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
-                    : 'border border-red-400/30 bg-red-500/15 text-red-200',
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-red-200 bg-red-50 text-red-700',
                 )}
               >
                 {varPos ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
@@ -62,7 +58,7 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 rounded-[var(--radius)] border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:flex sm:gap-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="grid w-full grid-cols-2 overflow-hidden rounded-[var(--radius)] border border-border bg-background sm:grid-cols-4 xl:w-auto xl:min-w-[34rem]">
           <HeroStat
             value={formatPercent(kpis.tauxRealisation)}
             label="Objectif"
@@ -82,7 +78,6 @@ export function DashboardHero({ periodeLabel, kpis, variationPct, actions, class
             value={String(kpis.saisiesManquantes)}
             label="Manquantes"
             highlight={kpis.saisiesManquantes > 0 ? 'danger' : undefined}
-            last
           />
         </div>
       </div>
@@ -94,32 +89,24 @@ function HeroStat({
   value,
   label,
   highlight,
-  last = false,
 }: {
   value: string;
   label: string;
   highlight?: 'success' | 'gold' | 'danger';
-  last?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col justify-center text-center sm:border-l sm:border-white/15 sm:px-6',
-        last && 'sm:pr-0',
-      )}
-    >
+    <div className="flex min-h-24 flex-col justify-center border-b border-r border-border px-4 py-3 text-left last:border-r-0 sm:border-b-0">
       <p
         className={cn(
-          'font-mono text-2xl font-bold tracking-tight',
-          highlight === 'success' && 'text-emerald-300',
-          highlight === 'gold'    && 'text-amber-300',
-          highlight === 'danger'  && 'text-rose-300',
-          !highlight              && 'text-white',
+          'font-mono text-xl font-bold tabular-nums tracking-tight text-foreground',
+          highlight === 'success' && 'text-emerald-700',
+          highlight === 'gold'    && 'text-amber-700',
+          highlight === 'danger'  && 'text-red-700',
         )}
       >
         {value}
       </p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {label}
       </p>
     </div>

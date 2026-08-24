@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Anchor,
+  ArrowRight,
   BarChart3,
   Bell,
   BookOpen,
@@ -60,8 +61,10 @@ import {
   canAccessRhSelf,
   isAdminRole,
 } from '@/shared/permissions';
-import { MODULE_GROUPS, MODULES } from '@/modules/moduleCatalog';
+import { MODULES } from '@/modules/moduleCatalog';
 import type { ModuleDefinition } from '@/modules/moduleCatalog';
+import { MODULE_SUITES, getModuleSuite } from '@/pages/modules/moduleSuites';
+import type { ModuleSuiteTone } from '@/pages/modules/moduleSuites';
 
 type IconType = LucideIcon;
 
@@ -220,76 +223,24 @@ const MODULE_ACCESS: Record<string, (role?: string) => boolean> = {
   'journalisation-tracabilite': canReadAudit,
 };
 
-/** Palette inspirée du lanceur d'applications Odoo */
-const MODULE_COLORS: Record<string, string> = {
-  'administration-utilisateurs': '#714B67',
-  'parametrage-global': '#5C5C5C',
-  'unites-hotelieres': '#875A7B',
-  'recettes-journalieres': '#00A09D',
-  'cloture-night-audit': '#155E75',
-  'encaissements-tresorerie': '#1F8787',
-  'comptabilite-scf': '#0F766E',
-  'fiscalite-dgi': '#047857',
-  'budget-previsions': '#4C9E8F',
-  'hebergement-occupation': '#E46F78',
-  'housekeeping-chambres': '#EC4899',
-  'crm-experience-client': '#DB2777',
-  'groupes-mice': '#7C3AED',
-  facturation: '#00A09D',
-  'creances-recouvrement': '#DC6965',
-  'contrats-conventions': '#875A7B',
-  'stocks-consommations': '#6C757D',
-  'cuisine-qualite': '#EA580C',
-  'pos-restauration': '#C2410C',
-  'achats-approvisionnements': '#7C6576',
-  'appels-offres': '#8E6C3B',
-  'maintenance-interventions': '#4A4F59',
-  'integrations-materielles': '#0369A1',
-  'rh-productivite': '#A24689',
-  'pointeuses-badgeuses': '#9333EA',
-  'tarifs-conventions': '#E99D00',
-  'audit-controle-interne': '#8F8F8F',
-  'workflows-validations': '#4F46E5',
-  'checklists-controle': '#6366F1',
-  'journal-anomalies': '#DC6965',
-  'decisions-instructions': '#714B67',
-  'qualite-reclamations': '#E46F78',
-  'conformite-hoteliere': '#0F766E',
-  'protection-donnees-personnelles': '#1D4ED8',
-  'modules-legaux': '#475569',
-  'veille-reglementaire': '#0E7490',
-  portmaster: '#1A5276',
-  clients: '#3498DB',
-  'commercial-partenariats': '#E67E22',
-  'tableaux-bord-directionnels': '#714B67',
-  'dashboard-pdg': '#4338CA',
-  'cockpit-dec': '#1D4ED8',
-  'rapports-automatiques': '#5278B8',
-  'alertes-notifications': '#F39C12',
-  'comparatif-inter-unites': '#9B59B6',
-  'gestion-documentaire': '#7F8C8D',
-  'sauvegarde-restauration': '#566573',
-  'synchronisation-multi-postes': '#148F77',
-  'journalisation-tracabilite': '#5D6D7E',
+const SUITE_ICONS: Record<string, IconType> = {
+  pilotage: BarChart3,
+  finance: Wallet,
+  'hotel-commercial': Building2,
+  'restauration-evenements': UtensilsCrossed,
+  'achats-patrimoine': Wrench,
+  'ressources-humaines': Users,
+  'controle-conformite': Shield,
+  'port-administration': Anchor,
 };
 
-const GROUP_COLORS: Record<string, string> = {
-  Socle: '#714B67',
-  Finance: '#00A09D',
-  Exploitation: '#E46F78',
-  'Juridique & commercial': '#875A7B',
-  'Ressources humaines': '#A24689',
-  Contrôle: '#DC6965',
-  'Conformité & légal': '#0F766E',
-  Pilotage: '#5278B8',
-  Spécifique: '#1A5276',
-  'Système documentaire': '#7F8C8D',
-  Système: '#5D6D7E',
+const SUITE_TONE_CLASS: Record<ModuleSuiteTone, string> = {
+  navy: 'workspace-tone-navy',
+  blue: 'workspace-tone-blue',
+  teal: 'workspace-tone-teal',
+  sand: 'workspace-tone-sand',
+  slate: 'workspace-tone-slate',
 };
-
-function moduleColor(module: ModuleDefinition): string {
-  return MODULE_COLORS[module.id] ?? GROUP_COLORS[module.group] ?? '#714B67';
-}
 
 function normalizeSearch(value: string): string {
   return value
@@ -299,7 +250,7 @@ function normalizeSearch(value: string): string {
     .trim();
 }
 
-function OdooAppTile({
+function WorkspaceModuleRow({
   module,
   disabledByConfig,
 }: {
@@ -307,41 +258,40 @@ function OdooAppTile({
   disabledByConfig: boolean;
 }) {
   const Icon = MODULE_ICONS[module.id] ?? Layers;
-  const color = moduleColor(module);
   const ready = !!module.existingRoute && !disabledByConfig;
   const target = module.existingRoute ?? module.route;
   const comingSoon = module.status === 'a-developper' || !module.existingRoute;
+  const suite = getModuleSuite(module.id);
 
   const content = (
     <>
-      <div className="relative">
-        <div
-          className="odoo-app-icon"
-          style={{ backgroundColor: color }}
-          aria-hidden
-        >
-          <Icon className="h-8 w-8 text-white" strokeWidth={1.65} />
-        </div>
+      <span className={cn('workspace-module-icon', suite && SUITE_TONE_CLASS[suite.tone])} aria-hidden>
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="workspace-module-label">{module.name}</span>
+        <span className="workspace-module-desc">{MODULE_DESC[module.id] ?? module.group}</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
         {disabledByConfig ? (
-          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-white shadow-sm">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted text-muted-foreground" title="Module désactivé">
             <Lock className="h-3 w-3" />
           </span>
         ) : null}
         {comingSoon && !disabledByConfig ? (
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-600 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-            Bientôt
+          <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+            En préparation
           </span>
         ) : null}
-      </div>
-      <p className="odoo-app-label">{module.name}</p>
-      <p className="odoo-app-desc">{MODULE_DESC[module.id] ?? module.group}</p>
+        {ready ? <ArrowRight className="h-4 w-4 text-muted-foreground" /> : null}
+      </span>
     </>
   );
 
   if (!ready) {
     return (
       <div
-        className="odoo-app-tile odoo-app-tile--disabled"
+        className="workspace-module-row workspace-module-row--disabled"
         title={disabledByConfig ? 'Module désactivé' : 'Module en cours de développement'}
       >
         {content}
@@ -350,7 +300,7 @@ function OdooAppTile({
   }
 
   return (
-    <Link to={target} className="odoo-app-tile group" title={MODULE_DESC[module.id]}>
+    <Link to={target} className="workspace-module-row group" title={MODULE_DESC[module.id]}>
       {content}
     </Link>
   );
@@ -361,7 +311,7 @@ export function ModulesIndexPage() {
   const location = useLocation();
   const enabledModules = useEnabledModules();
   const [query, setQuery] = useState('');
-  const [activeGroup, setActiveGroup] = useState<string>('all');
+  const [activeSuite, setActiveSuite] = useState('pilotage');
 
   useEffect(() => {
     const state = location.state as { disabledModuleName?: string } | null;
@@ -384,26 +334,44 @@ export function ModulesIndexPage() {
 
   const normalizedQuery = normalizeSearch(query);
 
+  const visibleSuites = useMemo(
+    () =>
+      MODULE_SUITES.map((suite) => ({
+        ...suite,
+        count: accessibleModules.filter((module) => getModuleSuite(module.id)?.id === suite.id).length,
+      })).filter((suite) => suite.count > 0),
+    [accessibleModules],
+  );
+
+  const effectiveActiveSuite = visibleSuites.some((suite) => suite.id === activeSuite)
+    ? activeSuite
+    : (visibleSuites[0]?.id ?? activeSuite);
+
+  const selectedSuite = MODULE_SUITES.find((suite) => suite.id === effectiveActiveSuite) ?? MODULE_SUITES[0];
+
   const filteredModules = useMemo(() => {
     return accessibleModules.filter((module) => {
-      if (activeGroup !== 'all' && module.group !== activeGroup) return false;
+      if (!normalizedQuery && getModuleSuite(module.id)?.id !== effectiveActiveSuite) return false;
       if (!normalizedQuery) return true;
       const haystack = normalizeSearch(
         `${module.name} ${module.group} ${MODULE_DESC[module.id] ?? ''} ${module.capabilities?.join(' ') ?? ''}`,
       );
       return haystack.includes(normalizedQuery);
     });
-  }, [accessibleModules, activeGroup, normalizedQuery]);
+  }, [accessibleModules, effectiveActiveSuite, normalizedQuery]);
 
-  const orderedModules = useMemo(() => {
-    if (activeGroup !== 'all' || normalizedQuery) return filteredModules;
-    return MODULE_GROUPS.flatMap((group) => filteredModules.filter((m) => m.group === group));
-  }, [filteredModules, activeGroup, normalizedQuery]);
-
-  const visibleGroups = useMemo(
-    () => MODULE_GROUPS.filter((group) => accessibleModules.some((m) => m.group === group)),
-    [accessibleModules],
-  );
+  const quickModuleIds = [
+    'dashboard-pdg',
+    'cockpit-dec',
+    'recettes-journalieres',
+    'hebergement-occupation',
+    'encaissements-tresorerie',
+    'portmaster',
+  ];
+  const quickModules = quickModuleIds
+    .map((moduleId) => accessibleModules.find((module) => module.id === moduleId))
+    .filter((module): module is ModuleDefinition => !!module)
+    .slice(0, 5);
 
   const isModuleDisabled = (moduleId: string) =>
     isConfiguredModule(moduleId) &&
@@ -411,29 +379,28 @@ export function ModulesIndexPage() {
     !enabledModules.has(moduleId);
 
   return (
-    <div className="odoo-apps-page">
-      <div className="odoo-apps-toolbar">
-        <div className="min-w-0 flex-1">
-          <h2 className="odoo-apps-title">Applications</h2>
-          <p className="odoo-apps-subtitle">
-            {accessibleModules.length} modules disponibles pour votre profil
-          </p>
+    <div className="workspace-page">
+      <header className="workspace-header">
+        <div className="min-w-0">
+          <p className="section-label text-accent">Raqmi System · رقمي سيستم</p>
+          <h2 className="workspace-title">Espace de travail</h2>
+          <p className="workspace-subtitle">Un système. Toute votre entreprise.</p>
         </div>
 
-        <div className="odoo-apps-search-wrap">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="workspace-search-wrap">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-accent" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher une application…"
-            className="odoo-apps-search"
-            aria-label="Rechercher une application"
+            placeholder="Rechercher un module ou une fonction…"
+            className="workspace-search"
+            aria-label="Rechercher un module ou une fonction"
           />
           {query ? (
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-label="Effacer la recherche"
               onClick={() => setQuery('')}
             >
@@ -441,47 +408,87 @@ export function ModulesIndexPage() {
             </button>
           ) : null}
         </div>
-      </div>
+      </header>
 
-      <div className="odoo-apps-filters" role="tablist" aria-label="Filtrer par catégorie">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeGroup === 'all'}
-          className={cn('odoo-apps-filter', activeGroup === 'all' && 'odoo-apps-filter--active')}
-          onClick={() => setActiveGroup('all')}
-        >
-          Toutes
-        </button>
-        {visibleGroups.map((group) => (
-          <button
-            key={group}
-            type="button"
-            role="tab"
-            aria-selected={activeGroup === group}
-            className={cn('odoo-apps-filter', activeGroup === group && 'odoo-apps-filter--active')}
-            onClick={() => setActiveGroup(group)}
-          >
-            {group}
-          </button>
-        ))}
-      </div>
+      {!normalizedQuery && quickModules.length > 0 ? (
+        <section className="workspace-quick-access" aria-labelledby="workspace-quick-heading">
+          <div>
+            <h3 id="workspace-quick-heading" className="text-xs font-semibold text-foreground">Accès directs</h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Vos fonctions de pilotage prioritaires</p>
+          </div>
+          <div className="flex flex-1 flex-wrap gap-2 lg:justify-end">
+            {quickModules.map((module) => (
+              <Link key={module.id} to={module.existingRoute ?? module.route} className="workspace-quick-link">
+                {module.name}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {filteredModules.length === 0 ? (
-        <div className="odoo-apps-empty">
-          <Layers className="mx-auto h-10 w-10 text-slate-300" />
-          <p className="mt-3 text-sm font-medium text-slate-600">Aucune application trouvée</p>
-          <p className="mt-1 text-xs text-slate-400">Modifiez votre recherche ou changez de catégorie</p>
+        <div className="workspace-empty">
+          <Layers className="mx-auto h-9 w-9 text-muted-foreground/40" />
+          <p className="mt-3 text-sm font-medium text-foreground">Aucun module trouvé</p>
+          <p className="mt-1 text-xs text-muted-foreground">Modifiez votre recherche</p>
         </div>
+      ) : normalizedQuery ? (
+        <section className="workspace-results">
+          <div className="workspace-panel-heading">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Résultats</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">{filteredModules.length} résultat(s) pour « {query} »</p>
+            </div>
+          </div>
+          <div className="workspace-module-grid">
+            {filteredModules.map((module) => (
+              <WorkspaceModuleRow key={module.id} module={module} disabledByConfig={isModuleDisabled(module.id)} />
+            ))}
+          </div>
+        </section>
       ) : (
-        <div className="odoo-apps-grid">
-          {orderedModules.map((module) => (
-            <OdooAppTile
-              key={module.id}
-              module={module}
-              disabledByConfig={isModuleDisabled(module.id)}
-            />
-          ))}
+        <div className="workspace-layout">
+          <nav className="workspace-suite-list" aria-label="Suites métier">
+            {visibleSuites.map((suite) => {
+              const Icon = SUITE_ICONS[suite.id] ?? Layers;
+              const active = suite.id === effectiveActiveSuite;
+              return (
+                <button
+                  key={suite.id}
+                  type="button"
+                  onClick={() => setActiveSuite(suite.id)}
+                  className={cn('workspace-suite-button', active && 'workspace-suite-button--active')}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <span className={cn('workspace-suite-icon', SUITE_TONE_CLASS[suite.tone])}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-sm font-semibold">{suite.title}</span>
+                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{suite.count} modules</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              );
+            })}
+          </nav>
+
+          <section className="workspace-results">
+            <div className="workspace-panel-heading">
+              <div>
+                <p className="section-label">Suite métier</p>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedSuite.title}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">{selectedSuite.description}</p>
+              </div>
+              <span className="workspace-count">{filteredModules.length} modules</span>
+            </div>
+            <div className="workspace-module-grid">
+              {filteredModules.map((module) => (
+                <WorkspaceModuleRow key={module.id} module={module} disabledByConfig={isModuleDisabled(module.id)} />
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </div>
