@@ -5,7 +5,7 @@ interface PageTitleBarProps {
 
 export function PageTitleBar({ title, subtitle }: PageTitleBarProps) {
   return (
-    <div className="border-b border-border/70 bg-background/80 backdrop-blur-sm">
+    <div className="border-b border-border bg-card">
       <div className="layout-title-shell">
         <h1 className="truncate font-heading text-sm font-semibold tracking-tight text-foreground sm:text-base lg:text-lg">
           {title}

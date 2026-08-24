@@ -81,7 +81,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
           className="sidebar-flyout fixed z-[110] w-[240px] animate-in rounded-xl border border-white/15 p-1.5 shadow-elevated fade-in-0 zoom-in-95 duration-150"
         >
           <div className="mb-1 flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-gold to-amber-600 text-xs font-bold text-white shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-bold text-accent-foreground">
               {initials}
             </div>
             <div className="min-w-0">
@@ -141,7 +141,7 @@ export function SidebarUserFooter({ collapsed, onNavigate }: SidebarUserFooterPr
         )}
       >
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-gold to-amber-600 text-xs font-bold text-white shadow-sm"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-bold text-accent-foreground"
           title={user?.fullName ?? translate(locale, 'Utilisateur')}
         >
           {initials}

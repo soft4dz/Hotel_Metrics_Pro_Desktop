@@ -237,4 +237,14 @@ describe('TopNavbar', () => {
       expect(screen.getByRole('button', { name: 'Replier le menu latéral' })).toBeInTheDocument();
     });
   });
+
+  it('ouvre l’accès rapide avec Ctrl+K', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TopNavbar />);
+
+    await user.keyboard('{Control>}k{/Control}');
+
+    expect(await screen.findByRole('dialog', { name: 'Accès rapide' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Rechercher une page, une action ou un module…')).toHaveFocus();
+  });
 });

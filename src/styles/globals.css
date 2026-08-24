@@ -6,33 +6,34 @@
   :root {
     --layout-max-w: 100%;
     --layout-navbar-max-w: 100%;
-    --layout-px: 0.625rem;
-    --layout-py: 0.5rem;
+    --layout-px: 0.75rem;
+    --layout-py: 0.625rem;
     --section-gap: 0.75rem;
-    --background: 210 37% 97%;
-    --foreground: 212 68% 9%;
+    --background: 210 29% 97%;
+    --foreground: 211 57% 11%;
     --card: 0 0% 100%;
     --card-foreground: 212 68% 9%;
     --popover: 0 0% 100%;
     --popover-foreground: 212 68% 9%;
     --primary: 212 89% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 37% 94%;
-    --secondary-foreground: 212 68% 9%;
-    --muted: 210 37% 95%;
-    --muted-foreground: 215 16% 47%;
+    --secondary: 210 25% 94%;
+    --secondary-foreground: 211 57% 11%;
+    --muted: 210 24% 95%;
+    --muted-foreground: 214 15% 43%;
     --accent: 184 89% 36%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 90%;
-    --input: 220 16% 90%;
+    --border: 214 18% 87%;
+    --input: 214 18% 84%;
     --ring: 184 89% 36%;
-    --radius: 0.75rem;
-    --sidebar: 212 89% 25%;
-    --sidebar-from: 212 68% 9%;
+    --radius: 0.5rem;
+    --sidebar: 211 57% 11%;
+    --sidebar-from: 211 57% 11%;
     --sidebar-via: 212 89% 25%;
     --sidebar-to: 211 79% 17%;
+    --sidebar-active: 184 89% 36%;
     --gold: 184 89% 36%;
     --gold-foreground: 0 0% 100%;
     --chart-primary: hsl(var(--primary));
@@ -51,8 +52,8 @@
     --primary: 212 89% 25%;
     --primary-foreground: 210 40% 98%;
     --ring: 184 89% 36%;
-    --sidebar: 212 89% 25%;
-    --sidebar-from: 212 68% 9%;
+    --sidebar: 211 57% 11%;
+    --sidebar-from: 211 57% 11%;
     --sidebar-via: 212 89% 25%;
     --sidebar-to: 211 79% 17%;
   }
@@ -64,9 +65,9 @@
   .accent-cyan { --primary: 192 82% 35%; --primary-foreground: 0 0% 100%; --ring: 192 82% 35%; --sidebar: 192 82% 15%; --sidebar-from: 192 82% 8%; --sidebar-via: 192 82% 30%; --sidebar-to: 192 82% 15%; }
   .accent-slate { --primary: 217 19% 35%; --primary-foreground: 0 0% 100%; --ring: 217 19% 35%; --sidebar: 217 19% 14%; --sidebar-from: 217 19% 8%; --sidebar-via: 217 19% 28%; --sidebar-to: 217 19% 14%; }
 
-  .density-compact { --radius: 0.45rem; --density-gap: 0.5rem; --density-pad: 0.625rem; --layout-px: 0.5rem; --layout-py: 0.375rem; --section-gap: 0.5rem; }
-  .density-comfortable { --radius: 0.75rem; --density-gap: 0.75rem; --density-pad: 0.875rem; --layout-px: 0.625rem; --layout-py: 0.5rem; --section-gap: 0.75rem; }
-  .density-spacious { --radius: 0.95rem; --density-gap: 1rem; --density-pad: 1rem; --layout-px: 0.875rem; --layout-py: 0.75rem; --section-gap: 1rem; }
+  .density-compact { --radius: 0.375rem; --density-gap: 0.5rem; --density-pad: 0.625rem; --layout-px: 0.625rem; --layout-py: 0.5rem; --section-gap: 0.5rem; }
+  .density-comfortable { --radius: 0.5rem; --density-gap: 0.75rem; --density-pad: 0.875rem; --layout-px: 0.75rem; --layout-py: 0.625rem; --section-gap: 0.75rem; }
+  .density-spacious { --radius: 0.625rem; --density-gap: 1rem; --density-pad: 1rem; --layout-px: 1rem; --layout-py: 0.875rem; --section-gap: 1rem; }
 
   * { @apply border-border; }
 
@@ -86,22 +87,12 @@
 
 @layer components {
   .sidebar-shell {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--sidebar-from)) 0%,
-      hsl(var(--sidebar-via)) 52%,
-      hsl(var(--sidebar-to)) 100%
-    );
-    box-shadow: var(--tw-shadow, 0 0 #0000), 4px 0 24px -4px rgb(15 23 42 / 0.18);
+    background: hsl(var(--sidebar-from));
+    box-shadow: 1px 0 0 rgb(255 255 255 / 0.04);
   }
 
   .navbar-shell {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--sidebar-from)) 0%,
-      hsl(var(--sidebar-via)) 55%,
-      hsl(var(--sidebar-to)) 100%
-    );
+    background: hsl(var(--card));
   }
 
   .navbar-nav-active {
@@ -113,12 +104,7 @@
   }
 
   .navbar-dropdown {
-    background: linear-gradient(
-      165deg,
-      hsl(var(--sidebar-from)) 0%,
-      hsl(var(--sidebar-via)) 55%,
-      hsl(var(--sidebar-to)) 100%
-    );
+    background: hsl(var(--card));
   }
 
   .scrollbar-none {
@@ -204,7 +190,8 @@
   }
 
   .sidebar-nav-active {
-    @apply bg-white/15 font-semibold text-white shadow-sm;
+    @apply bg-white/[0.08] font-semibold text-white;
+    box-shadow: inset 3px 0 0 hsl(var(--sidebar-active));
   }
 
   .sidebar-nav-idle {
@@ -212,12 +199,7 @@
   }
 
   .sidebar-flyout {
-    background: linear-gradient(
-      165deg,
-      hsl(var(--sidebar-from)) 0%,
-      hsl(var(--sidebar-via)) 55%,
-      hsl(var(--sidebar-to)) 100%
-    );
+    background: hsl(var(--sidebar-from));
   }
 
   .sidebar-scroll {
@@ -243,26 +225,21 @@
   }
 
   .dashboard-hero {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--sidebar-from)) 0%,
-      hsl(var(--sidebar-via)) 48%,
-      hsl(var(--primary)) 100%
-    );
-    color: white;
+    background: hsl(var(--card));
+    color: hsl(var(--foreground));
   }
 
   .app-surface {
-    @apply rounded-lg border border-border/70 bg-card/95 shadow-card backdrop-blur-sm transition-[transform,border-color,box-shadow] duration-200;
+    @apply rounded-[var(--radius)] border border-border bg-card shadow-card;
   }
 
   .app-surface-hover {
-    @apply app-surface hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-elevated motion-reduce:translate-y-0 motion-reduce:transition-none;
+    @apply app-surface transition-colors duration-150 hover:border-primary/25 hover:bg-muted/20;
   }
 
   .app-input {
-    @apply h-10 rounded-xl border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors duration-200;
-    @apply focus:border-primary/50 focus:outline-none focus:ring-4 focus:ring-primary/10;
+    @apply h-10 rounded-[var(--radius)] border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors duration-150;
+    @apply focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10;
   }
 
   .section-label { @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground; }
@@ -273,134 +250,196 @@
 
   .page-mesh {
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(900px 420px at 96% -12%, hsl(var(--primary) / 0.10), transparent 62%),
-      radial-gradient(760px 380px at -8% 104%, hsl(var(--accent) / 0.08), transparent 62%),
-      linear-gradient(180deg, hsl(0 0% 100% / 0.62), hsl(var(--background)) 46%);
+    background-image: none;
   }
 
   .hero-panel {
-    @apply relative overflow-hidden rounded-lg border border-white/70 bg-gradient-to-br from-white via-white to-muted/50 p-6 shadow-elevated;
-  }
-
-  .hero-panel::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    pointer-events: none;
-    background:
-      radial-gradient(420px 180px at 100% 0%, hsl(var(--primary) / 0.12), transparent 70%),
-      radial-gradient(360px 160px at 0% 100%, hsl(var(--accent) / 0.10), transparent 70%);
+    @apply relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-6 shadow-card;
   }
 
   .hero-panel > * { @apply relative; }
 
   .metric-card {
-    @apply rounded-lg border border-border/70 bg-card/95 p-3 shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-elevated motion-reduce:translate-y-0 motion-reduce:transition-none sm:p-3.5;
+    @apply rounded-[var(--radius)] border border-border bg-card p-3 shadow-card transition-colors duration-150 hover:border-primary/20 sm:p-3.5;
   }
 
   .module-card {
-    @apply rounded-lg border border-border/70 bg-card/95 p-4 shadow-card transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-white hover:shadow-elevated motion-reduce:translate-y-0 motion-reduce:transition-none;
+    @apply rounded-[var(--radius)] border border-border bg-card p-4 shadow-card transition-colors duration-150 hover:border-primary/25 hover:bg-muted/20;
   }
 
-  /* ── Lanceur d'applications (style Odoo) ───────────────────────────── */
-  .odoo-apps-page {
+  /* ── Espace de travail institutionnel Raqmi ────────────────────────── */
+  .workspace-page {
     margin-left: calc(-1 * max(var(--layout-px), env(safe-area-inset-left, 0px)));
     margin-right: calc(-1 * max(var(--layout-px), env(safe-area-inset-right, 0px)));
     margin-top: calc(-1 * var(--layout-py));
     min-height: calc(100% + var(--layout-py));
-    background: linear-gradient(180deg, #f0eeee 0%, #e8e8e8 100%);
-    padding: 0.875rem max(var(--layout-px), env(safe-area-inset-left, 0px)) 1.25rem;
+    background: hsl(var(--background));
+    padding: 1rem max(var(--layout-px), env(safe-area-inset-left, 0px)) 1.5rem;
   }
 
-  .odoo-apps-toolbar {
-    @apply mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between;
+  .workspace-header {
+    @apply mb-4 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between;
   }
 
-  .odoo-apps-title {
-    @apply font-heading text-xl font-semibold tracking-tight text-[#212529] sm:text-2xl 2xl:text-[1.75rem];
+  .workspace-title {
+    @apply mt-1 font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem];
   }
 
-  .odoo-apps-subtitle {
-    @apply mt-0.5 text-xs text-[#6c757d] sm:text-sm;
+  .workspace-subtitle {
+    @apply mt-1 text-xs text-muted-foreground sm:text-sm;
   }
 
-  .odoo-apps-search-wrap {
+  .workspace-search-wrap {
     @apply relative w-full sm:max-w-md lg:max-w-lg;
   }
 
-  .odoo-apps-search {
-    @apply h-10 w-full rounded-md border border-[#dee2e6] bg-white py-2 pl-10 pr-9 text-sm text-[#212529] shadow-sm outline-none transition-shadow;
-    @apply placeholder:text-[#adb5bd] focus:border-[#714B67]/40 focus:ring-2 focus:ring-[#714B67]/15;
+  .workspace-search {
+    @apply h-10 w-full rounded-[var(--radius)] border border-input bg-card py-2 pl-10 pr-9 text-sm text-foreground shadow-sm outline-none transition-colors;
+    @apply placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/10;
   }
 
-  .odoo-apps-filters {
-    @apply mb-4 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none sm:mb-5 sm:gap-2;
+  .workspace-quick-access {
+    @apply mb-4 flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-card px-4 py-3 shadow-card lg:flex-row lg:items-center;
   }
 
-  .odoo-apps-filter {
-    @apply shrink-0 rounded-full border border-transparent bg-white/70 px-3.5 py-1.5 text-xs font-medium text-[#495057] shadow-sm transition-colors;
-    @apply hover:bg-white hover:text-[#714B67];
+  .workspace-quick-link {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors;
+    @apply hover:border-primary/30 hover:bg-primary/[0.04] hover:text-primary;
   }
 
-  .odoo-apps-filter--active {
-    @apply border-[#714B67]/25 bg-[#714B67] text-white shadow-sm hover:bg-[#714B67] hover:text-white;
+  .workspace-layout {
+    @apply grid gap-4 lg:grid-cols-[17.5rem_minmax(0,1fr)];
   }
 
-  .odoo-apps-section-title {
-    @apply mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#868e96];
+  .workspace-suite-list {
+    @apply h-fit space-y-1 rounded-[var(--radius)] border border-border bg-card p-2 shadow-card;
   }
 
-  .odoo-apps-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-    gap: 0.25rem 0.5rem;
+  .workspace-suite-button {
+    @apply flex w-full items-center gap-3 rounded-md border border-transparent px-3 py-2.5 text-foreground transition-colors;
+    @apply hover:bg-muted/70;
   }
 
-  @media (min-width: 640px) {
-    .odoo-apps-grid {
-      grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-      gap: 0.5rem 0.75rem;
-    }
+  .workspace-suite-button--active {
+    @apply border-primary/15 bg-primary/[0.06] text-primary;
+    box-shadow: inset 3px 0 0 hsl(var(--accent));
   }
 
-  @media (min-width: 1280px) {
-    .odoo-apps-grid {
-      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-      gap: 0.75rem 1rem;
-    }
+  .workspace-suite-icon,
+  .workspace-module-icon {
+    @apply flex shrink-0 items-center justify-center rounded-md border;
   }
 
-  @media (min-width: 1920px) {
-    .odoo-apps-grid {
-      grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-    }
+  .workspace-suite-icon { @apply h-9 w-9; }
+  .workspace-module-icon { @apply h-8 w-8; }
+
+  .workspace-tone-navy { @apply border-primary/15 bg-primary/[0.07] text-primary; }
+  .workspace-tone-blue { @apply border-blue-700/15 bg-blue-700/[0.07] text-blue-800; }
+  .workspace-tone-teal { @apply border-accent/20 bg-accent/[0.08] text-cyan-800; }
+  .workspace-tone-sand { @apply border-amber-700/15 bg-amber-700/[0.07] text-amber-800; }
+  .workspace-tone-slate { @apply border-slate-500/20 bg-slate-500/[0.08] text-slate-700; }
+
+  .workspace-results {
+    @apply overflow-hidden rounded-[var(--radius)] border border-border bg-card shadow-card;
   }
 
-  .odoo-app-tile {
-    @apply flex flex-col items-center rounded-md px-2 py-3 text-center no-underline transition-all duration-150 motion-reduce:transition-none;
-    @apply hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#714B67]/30;
+  .workspace-panel-heading {
+    @apply flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between;
   }
 
-  .odoo-app-tile--disabled {
+  .workspace-count {
+    @apply inline-flex w-fit rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground;
+  }
+
+  .workspace-module-grid {
+    @apply grid grid-cols-1 divide-y divide-border/70 md:grid-cols-2 md:divide-y-0;
+  }
+
+  .workspace-module-row {
+    @apply flex min-w-0 items-center gap-3 border-b border-border/70 px-4 py-3 text-left no-underline transition-colors;
+    @apply hover:bg-muted/45 focus-visible:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/20 md:odd:border-r;
+  }
+
+  .workspace-module-row--disabled {
     @apply cursor-not-allowed opacity-55 hover:bg-transparent;
   }
 
-  .odoo-app-icon {
-    @apply flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.14)] transition-transform duration-150;
-    @apply group-hover:scale-[1.04] motion-reduce:transform-none sm:h-[4.5rem] sm:w-[4.5rem];
+  .workspace-module-label {
+    @apply block truncate text-sm font-medium text-foreground;
   }
 
-  .odoo-app-label {
-    @apply mt-2.5 line-clamp-2 text-[12px] font-medium leading-snug text-[#212529] sm:text-[13px];
+  .workspace-module-desc {
+    @apply mt-0.5 block truncate text-[11px] text-muted-foreground;
   }
 
-  .odoo-app-desc {
-    @apply mt-0.5 line-clamp-1 text-[10px] text-[#868e96] sm:text-[11px];
+  .workspace-empty {
+    @apply rounded-[var(--radius)] border border-dashed border-border bg-card px-6 py-16 text-center;
   }
 
-  .odoo-apps-empty {
-    @apply rounded-lg border border-dashed border-[#ced4da] bg-white/50 px-6 py-16 text-center;
+  /* Lanceurs de sous-suites (RH, PortMaster) — même langage visuel. */
+  .app-launcher-page {
+    @apply min-h-full bg-background;
+  }
+
+  .app-launcher-toolbar {
+    @apply flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between;
+  }
+
+  .app-launcher-title {
+    @apply mt-1 text-2xl font-semibold tracking-tight text-foreground;
+  }
+
+  .app-launcher-subtitle {
+    @apply mt-1 text-xs text-muted-foreground sm:text-sm;
+  }
+
+  .app-launcher-search-wrap {
+    @apply relative w-full sm:max-w-sm;
+  }
+
+  .app-launcher-search {
+    @apply h-10 w-full rounded-[var(--radius)] border border-input bg-card py-2 pl-10 pr-9 text-sm text-foreground shadow-sm outline-none transition-colors;
+    @apply placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/10;
+  }
+
+  .app-launcher-filters {
+    @apply my-4 flex flex-wrap gap-1 border-b border-border pb-3;
+  }
+
+  .app-launcher-filter {
+    @apply rounded-md border border-transparent px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
+  }
+
+  .app-launcher-filter--active {
+    @apply border-primary/15 bg-primary/[0.06] text-primary;
+  }
+
+  .app-launcher-grid {
+    @apply grid overflow-hidden rounded-[var(--radius)] border border-border bg-card shadow-card sm:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .app-launcher-row {
+    @apply flex min-w-0 items-center gap-3 border-b border-r border-border/70 px-4 py-3 no-underline transition-colors hover:bg-muted/45;
+  }
+
+  .app-launcher-row--disabled {
+    @apply cursor-not-allowed opacity-55 hover:bg-transparent;
+  }
+
+  .app-launcher-icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/15 bg-primary/[0.06] text-primary;
+  }
+
+  .app-launcher-label {
+    @apply block truncate text-sm font-medium text-foreground;
+  }
+
+  .app-launcher-desc {
+    @apply mt-0.5 block truncate text-[11px] text-muted-foreground;
+  }
+
+  .app-launcher-empty {
+    @apply rounded-[var(--radius)] border border-dashed border-border bg-card px-6 py-16 text-center;
   }
 
   .port-dashboard-page {

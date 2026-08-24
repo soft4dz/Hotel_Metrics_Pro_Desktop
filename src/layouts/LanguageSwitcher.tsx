@@ -57,7 +57,7 @@ export function LanguageSwitcher() {
           ref={panelRef}
           role="menu"
           style={{ top: pos.top, left: pos.left }}
-          className="navbar-dropdown fixed z-[110] w-[180px] animate-in rounded-xl border border-white/15 p-1.5 shadow-elevated fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
+          className="navbar-dropdown fixed z-[110] w-[180px] animate-in rounded-lg border border-border p-1.5 shadow-elevated fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
         >
           {LOCALES.map((l) => (
             <button
@@ -65,14 +65,14 @@ export function LanguageSwitcher() {
               type="button"
               role="menuitemradio"
               aria-checked={l.value === locale}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               onClick={() => {
                 setLocale(l.value);
                 setOpen(false);
               }}
             >
               <span className="flex-1 text-left">{l.label}</span>
-              {l.value === locale && <Check className="h-4 w-4 text-gold" />}
+              {l.value === locale && <Check className="h-4 w-4 text-accent" />}
             </button>
           ))}
         </div>,
@@ -90,11 +90,11 @@ export function LanguageSwitcher() {
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white lg:px-3 2xl:text-sm',
-          open && 'bg-white/10 text-white',
+          'flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:px-3 2xl:text-sm',
+          open && 'bg-muted text-foreground',
         )}
       >
-        <Globe className="h-3.5 w-3.5 shrink-0 text-gold 2xl:h-4 2xl:w-4" />
+        <Globe className="h-3.5 w-3.5 shrink-0 text-accent 2xl:h-4 2xl:w-4" />
         <span>{current.short}</span>
         <ChevronDown className={cn('h-3 w-3 shrink-0 transition-transform duration-150', open && 'rotate-180')} />
       </button>

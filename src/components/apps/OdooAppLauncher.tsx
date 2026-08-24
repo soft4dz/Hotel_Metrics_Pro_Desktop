@@ -32,15 +32,15 @@ function normalizeSearch(value: string): string {
     .trim();
 }
 
-function OdooAppTile({ app }: { app: OdooAppDefinition }) {
+function SuiteAppRow({ app }: { app: OdooAppDefinition }) {
   const Icon = app.icon;
   const ready = !app.disabled && !app.comingSoon;
 
   const content = (
     <>
-      <div className="relative">
-        <div className="odoo-app-icon" style={{ backgroundColor: app.color }} aria-hidden>
-          <Icon className="h-8 w-8 text-white" strokeWidth={1.65} />
+      <div className="relative shrink-0">
+        <div className="app-launcher-icon" aria-hidden>
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
         </div>
         {app.disabled ? (
           <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-white shadow-sm">
@@ -53,21 +53,23 @@ function OdooAppTile({ app }: { app: OdooAppDefinition }) {
           </span>
         ) : null}
       </div>
-      <p className="odoo-app-label">{app.name}</p>
-      {app.description ? <p className="odoo-app-desc">{app.description}</p> : null}
+      <span className="min-w-0 flex-1">
+        <span className="app-launcher-label">{app.name}</span>
+        {app.description ? <span className="app-launcher-desc">{app.description}</span> : null}
+      </span>
     </>
   );
 
   if (!ready) {
     return (
-      <div className="odoo-app-tile odoo-app-tile--disabled" title={app.description}>
+      <div className="app-launcher-row app-launcher-row--disabled" title={app.description}>
         {content}
       </div>
     );
   }
 
   return (
-    <Link to={app.route} className="odoo-app-tile group" title={app.description}>
+    <Link to={app.route} className="app-launcher-row group" title={app.description}>
       {content}
     </Link>
   );
@@ -104,21 +106,22 @@ export function OdooAppLauncher({
   );
 
   return (
-    <div className="odoo-apps-page">
-      <div className="odoo-apps-toolbar">
+    <div className="app-launcher-page">
+      <div className="app-launcher-toolbar">
         <div className="min-w-0 flex-1">
-          <h2 className="odoo-apps-title">{title}</h2>
-          <p className="odoo-apps-subtitle">{subtitle}</p>
+          <p className="section-label text-accent">Raqmi System · رقمي سيستم</p>
+          <h2 className="app-launcher-title">{title}</h2>
+          <p className="app-launcher-subtitle">{subtitle}</p>
         </div>
 
-        <div className="odoo-apps-search-wrap">
+        <div className="app-launcher-search-wrap">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={searchPlaceholder}
-            className="odoo-apps-search"
+            className="app-launcher-search"
             aria-label={searchPlaceholder}
           />
           {query ? (
@@ -134,12 +137,12 @@ export function OdooAppLauncher({
         </div>
       </div>
 
-      <div className="odoo-apps-filters" role="tablist" aria-label="Filtrer par catégorie">
+      <div className="app-launcher-filters" role="tablist" aria-label="Filtrer par catégorie">
         <button
           type="button"
           role="tab"
           aria-selected={activeGroup === 'all'}
-          className={cn('odoo-apps-filter', activeGroup === 'all' && 'odoo-apps-filter--active')}
+          className={cn('app-launcher-filter', activeGroup === 'all' && 'app-launcher-filter--active')}
           onClick={() => setActiveGroup('all')}
         >
           Toutes
@@ -150,7 +153,7 @@ export function OdooAppLauncher({
             type="button"
             role="tab"
             aria-selected={activeGroup === group}
-            className={cn('odoo-apps-filter', activeGroup === group && 'odoo-apps-filter--active')}
+            className={cn('app-launcher-filter', activeGroup === group && 'app-launcher-filter--active')}
             onClick={() => setActiveGroup(group)}
           >
             {group}
@@ -159,15 +162,15 @@ export function OdooAppLauncher({
       </div>
 
       {filteredApps.length === 0 ? (
-        <div className="odoo-apps-empty">
+        <div className="app-launcher-empty">
           <Layers className="mx-auto h-10 w-10 text-slate-300" />
           <p className="mt-3 text-sm font-medium text-slate-600">Aucune application trouvée</p>
           <p className="mt-1 text-xs text-slate-400">Modifiez votre recherche ou changez de catégorie</p>
         </div>
       ) : (
-        <div className="odoo-apps-grid">
+        <div className="app-launcher-grid">
           {orderedApps.map((app) => (
-            <OdooAppTile key={app.id} app={app} />
+            <SuiteAppRow key={app.id} app={app} />
           ))}
         </div>
       )}
