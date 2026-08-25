@@ -1,5 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { getDatabase } from '../database/sqlite';
+import Electron from '../lib/electronApi';
 import { PermissionError } from '../services/permissions.service';
 import {
   bindSession,
@@ -44,9 +45,11 @@ function toIpcError(err: unknown): IpcErrorResult {
   return { ok: false, error: 'Erreur inconnue.', errorCode: 'SERVER_ERROR' };
 }
 
+// Never infer a development mode from NODE_ENV: packaged Electron applications
+// commonly leave it undefined. The shortcut must be both explicitly requested
+// and impossible to enable in a packaged binary.
 const DEV_AUTO_ADMIN_ACTOR =
-  process.env.HMP_DEV_AUTO_ADMIN === '1' ||
-  (process.env.NODE_ENV !== 'production' && process.env.HMP_DEV_AUTO_ADMIN !== '0');
+  !Electron.app.isPackaged && process.env.HMP_DEV_AUTO_ADMIN === '1';
 
 const DEV_ADMIN_EMAIL = 'admin@raqmi.local';
 

@@ -56,7 +56,11 @@ export function LicenseExpiryBanner() {
         <div className="min-w-0 space-y-1">
           <p className="font-semibold">
             {level === 'expired'
-              ? 'Mode lecture seule — licence expirée'
+              ? status.state === 'revoked'
+                ? 'Mode lecture seule — licence révoquée'
+                : status.state === 'invalid'
+                  ? 'Mode lecture seule — validation requise'
+                  : 'Mode lecture seule — licence expirée'
               : level === 'urgent'
                 ? `Renouvellement urgent — J-${status.daysRemaining ?? '?'}`
                 : `Renouvellement à prévoir — J-${status.daysRemaining ?? '?'}`}

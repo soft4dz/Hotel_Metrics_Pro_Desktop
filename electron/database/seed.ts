@@ -1,12 +1,9 @@
 import { bcrypt } from '../utils/bcrypt';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import path from '../lib/nodePath';
 import { getDatabase, getDataDirectory } from './sqlite';
 import { logger } from '../utils/logger';
-
-/** Mot de passe du compte admin initial (affiché sur l'écran de connexion). */
-export const DEFAULT_ADMIN_PASSWORD = 'Admin@2026!';
 
 const ROLES = [
   { code: 'SUPERADMIN', label: 'Super Administrateur', description: 'Accès total — priorité absolue' },
@@ -41,7 +38,7 @@ const PERMISSIONS = [
   { code: 'reports.export', label: 'Exporter rapports', module: 'rapports' },
 ] as const;
 
-export function runSeedIfNeeded(): void {
+export function runSeedIfNeeded(developmentMode: boolean): void {
   const db = getDatabase();
 
   const userCount = db.prepare(`SELECT COUNT(*) AS c FROM users`).get() as { c: number };
@@ -123,8 +120,12 @@ export function runSeedIfNeeded(): void {
     });
   }
 
-  const passwordHash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 12);
-  const adminRoleIdFinal = roleIds.get('ADMIN_DEC')!;
+  const developmentPassword = process.env.HMP_DEV_ADMIN_PASSWORD?.trim();
+  const initialAdminPassword = developmentMode && developmentPassword
+    ? developmentPassword
+    : randomBytes(24).toString('base64url');
+  const passwordHash = bcrypt.hashSync(initialAdminPassword, 12);
+  const adminRoleIdFinal = roleIds.get('SUPERADMIN')!;
 
   db.prepare(`
     INSERT INTO users (
@@ -132,7 +133,7 @@ export function runSeedIfNeeded(): void {
       must_change_password, created_by, updated_by
     ) VALUES (
       @uuid, @email, @password_hash, @full_name, @role_id, NULL, 1,
-      0, NULL, NULL
+      @must_change_password, NULL, NULL
     )
   `).run({
     uuid: randomUUID(),
@@ -140,6 +141,7 @@ export function runSeedIfNeeded(): void {
     password_hash: passwordHash,
     full_name: 'Administrateur système',
     role_id: adminRoleIdFinal,
+    must_change_password: developmentMode ? 0 : 1,
   });
 
   const credFile = path.join(getDataDirectory(), 'INITIAL_ADMIN_CREDENTIALS.txt');
@@ -150,7 +152,7 @@ export function runSeedIfNeeded(): void {
       '======================================================',
       '',
       'E-mail    : admin@raqmi.local',
-      `Mot de passe : ${DEFAULT_ADMIN_PASSWORD}`,
+      `Mot de passe : ${initialAdminPassword}`,
       '',
       'IMPORTANT : changez ce mot de passe à la première connexion.',
       'Supprimez ce fichier après utilisation.',

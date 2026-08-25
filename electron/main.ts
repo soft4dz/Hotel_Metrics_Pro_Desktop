@@ -68,7 +68,7 @@ import { registerPosIpc } from './ipc/pos.ipc';
 import { registerGuideIpc } from './ipc/guide.ipc';
 import { registerPmsExtensionsIpc } from './ipc/pms-extensions.ipc';
 import { registerHardwareIpc } from './ipc/hardware.ipc';
-import { ensureLicenseBootstrap } from './services/license.service';
+import { ensureLicenseBootstrap, startLicenseBackgroundSync } from './services/license.service';
 import { startPhase6BisScheduler } from './services/phase6-bis-scheduler.service';
 import { runPortSeedIfNeeded } from './database/portSeed';
 import { runProfileSeedIfNeeded } from './database/profileSeed';
@@ -85,6 +85,7 @@ import {
 
 const APP_DISPLAY_NAME = 'Raqmi System';
 const LEGACY_USER_DATA_DIR_NAME = 'hotel-metrics-pro-desktop';
+let stopLicenseBackgroundSync: (() => void) | null = null;
 
 Electron.app.setName(APP_DISPLAY_NAME);
 
@@ -236,7 +237,7 @@ function bootstrap(): void {
       return;
     }
 
-    runSeedIfNeeded();
+    runSeedIfNeeded(isDev);
     ensureBootstrapAuthAccounts(isDev);
     runProfileSeedIfNeeded();
     runPortSeedIfNeeded();
@@ -304,6 +305,7 @@ function bootstrap(): void {
     registerGuideIpc();
     registerPmsExtensionsIpc();
     registerHardwareIpc();
+    stopLicenseBackgroundSync = startLicenseBackgroundSync();
     startPhase6BisScheduler();
     startAutomaticSyncScheduler();
     createWindow();
@@ -331,5 +333,6 @@ Electron.app.on('window-all-closed', () => {
 });
 
 Electron.app.on('will-quit', () => {
+  stopLicenseBackgroundSync?.();
   closeDatabase();
 });

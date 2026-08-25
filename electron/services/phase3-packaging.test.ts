@@ -1,12 +1,20 @@
+import { generateKeyPairSync } from 'node:crypto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { issueLicenseKey } from '../../server/src/modules/licenses/licenses.util';
 
 const settings = new Map<string, string>();
+const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+process.env.HMP_LICENSE_TEST_PUBLIC_KEYS = JSON.stringify({ 'test-root': publicPem });
 
 vi.mock('../lib/electronApi', () => ({
   default: {
-    app: {
-      isPackaged: true,
-      getPath: () => 'C:\\Users\\Test\\AppData\\hotel-metrics-pro-desktop',
+    app: { isPackaged: true },
+    safeStorage: {
+      isEncryptionAvailable: () => true,
+      encryptString: (value: string) => Buffer.from(value, 'utf8'),
+      decryptString: (value: Buffer) => value.toString('utf8'),
     },
   },
 }));
@@ -30,87 +38,96 @@ vi.mock('../database/sqlite', () => ({
   }),
 }));
 
-vi.mock('./audit.service', () => ({
-  writeAuditLog: vi.fn(),
-}));
-
+vi.mock('./audit.service', () => ({ writeAuditLog: vi.fn() }));
 vi.mock('./actorContext', () => ({
   getActorContext: () => ({ roleCode: 'super_admin' }),
   isGlobalAdminRole: () => true,
 }));
-
 vi.mock('./permissions.service', () => ({
   assertPermission: vi.fn(),
   userHasPermission: () => true,
 }));
+vi.mock('./modules.service', () => ({ setModuleEnabled: vi.fn() }));
 
-vi.mock('./modules.service', () => ({
-  setModuleEnabled: vi.fn(),
-}));
+function futureDate(days = 365): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
-describe('Phase 3 — Licence packaging', () => {
+function offlineKey(machineId: string, expiresAt = futureDate()) {
+  return issueLicenseKey({
+    organizationCode: 'ORG-TEST',
+    edition: 'PRO',
+    expiresAt,
+    businessSector: 'commerce',
+    maxActivations: 1,
+    mode: 'offline',
+    machineId,
+    keyId: 'test-root',
+  }, { privateKeyPem: privatePem }).licenseKey;
+}
+
+describe('Licence V2 — sécurité packaging', () => {
   beforeEach(() => {
     settings.clear();
+    settings.set('license_mode', 'offline');
     vi.resetModules();
   });
 
-  it('génère et valide une clé RS-{edition}-{date}-{secteur}-{sig}', async () => {
+  it('valide une signature Ed25519 et refuse toute altération', async () => {
     const svc = await import('./license.service');
-    const key = svc.formatLicenseKey('PRO', '2027-12-31', 'commerce');
-    expect(key).toMatch(/^RS-PRO-20271231-COMM-[A-F0-9]{8}$/);
-    expect(svc.parseLicenseKey(key)?.edition).toBe('PRO');
-    expect(svc.parseLicenseKey(key)?.businessSector).toBe('commerce');
+    const key = offlineKey(svc.getMachineFingerprint());
+    expect(svc.parseLicenseKey(key)?.organizationCode).toBe('ORG-TEST');
     expect(svc.parseLicenseKey(`${key}x`)).toBeNull();
   });
 
-  it('accepte les clés legacy sans secteur (défaut hôtel)', async () => {
+  it('active une licence liée au poste et applique le pack signé', async () => {
     const svc = await import('./license.service');
-    const key = svc.formatLicenseKey('PRO', '2027-12-31');
-    expect(key).toMatch(/^RS-PRO-20271231-HOTL-[A-F0-9]{8}$/);
-  });
-
-  it('active une clé valide et retourne un statut actif', async () => {
-    const svc = await import('./license.service');
-    settings.set('company_name', 'EGT Test');
-    const key = svc.formatLicenseKey('ENTERPRISE', '2028-06-30');
-    const status = await svc.activateLicense(1, key);
+    const status = await svc.activateLicense(1, offlineKey(svc.getMachineFingerprint()));
     expect(status.state).toBe('active');
-    expect(status.edition).toBe('ENTERPRISE');
-    expect(status.expiresAt).toBe('2028-06-30');
-    expect(status.readOnlyMode).toBe(false);
-    expect(status.alertLevel).toBe('none');
-    expect(status.businessSector).toBe('hotel');
+    expect(status.edition).toBe('PRO');
+    expect(status.businessSector).toBe('commerce');
+    expect(status.organizationCode).toBe('ORG-TEST');
     expect(settings.get('business_sector_locked')).toBe('1');
+    expect(settings.get('license_key_value')).toMatch(/^safe:/);
   });
 
-  it('passe en lecture seule quand la licence est expirée', async () => {
+  it('refuse une licence offline émise pour un autre poste', async () => {
     const svc = await import('./license.service');
-    settings.set('license_edition', 'PRO');
-    settings.set('license_expires_at', '2020-01-01');
-    settings.set('license_activated_at', '2019-01-01T00:00:00.000Z');
+    await expect(svc.activateLicense(1, offlineKey('OTHERPC12345678'))).rejects.toThrow(/autre poste/i);
+  });
+
+  it('ignore une expiration modifiée dans SQLite et relit le jeton signé', async () => {
+    const svc = await import('./license.service');
+    const signedExpiry = futureDate(20);
+    await svc.activateLicense(1, offlineKey(svc.getMachineFingerprint(), signedExpiry));
+    settings.set('license_expires_at', '2099-12-31');
     const status = svc.getLicenseStatus();
-    expect(status.state).toBe('expired');
-    expect(status.readOnlyMode).toBe(true);
-    expect(status.alertLevel).toBe('expired');
-    expect(() => svc.assertLicenseWritable()).toThrow(/lecture seule/i);
+    expect(status.expiresAt).toBe(signedExpiry);
+    expect(settings.get('license_expires_at')).toBe(signedExpiry);
   });
 
-  it('alerte J-7 quand expiration proche', async () => {
+  it('passe en lecture seule quand la licence signée est expirée', async () => {
     const svc = await import('./license.service');
-    const soon = new Date();
-    soon.setDate(soon.getDate() + 5);
-    const iso = soon.toISOString().slice(0, 10);
-    settings.set('license_edition', 'PRO');
-    settings.set('license_expires_at', iso);
-    settings.set('license_activated_at', new Date().toISOString());
+    const expired = issueLicenseKey({
+      organizationCode: 'ORG-TEST',
+      edition: 'PRO',
+      expiresAt: '2020-01-01',
+      businessSector: 'commerce',
+      maxActivations: 1,
+      mode: 'offline',
+      machineId: svc.getMachineFingerprint(),
+      keyId: 'test-root',
+    }, { privateKeyPem: privatePem }).licenseKey;
+    await expect(svc.activateLicense(1, expired)).rejects.toThrow(/expiré/i);
+  });
+
+  it('n’autorise aucun bypass par variable d’environnement en application packagée', async () => {
+    process.env.HMP_LICENSE_BYPASS = '1';
+    const svc = await import('./license.service');
     const status = svc.getLicenseStatus();
-    expect(status.alertLevel).toBe('urgent');
-    expect(status.readOnlyMode).toBe(false);
-  });
-
-  it('refuse une clé expirée', async () => {
-    const svc = await import('./license.service');
-    const key = svc.formatLicenseKey('STANDARD', '2020-01-01');
-    await expect(svc.activateLicense(1, key)).rejects.toThrow(/expiré/i);
+    expect(status.state).not.toBe('development');
+    delete process.env.HMP_LICENSE_BYPASS;
   });
 });

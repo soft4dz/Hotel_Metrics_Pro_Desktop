@@ -1,88 +1,61 @@
 #!/usr/bin/env node
-/**
- * Génère une clé de licence Raqmi System (usage éditeur / déploiement).
- * node scripts/generate-license-key.mjs PRO 2027-12-31 commerce
- */
-import { createHmac } from 'node:crypto';
+/** Émission offline V2 liée à un poste. */
+import { createPrivateKey, randomUUID, sign } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
-const LICENSE_SECRET = process.env.HMP_LICENSE_SECRET ?? 'raqmi-phase3-cert-v1-change-in-prod';
 const EDITIONS = new Set(['STANDARD', 'PRO', 'ENTERPRISE']);
+const SECTORS = new Set(['hotel', 'restaurant', 'commerce', 'services', 'industrie', 'port', 'generic']);
 
-const LICENSE_SECTOR_CODES = {
-  HOTL: 'hotel',
-  REST: 'restaurant',
-  COMM: 'commerce',
-  SERV: 'services',
-  INDU: 'industrie',
-  PORT: 'port',
-  GENR: 'generic',
-};
-
-const SECTOR_ALIASES = {
-  hotel: 'HOTL',
-  hôtel: 'HOTL',
-  hotl: 'HOTL',
-  restaurant: 'REST',
-  rest: 'REST',
-  commerce: 'COMM',
-  comm: 'COMM',
-  services: 'SERV',
-  serv: 'SERV',
-  industrie: 'INDU',
-  industry: 'INDU',
-  indu: 'INDU',
-  port: 'PORT',
-  generic: 'GENR',
-  genr: 'GENR',
-  générique: 'GENR',
-};
-
-function sign(edition, expiryRaw, sectorCode) {
-  const payload = sectorCode
-    ? `${edition}|${expiryRaw}|${sectorCode}`
-    : `${edition}|${expiryRaw}`;
-  return createHmac('sha256', LICENSE_SECRET)
-    .update(payload)
-    .digest('hex')
-    .slice(0, 8)
-    .toUpperCase();
-}
-
-function resolveSectorCode(raw) {
-  if (!raw) return 'HOTL';
-  const upper = raw.trim().toUpperCase();
-  if (LICENSE_SECTOR_CODES[upper]) return upper;
-  const alias = SECTOR_ALIASES[raw.trim().toLowerCase()];
-  if (alias) return alias;
-  return null;
+function loadPrivateKey() {
+  const raw = process.env.HMP_LICENSE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const file = process.env.HMP_LICENSE_PRIVATE_KEY_FILE;
+  const pem = raw?.trim() || (file ? readFileSync(file, 'utf8').trim() : '');
+  if (!pem) throw new Error('HMP_LICENSE_PRIVATE_KEY ou HMP_LICENSE_PRIVATE_KEY_FILE est requis.');
+  const key = createPrivateKey(pem);
+  if (key.asymmetricKeyType !== 'ed25519') throw new Error('La clé privée doit être de type Ed25519.');
+  return key;
 }
 
 const edition = (process.argv[2] ?? '').toUpperCase();
 const expiresAt = process.argv[3] ?? '';
-const sectorArg = process.argv[4] ?? 'hotel';
+const businessSector = (process.argv[4] ?? '').toLowerCase();
+const organizationCode = (process.argv[5] ?? '').toUpperCase();
+const machineId = (process.argv[6] ?? '').toUpperCase();
+const keyId = process.env.HMP_LICENSE_KEY_ID ?? 'raqmi-root-2026';
 
-if (!EDITIONS.has(edition)) {
-  console.error('Usage: node scripts/generate-license-key.mjs <STANDARD|PRO|ENTERPRISE> <YYYY-MM-DD> [secteur]');
-  console.error('Secteurs : hotel, restaurant, commerce, services, industrie, port, generic (ou code HOTL, REST, …)');
-  process.exit(1);
+const expiry = new Date(`${expiresAt}T23:59:59.999Z`);
+if (
+  !EDITIONS.has(edition) ||
+  !/^\d{4}-\d{2}-\d{2}$/.test(expiresAt) ||
+  Number.isNaN(expiry.getTime()) ||
+  expiry.toISOString().slice(0, 10) !== expiresAt ||
+  expiry.getTime() < Date.now() ||
+  !SECTORS.has(businessSector)
+) {
+  throw new Error('Usage: <STANDARD|PRO|ENTERPRISE> <YYYY-MM-DD> <secteur> <organisation> <machineId>');
 }
-if (!/^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
-  console.error('Date invalide — format YYYY-MM-DD attendu.');
-  process.exit(1);
-}
+if (!/^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(organizationCode)) throw new Error('Organisation invalide.');
+if (!/^[A-Z0-9][A-Z0-9_-]{7,127}$/.test(machineId)) throw new Error('Identifiant poste invalide.');
+if (!/^[A-Za-z0-9._-]{3,64}$/.test(keyId)) throw new Error('HMP_LICENSE_KEY_ID invalide.');
 
-const sectorCode = resolveSectorCode(sectorArg);
-if (!sectorCode) {
-  console.error(`Secteur inconnu : « ${sectorArg} »`);
-  process.exit(1);
-}
+const payload = {
+  v: 2,
+  licenseId: randomUUID(),
+  product: 'raqmi-system',
+  organizationCode,
+  edition,
+  businessSector,
+  issuedAt: new Date().toISOString(),
+  expiresAt,
+  maxActivations: 1,
+  mode: 'offline',
+  machineId,
+  keyId,
+};
+const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+const signature = sign(null, Buffer.from(encoded, 'ascii'), loadPrivateKey()).toString('base64url');
 
-const expiryRaw = expiresAt.replace(/-/g, '');
-const key = `RS-${edition}-${expiryRaw}-${sectorCode}-${sign(edition, expiryRaw, sectorCode)}`;
-const sectorLabel = LICENSE_SECTOR_CODES[sectorCode];
-
-console.log('=== Clé de licence Raqmi System ===');
-console.log(`Édition   : ${edition}`);
-console.log(`Expiration: ${expiresAt}`);
-console.log(`Secteur   : ${sectorLabel} (${sectorCode})`);
-console.log(`Clé       : ${key}`);
+console.log(`Licence ID : ${payload.licenseId}`);
+console.log(`Organisation: ${organizationCode}`);
+console.log(`Poste       : ${machineId}`);
+console.log(`Clé V2      : RS2.${encoded}.${signature}`);

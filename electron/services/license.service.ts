@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { hostname } from 'node:os';
+import { cpus, hostname, networkInterfaces, platform, arch, totalmem } from 'node:os';
 import Electron from '../lib/electronApi';
 import { getDatabase } from '../database/sqlite';
 import { writeAuditLog } from './audit.service';
@@ -25,25 +25,21 @@ import type {
 } from '../../src/shared/types/license';
 
 export type { LicenseEdition, LicenseState, LicenseStatusDto, LicenseConfigDto };
+export { parseLicenseKey } from './license-remote.service';
 
 export class LicenseReadOnlyError extends Error {
   constructor() {
     super(
-      'Licence expirée — application en lecture seule. Consultation et exports autorisés. Renouvelez votre abonnement dans Paramètres → Licence.',
+      'Licence expirée, révoquée ou non validée — application en lecture seule. Consultation et exports autorisés.',
     );
     this.name = 'LicenseReadOnlyError';
   }
 }
 
 const TRIAL_DAYS = 30;
-
-function readLicensedSectorId(): BusinessSectorId {
-  const licensed = readSetting('license_business_sector');
-  if (licensed && ['hotel', 'restaurant', 'commerce', 'services', 'industrie', 'port', 'generic'].includes(licensed)) {
-    return licensed as BusinessSectorId;
-  }
-  return 'hotel';
-}
+const REMOTE_GRACE_MS = 7 * 86_400_000;
+const REMOTE_SYNC_INTERVAL_MS = 12 * 60 * 60_000;
+const CLOCK_ROLLBACK_TOLERANCE_MS = 5 * 60_000;
 
 function readSetting(key: string, fallback = ''): string {
   const row = getDatabase()
@@ -58,9 +54,39 @@ function writeSetting(key: string, value: string): void {
     .run(key, value);
 }
 
+function protectValue(value: string): string {
+  if (Electron.safeStorage?.isEncryptionAvailable()) {
+    return `safe:${Electron.safeStorage.encryptString(value).toString('base64')}`;
+  }
+  if (!Electron.app.isPackaged || process.env.NODE_ENV === 'test') return `dev:${value}`;
+  throw new Error('Stockage sécurisé du système indisponible. Activation annulée.');
+}
+
+function unprotectValue(value: string): string | null {
+  try {
+    if (value.startsWith('safe:') && Electron.safeStorage?.isEncryptionAvailable()) {
+      return Electron.safeStorage.decryptString(Buffer.from(value.slice(5), 'base64'));
+    }
+    if (value.startsWith('dev:') && (!Electron.app.isPackaged || process.env.NODE_ENV === 'test')) {
+      return value.slice(4);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function readProtectedSetting(key: string): string | null {
+  const value = readSetting(key);
+  return value ? unprotectValue(value) : null;
+}
+
+function writeProtectedSetting(key: string, value: string): void {
+  writeSetting(key, protectValue(value));
+}
+
 function resolveLicenseMode(): LicenseMode {
-  const mode = readSetting('license_mode', 'offline');
-  return mode === 'remote' ? 'remote' : 'offline';
+  return readSetting('license_mode', 'offline') === 'remote' ? 'remote' : 'offline';
 }
 
 function resolveRemoteServerUrl(): string {
@@ -72,39 +98,59 @@ function resolveRemoteServerUrl(): string {
   ).trim();
 }
 
+function isAllowedServerUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ||
+      (url.protocol === 'http:' && ['localhost', '127.0.0.1', '::1'].includes(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
+function readLicensedSectorId(): BusinessSectorId {
+  const licensed = readSetting('license_business_sector');
+  if (['hotel', 'restaurant', 'commerce', 'services', 'industrie', 'port', 'generic'].includes(licensed)) {
+    return licensed as BusinessSectorId;
+  }
+  return 'hotel';
+}
+
 function computeLicenseAlerts(
   state: LicenseState,
   daysRemaining: number | null,
 ): Pick<LicenseStatusDto, 'readOnlyMode' | 'alertLevel' | 'alertMessage'> {
-  if (state === 'development') {
-    return { readOnlyMode: false, alertLevel: 'none', alertMessage: null };
+  if (state === 'development') return { readOnlyMode: false, alertLevel: 'none', alertMessage: null };
+  if (state === 'revoked' || state === 'invalid') {
+    return {
+      readOnlyMode: true,
+      alertLevel: 'expired',
+      alertMessage: state === 'revoked'
+        ? 'Licence révoquée par Raqmi — mode lecture seule activé.'
+        : 'Licence non valide ou contrôle distant requis — mode lecture seule activé.',
+    };
   }
-
   if (state === 'expired' || (daysRemaining !== null && daysRemaining < 0)) {
     return {
       readOnlyMode: true,
       alertLevel: 'expired',
-      alertMessage:
-        'Licence expirée — mode lecture seule activé. Vous pouvez consulter et exporter vos données. Renouvelez votre abonnement pour reprendre les saisies.',
+      alertMessage: 'Licence expirée — mode lecture seule activé. Renouvelez votre abonnement pour reprendre les saisies.',
     };
   }
-
   if (daysRemaining !== null && daysRemaining <= 7) {
     return {
       readOnlyMode: false,
       alertLevel: 'urgent',
-      alertMessage: `Abonnement expire dans ${daysRemaining} jour(s) — renouvelez avant le passage en lecture seule.`,
+      alertMessage: `Abonnement expire dans ${daysRemaining} jour(s) — renouvellement urgent.`,
     };
   }
-
   if (daysRemaining !== null && daysRemaining <= 30) {
     return {
       readOnlyMode: false,
       alertLevel: 'warning',
-      alertMessage: `Abonnement expire dans ${daysRemaining} jour(s) — contactez Raqmi System pour le renouvellement.`,
+      alertMessage: `Abonnement expire dans ${daysRemaining} jour(s) — contactez Raqmi System.`,
     };
   }
-
   return { readOnlyMode: false, alertLevel: 'none' as LicenseAlertLevel, alertMessage: null };
 }
 
@@ -127,17 +173,12 @@ function enrichStatus(
   >,
 ): LicenseStatusDto {
   const sourceSetting = readSetting('license_source');
-  const licenseSource =
-    base.state === 'development'
-      ? 'development'
-      : sourceSetting === 'remote'
-        ? 'remote'
-        : 'offline';
-
+  const licenseSource = base.state === 'development'
+    ? 'development'
+    : sourceSetting === 'remote' ? 'remote' : 'offline';
   const alerts = computeLicenseAlerts(base.state, base.daysRemaining);
   const sectorId = readLicensedSectorId();
   const pack = getLicensePackSummary();
-
   return {
     ...base,
     ...alerts,
@@ -155,19 +196,22 @@ function enrichStatus(
 }
 
 export function getMachineFingerprint(): string {
-  const raw = [
-    Electron.app.getPath('userData'),
-    process.platform,
-    process.arch,
-    hostname(),
-  ].join('|');
-  return createHash('sha256').update(raw).digest('hex').slice(0, 16).toUpperCase();
+  let macs: string[] = [];
+  try {
+    macs = Object.values(networkInterfaces())
+      .flatMap((entries) => entries ?? [])
+      .filter((entry) => !entry.internal && entry.mac && entry.mac !== '00:00:00:00:00:00')
+      .map((entry) => entry.mac.toLowerCase())
+      .sort();
+  } catch {
+    // Certains environnements Windows restreints ne permettent pas l'énumération réseau.
+  }
+  const raw = [platform(), arch(), hostname(), cpus()[0]?.model ?? '', String(totalmem()), ...macs].join('|');
+  return createHash('sha256').update(raw).digest('hex').slice(0, 20).toUpperCase();
 }
 
-export { parseLicenseKey, formatLicenseKey } from './license-remote.service';
-
 function daysUntil(isoDate: string): number {
-  const end = new Date(`${isoDate}T23:59:59`).getTime();
+  const end = new Date(`${isoDate}T23:59:59.999Z`).getTime();
   return Math.ceil((end - Date.now()) / 86_400_000);
 }
 
@@ -179,8 +223,10 @@ function assertLicenseAdmin(actorUserId: number): void {
 }
 
 export function ensureLicenseBootstrap(): void {
-  if (!readSetting('app_first_run_at')) {
-    writeSetting('app_first_run_at', new Date().toISOString());
+  if (!readProtectedSetting('app_first_run_secure')) {
+    const existing = readSetting('app_first_run_at') || new Date().toISOString();
+    writeSetting('app_first_run_at', existing);
+    writeProtectedSetting('app_first_run_secure', existing);
   }
 }
 
@@ -198,85 +244,140 @@ function buildDevelopmentStatus(): LicenseStatusDto {
   });
 }
 
+function invalidActivatedStatus(message: string): LicenseStatusDto {
+  return enrichStatus({
+    state: 'invalid',
+    edition: null,
+    holder: readSetting('license_holder') || null,
+    expiresAt: null,
+    daysRemaining: null,
+    machineId: getMachineFingerprint(),
+    activatedAt: readSetting('license_activated_at') || null,
+    message,
+    isPackaged: true,
+  });
+}
+
+function invalidSignedLicenseStatus(
+  parsed: NonNullable<ReturnType<typeof parseLicenseKey>>,
+  message: string,
+): LicenseStatusDto {
+  return enrichStatus({
+    state: 'invalid',
+    edition: parsed.edition,
+    holder: readSetting('license_holder') || null,
+    expiresAt: parsed.expiresAt,
+    daysRemaining: daysUntil(parsed.expiresAt),
+    machineId: getMachineFingerprint(),
+    activatedAt: readSetting('license_activated_at') || null,
+    message,
+    isPackaged: true,
+  });
+}
+
+function clockRollbackDetected(): boolean {
+  const previousRaw = readProtectedSetting('license_clock_anchor');
+  const previous = previousRaw ? Number(previousRaw) : 0;
+  const now = Date.now();
+  if (previous && now + CLOCK_ROLLBACK_TOLERANCE_MS < previous) return true;
+  if (!previous || now - previous > 60 * 60_000) writeProtectedSetting('license_clock_anchor', String(now));
+  return false;
+}
+
 function readActivatedLicense(): LicenseStatusDto | null {
-  const edition = readSetting('license_edition');
-  const expiresAt = readSetting('license_expires_at');
-  const activatedAt = readSetting('license_activated_at');
-  if (!edition || !expiresAt) return null;
+  const protectedKey = readSetting('license_key_value');
+  if (!protectedKey) return null;
+  const key = unprotectValue(protectedKey);
+  if (!key) return invalidActivatedStatus('Licence locale illisible ou stockage sécurisé altéré.');
+  const parsed = parseLicenseKey(key);
+  if (!parsed) return invalidActivatedStatus('Signature de licence invalide ou clé publique Raqmi absente.');
 
-  const daysRemaining = daysUntil(expiresAt);
-  const holder = readSetting('license_holder') || null;
-  const source = readSetting('license_source') === 'remote' ? 'distante' : 'locale';
+  const machineId = getMachineFingerprint();
+  if (readSetting('license_machine_id') !== machineId) {
+    return invalidActivatedStatus('Cette activation appartient à un autre poste.');
+  }
+  if (parsed.mode === 'offline' && parsed.machineId !== machineId) {
+    return invalidActivatedStatus('La licence offline a été émise pour un autre poste.');
+  }
+  const configuredOrg = readSetting('license_org_code');
+  if (configuredOrg && configuredOrg !== parsed.organizationCode) {
+    return invalidActivatedStatus('Le code organisation ne correspond pas à la licence signée.');
+  }
 
-  if (daysRemaining < 0) {
+  writeSetting('license_edition', parsed.edition);
+  writeSetting('license_expires_at', parsed.expiresAt);
+  writeSetting('license_business_sector', parsed.businessSector);
+  writeSetting('business_sector_locked', '1');
+  writeSetting('license_org_code', parsed.organizationCode);
+  if (clockRollbackDetected()) {
+    return invalidSignedLicenseStatus(parsed, 'Retour anormal de l’horloge système détecté.');
+  }
+
+  const remoteState = readSetting('license_remote_state', 'active');
+  if (parsed.mode === 'remote' && ['revoked', 'invalid', 'expired'].includes(remoteState)) {
+    const state = remoteState as 'revoked' | 'invalid' | 'expired';
     return enrichStatus({
-      state: 'expired',
-      edition: edition as LicenseEdition,
-      holder,
-      expiresAt,
-      daysRemaining,
-      machineId: getMachineFingerprint(),
-      activatedAt: activatedAt || null,
-      message: `Licence ${source} expirée le ${expiresAt}. Contactez Raqmi System.`,
+      state,
+      edition: parsed.edition,
+      holder: readSetting('license_holder') || null,
+      expiresAt: parsed.expiresAt,
+      daysRemaining: daysUntil(parsed.expiresAt),
+      machineId,
+      activatedAt: readSetting('license_activated_at') || null,
+      message: state === 'revoked' ? 'Licence révoquée par le serveur Raqmi.' : 'Licence distante non valide.',
       isPackaged: true,
     });
   }
 
+  if (parsed.mode === 'remote') {
+    const lastSync = Date.parse(readSetting('license_last_remote_sync'));
+    if (!Number.isFinite(lastSync) || Date.now() - lastSync > REMOTE_GRACE_MS) {
+      return invalidSignedLicenseStatus(parsed, 'Contrôle serveur requis : délai de grâce de 7 jours dépassé.');
+    }
+  }
+
+  const daysRemaining = daysUntil(parsed.expiresAt);
+  const state: LicenseState = daysRemaining < 0 ? 'expired' : 'active';
+  const source = parsed.mode === 'remote' ? 'distante' : 'offline';
   return enrichStatus({
-    state: 'active',
-    edition: edition as LicenseEdition,
-    holder,
-    expiresAt,
+    state,
+    edition: parsed.edition,
+    holder: readSetting('license_holder') || null,
+    expiresAt: parsed.expiresAt,
     daysRemaining,
-    machineId: getMachineFingerprint(),
-    activatedAt: activatedAt || null,
-    message:
-      daysRemaining <= 30
-        ? `Licence ${source} ${edition} — expiration dans ${daysRemaining} jour(s).`
-        : `Licence ${source} ${edition} active jusqu'au ${expiresAt}.`,
+    machineId,
+    activatedAt: readSetting('license_activated_at') || null,
+    message: state === 'expired'
+      ? `Licence ${source} expirée le ${parsed.expiresAt}.`
+      : `Licence ${source} ${parsed.edition} active jusqu'au ${parsed.expiresAt}.`,
     isPackaged: true,
   });
 }
 
 function readTrialStatus(): LicenseStatusDto {
-  const firstRun = readSetting('app_first_run_at') || new Date().toISOString();
-  const trialEnd = new Date(firstRun);
+  const protectedFirstRun = readProtectedSetting('app_first_run_secure');
+  if (!protectedFirstRun) return invalidActivatedStatus('État de la période d’essai altéré.');
+  const trialEnd = new Date(protectedFirstRun);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   const expiresAt = trialEnd.toISOString().slice(0, 10);
   const daysRemaining = daysUntil(expiresAt);
-
-  if (daysRemaining < 0) {
-    return enrichStatus({
-      state: 'expired',
-      edition: 'TRIAL',
-      holder: null,
-      expiresAt,
-      daysRemaining,
-      machineId: getMachineFingerprint(),
-      activatedAt: null,
-      message: `Période d'essai terminée le ${expiresAt}. Activez une licence pour continuer en production.`,
-      isPackaged: true,
-    });
-  }
-
   return enrichStatus({
-    state: 'trial',
+    state: daysRemaining < 0 ? 'expired' : 'trial',
     edition: 'TRIAL',
     holder: null,
     expiresAt,
     daysRemaining,
     machineId: getMachineFingerprint(),
     activatedAt: null,
-    message: `Période d'essai — ${daysRemaining} jour(s) restant(s).`,
+    message: daysRemaining < 0
+      ? `Période d'essai terminée le ${expiresAt}.`
+      : `Période d'essai — ${daysRemaining} jour(s) restant(s).`,
     isPackaged: true,
   });
 }
 
 export function getLicenseStatus(): LicenseStatusDto {
-  if (!Electron.app.isPackaged || process.env.HMP_LICENSE_BYPASS === '1') {
-    return buildDevelopmentStatus();
-  }
-
+  if (!Electron.app.isPackaged) return buildDevelopmentStatus();
   ensureLicenseBootstrap();
   return readActivatedLicense() ?? readTrialStatus();
 }
@@ -286,9 +387,7 @@ export function isLicenseReadOnly(): boolean {
 }
 
 export function assertLicenseWritable(): void {
-  if (isLicenseReadOnly()) {
-    throw new LicenseReadOnlyError();
-  }
+  if (isLicenseReadOnly()) throw new LicenseReadOnlyError();
 }
 
 export function isLicenseOperational(): boolean {
@@ -299,44 +398,36 @@ export function isLicenseOperational(): boolean {
 export async function getLicenseConfig(actorUserId: number): Promise<LicenseConfigDto> {
   assertLicenseAdmin(actorUserId);
   const remoteServerUrl = resolveRemoteServerUrl();
-  let remoteServerReachable: boolean | null = null;
-  if (remoteServerUrl) {
-    remoteServerReachable = await probeLicenseServer(remoteServerUrl);
-  }
   return {
     licenseMode: resolveLicenseMode(),
     remoteServerUrl,
     organizationCode: readSetting('license_org_code'),
-    remoteServerReachable,
+    remoteServerReachable: remoteServerUrl ? await probeLicenseServer(remoteServerUrl) : null,
   };
 }
 
-export function updateLicenseConfig(
-  actorUserId: number,
-  input: Partial<LicenseConfigDto>,
-): LicenseConfigDto {
+export function updateLicenseConfig(actorUserId: number, input: Partial<LicenseConfigDto>): LicenseConfigDto {
   assertLicenseAdmin(actorUserId);
-
   if (input.licenseMode !== undefined) {
-    if (input.licenseMode !== 'offline' && input.licenseMode !== 'remote') {
-      throw new Error('Mode de licence invalide.');
-    }
+    if (input.licenseMode !== 'offline' && input.licenseMode !== 'remote') throw new Error('Mode de licence invalide.');
     writeSetting('license_mode', input.licenseMode);
   }
   if (input.remoteServerUrl !== undefined) {
-    writeSetting('license_server_url', input.remoteServerUrl.trim());
+    const url = input.remoteServerUrl.trim();
+    if (url && !isAllowedServerUrl(url)) throw new Error('URL HTTPS requise, sauf localhost en développement.');
+    writeSetting('license_server_url', url);
   }
   if (input.organizationCode !== undefined) {
-    writeSetting('license_org_code', input.organizationCode.trim().toUpperCase());
+    const org = input.organizationCode.trim().toUpperCase();
+    if (org && !/^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(org)) throw new Error('Code organisation invalide.');
+    writeSetting('license_org_code', org);
   }
-
   writeAuditLog({
     userId: actorUserId,
     action: 'UPDATE',
     module: 'license',
     description: 'Mise à jour configuration licence distante',
   });
-
   return {
     licenseMode: resolveLicenseMode(),
     remoteServerUrl: resolveRemoteServerUrl(),
@@ -346,127 +437,164 @@ export function updateLicenseConfig(
 }
 
 function persistLocalActivation(
-  parsed: { edition: string; expiresAt: string },
+  parsed: { licenseId: string; edition: string; expiresAt: string; organizationCode: string },
   key: string,
   holder: string,
   machineId: string,
   source: 'offline' | 'remote',
-  organizationCode?: string | null,
 ): void {
+  writeSetting('license_id', parsed.licenseId);
   writeSetting('license_edition', parsed.edition);
   writeSetting('license_expires_at', parsed.expiresAt);
   writeSetting('license_holder', holder);
   writeSetting('license_activated_at', new Date().toISOString());
   writeSetting('license_machine_id', machineId);
   writeSetting('license_key_hint', key.trim().slice(-8));
-  writeSetting('license_key_value', key.trim().toUpperCase());
+  writeProtectedSetting('license_key_value', key.trim());
   writeSetting('license_source', source);
-  if (organizationCode?.trim()) {
-    writeSetting('license_org_code', organizationCode.trim().toUpperCase());
-  }
+  writeSetting('license_org_code', parsed.organizationCode);
+  writeSetting('license_remote_state', 'active');
   writeSetting('license_last_remote_sync', source === 'remote' ? new Date().toISOString() : '');
+  writeProtectedSetting('license_clock_anchor', String(Date.now()));
+}
+
+function remoteClaimsMatchSignedToken(
+  parsed: NonNullable<ReturnType<typeof parseLicenseKey>>,
+  response: {
+    licenseId: string | null;
+    edition: string | null;
+    expiresAt: string | null;
+    organizationCode: string | null;
+    businessSector: string | null;
+  },
+): boolean {
+  return response.licenseId === parsed.licenseId &&
+    response.edition === parsed.edition &&
+    response.expiresAt === parsed.expiresAt &&
+    response.organizationCode === parsed.organizationCode &&
+    response.businessSector === parsed.businessSector;
 }
 
 export async function activateLicense(actorUserId: number, key: string): Promise<LicenseStatusDto> {
   assertLicenseAdmin(actorUserId);
-
   const parsed = parseLicenseKey(key);
-  if (!parsed) {
-    throw new Error('Clé de licence invalide ou signature incorrecte.');
-  }
+  if (!parsed) throw new Error('Clé V2 invalide, signature incorrecte ou clé publique Raqmi absente.');
+  if (daysUntil(parsed.expiresAt) < 0) throw new Error(`Cette clé a expiré le ${parsed.expiresAt}.`);
 
-  const daysRemaining = daysUntil(parsed.expiresAt);
-  if (daysRemaining < 0) {
-    throw new Error(`Cette clé a expiré le ${parsed.expiresAt}.`);
-  }
-
-  const holder = readSetting('company_legal_name') || readSetting('company_name') || 'Client Raqmi';
+  const holder = readSetting('company_legal_name') || readSetting('company_name') || parsed.organizationCode;
   const machineId = getMachineFingerprint();
   const mode = resolveLicenseMode();
-  const serverUrl = resolveRemoteServerUrl();
+  const configuredOrg = readSetting('license_org_code');
+  if (configuredOrg && configuredOrg !== parsed.organizationCode) {
+    throw new Error('Cette licence appartient à une autre organisation.');
+  }
+  if (mode !== parsed.mode) {
+    throw new Error(`Cette clé est de type ${parsed.mode}; configurez le même mode dans Paramètres → Licence.`);
+  }
 
-  if (mode === 'remote' && serverUrl) {
+  if (mode === 'remote') {
+    const serverUrl = resolveRemoteServerUrl();
+    if (!serverUrl || !isAllowedServerUrl(serverUrl)) throw new Error('Serveur de licences HTTPS requis en mode remote.');
     const remote = await remoteActivateLicense(serverUrl, {
-      key: key.trim().toUpperCase(),
+      key: key.trim(),
       machineId,
-      organizationCode: readSetting('license_org_code') || null,
+      organizationCode: parsed.organizationCode,
       holder,
     });
+    if (!remoteClaimsMatchSignedToken(parsed, remote)) {
+      throw new Error('Réponse du serveur incohérente avec la licence signée.');
+    }
     persistLocalActivation(
-      { edition: remote.edition, expiresAt: remote.expiresAt },
+      parsed,
       key,
       remote.holder || holder,
       machineId,
       'remote',
-      remote.organizationCode,
     );
-    applyBusinessSectorFromLicense(remote.businessSector, remote.edition, actorUserId, true);
+    applyBusinessSectorFromLicense(parsed.businessSector, parsed.edition, actorUserId, true);
   } else {
+    if (parsed.machineId !== machineId) throw new Error('Cette licence offline a été émise pour un autre poste.');
     persistLocalActivation(parsed, key, holder, machineId, 'offline');
-    applyBusinessSectorFromLicense(parsed.businessSector ?? 'hotel', parsed.edition, actorUserId, true);
+    applyBusinessSectorFromLicense(parsed.businessSector, parsed.edition, actorUserId, true);
   }
 
   writeAuditLog({
     userId: actorUserId,
     action: 'UPDATE',
     module: 'license',
-    description: `Activation licence ${parsed.edition} — expiration ${parsed.expiresAt}`,
+    description: `Activation licence V2 ${parsed.licenseId} — ${parsed.organizationCode}`,
   });
+  return getLicenseStatus();
+}
 
+async function performRemoteSync(actorUserId: number | null, throwOnInvalid: boolean): Promise<LicenseStatusDto> {
+  const serverUrl = resolveRemoteServerUrl();
+  if (!serverUrl || !isAllowedServerUrl(serverUrl)) throw new Error('URL HTTPS du serveur de licences non configurée.');
+  const key = readProtectedSetting('license_key_value');
+  if (!key) throw new Error('Aucune licence distante lisible sur ce poste.');
+  const parsed = parseLicenseKey(key);
+  if (!parsed || parsed.mode !== 'remote') throw new Error('Licence distante locale invalide.');
+
+  const result = await remoteValidateLicense(serverUrl, {
+    key,
+    machineId: getMachineFingerprint(),
+    organizationCode: readSetting('license_org_code') || null,
+  });
+  writeSetting('license_last_remote_sync', new Date().toISOString());
+  writeSetting('license_remote_state', result.state);
+
+  if (result.ok && result.state === 'active' && result.edition && result.expiresAt && result.businessSector) {
+    if (!remoteClaimsMatchSignedToken(parsed, result)) {
+      writeSetting('license_remote_state', 'invalid');
+      if (throwOnInvalid) throw new Error('Réponse du serveur incohérente avec la licence signée.');
+      return getLicenseStatus();
+    }
+    writeSetting('license_edition', parsed.edition);
+    writeSetting('license_expires_at', parsed.expiresAt);
+    writeSetting('license_source', 'remote');
+    if (result.holder) writeSetting('license_holder', result.holder);
+    writeSetting('license_org_code', parsed.organizationCode);
+    applyBusinessSectorFromLicense(parsed.businessSector, parsed.edition, actorUserId, true);
+  } else if (throwOnInvalid) {
+    throw new Error(result.message || 'Licence distante révoquée, expirée ou invalide.');
+  }
+
+  if (actorUserId !== null) {
+    writeAuditLog({
+      userId: actorUserId,
+      action: 'UPDATE',
+      module: 'license',
+      description: `Synchronisation licence distante — ${result.state}`,
+    });
+  }
   return getLicenseStatus();
 }
 
 export async function syncRemoteLicense(actorUserId: number): Promise<LicenseStatusDto> {
   assertLicenseAdmin(actorUserId);
+  return performRemoteSync(actorUserId, true);
+}
 
-  const serverUrl = resolveRemoteServerUrl();
-  if (!serverUrl) {
-    throw new Error('URL du serveur de licences non configurée.');
+export async function autoSyncRemoteLicense(): Promise<void> {
+  if (!Electron.app.isPackaged || resolveLicenseMode() !== 'remote') return;
+  if (!readSetting('license_key_value')) return;
+  try {
+    await performRemoteSync(null, false);
+  } catch {
+    // Une panne réseau conserve la dernière validation uniquement pendant le délai de grâce.
   }
+}
 
-  const key = readSetting('license_key_value');
-  if (!key) {
-    throw new Error('Aucune licence enregistrée sur ce poste — activez une clé d\'abord.');
-  }
-
-  const machineId = getMachineFingerprint();
-  const result = await remoteValidateLicense(serverUrl, {
-    key,
-    machineId,
-    organizationCode: readSetting('license_org_code') || null,
-  });
-
-  writeSetting('license_last_remote_sync', new Date().toISOString());
-
-  if (result.ok && result.state === 'active' && result.edition && result.expiresAt) {
-    writeSetting('license_edition', result.edition);
-    writeSetting('license_expires_at', result.expiresAt);
-    writeSetting('license_source', 'remote');
-    if (result.holder) writeSetting('license_holder', result.holder);
-    if (result.organizationCode) writeSetting('license_org_code', result.organizationCode);
-    if (result.businessSector && result.edition) {
-      applyBusinessSectorFromLicense(result.businessSector, result.edition, actorUserId, true);
-    }
-  } else if (result.state === 'revoked' || result.state === 'invalid') {
-    throw new Error(result.message || 'Licence révoquée ou invalide côté serveur.');
-  } else if (result.state === 'expired') {
-    writeSetting('license_expires_at', result.expiresAt ?? readSetting('license_expires_at'));
-    throw new Error(result.message || 'Licence expirée côté serveur.');
-  }
-
-  writeAuditLog({
-    userId: actorUserId,
-    action: 'UPDATE',
-    module: 'license',
-    description: 'Synchronisation licence distante',
-  });
-
-  return getLicenseStatus();
+export function startLicenseBackgroundSync(): () => void {
+  void autoSyncRemoteLicense();
+  const timer = setInterval(() => void autoSyncRemoteLicense(), REMOTE_SYNC_INTERVAL_MS);
+  return () => clearInterval(timer);
 }
 
 export function clearLicense(actorUserId: number): LicenseStatusDto {
   assertLicenseAdmin(actorUserId);
   for (const key of [
+    'license_id',
     'license_edition',
     'license_expires_at',
     'license_holder',
@@ -476,11 +604,10 @@ export function clearLicense(actorUserId: number): LicenseStatusDto {
     'license_key_value',
     'license_source',
     'license_last_remote_sync',
+    'license_remote_state',
     'license_business_sector',
     'business_sector_locked',
-  ]) {
-    writeSetting(key, '');
-  }
+  ]) writeSetting(key, '');
   writeAuditLog({
     userId: actorUserId,
     action: 'DELETE',

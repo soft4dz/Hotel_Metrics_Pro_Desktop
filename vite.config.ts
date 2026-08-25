@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron/simple';
 
 const electronPathShim = nodePath.resolve(__dirname, 'electron/lib/nodePath.ts');
+const embeddedLicensePublicKeys = process.env.HMP_LICENSE_PUBLIC_KEYS ?? '{}';
 
 export default defineConfig({
   plugins: [
@@ -12,6 +13,9 @@ export default defineConfig({
       main: {
         entry: 'electron/main.ts',
         vite: {
+          define: {
+            __RAQMI_LICENSE_PUBLIC_KEYS__: JSON.stringify(embeddedLicensePublicKeys),
+          },
           resolve: {
             alias: {
               'node:path': electronPathShim,

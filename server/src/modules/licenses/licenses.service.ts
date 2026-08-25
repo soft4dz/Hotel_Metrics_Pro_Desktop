@@ -1,18 +1,59 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { createHash } from 'crypto';
 import { PrismaService } from '../../prisma.service';
 import {
-  formatLicenseKey,
+  assertFutureExpiry,
+  issueLicenseKey,
   parseLicenseKey,
   type BusinessSectorId,
   type LicenseEdition,
 } from './licenses.util';
 
+interface AuditActor {
+  id?: number;
+  email?: string;
+}
+
 @Injectable()
 export class LicensesService {
   constructor(private prisma: PrismaService) {}
 
-  health() {
-    return { ok: true, service: 'raqmi-licenses', version: '1.0' };
+  async health() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return { ok: true, service: 'raqmi-licenses', version: '2.0', database: 'ready' };
+    } catch {
+      throw new ServiceUnavailableException('Base de licences indisponible.');
+    }
+  }
+
+  private async audit(
+    action: string,
+    entityId: string | null,
+    actor: AuditActor | null,
+    details: Record<string, unknown>,
+  ): Promise<void> {
+    const timestamp = new Date().toISOString();
+    const hash = createHash('sha256')
+      .update(JSON.stringify({ actorId: actor?.id ?? null, action, entityId, timestamp, details }))
+      .digest('hex');
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actor?.id ?? null,
+        userEmail: actor?.email ?? null,
+        module: 'licenses',
+        action,
+        entityId,
+        newValue: details as Prisma.InputJsonValue,
+        hash,
+      },
+    });
   }
 
   async activate(input: {
@@ -23,176 +64,148 @@ export class LicensesService {
     deviceLabel?: string | null;
   }) {
     const parsed = parseLicenseKey(input.key);
-    if (!parsed) {
-      throw new BadRequestException('Clé de licence invalide ou signature incorrecte.');
+    if (!parsed) throw new BadRequestException('Clé V2 invalide ou signature incorrecte.');
+    if (parsed.mode !== 'remote') {
+      throw new BadRequestException('Une licence offline doit être activée localement sur le poste prévu.');
     }
-
-    const expiresAtDate = new Date(`${parsed.expiresAt}T23:59:59`);
-    if (expiresAtDate.getTime() < Date.now()) {
+    if (new Date(`${parsed.expiresAt}T23:59:59.999Z`).getTime() < Date.now()) {
       throw new BadRequestException(`Clé expirée le ${parsed.expiresAt}.`);
     }
 
-    const orgCode = (input.organizationCode?.trim() || `ORG-${parsed.licenseKey.slice(-8)}`).toUpperCase();
-    const legalName = input.holder?.trim() || orgCode;
-
-    let organization = await this.prisma.licenseOrganization.findUnique({ where: { code: orgCode } });
-    if (!organization) {
-      organization = await this.prisma.licenseOrganization.create({
-        data: { code: orgCode, legalName, email: null },
-      });
+    const requestedOrg = input.organizationCode?.trim().toUpperCase();
+    if (requestedOrg && requestedOrg !== parsed.organizationCode) {
+      throw new ForbiddenException('Cette clé appartient à une autre organisation.');
     }
 
-    let record = await this.prisma.licenseRecord.findUnique({ where: { licenseKey: parsed.licenseKey } });
-    if (!record) {
-      record = await this.prisma.licenseRecord.create({
-        data: {
-          licenseKey: parsed.licenseKey,
-          organizationId: organization.id,
-          edition: parsed.edition,
-          businessSector: parsed.businessSector,
-          expiresAt: expiresAtDate,
-          maxActivations: 3,
-          status: 'active',
-        },
-      });
-    } else if (record.expiresAt.getTime() < expiresAtDate.getTime()) {
-      record = await this.prisma.licenseRecord.update({
-        where: { id: record.id },
-        data: { expiresAt: expiresAtDate, status: 'active' },
-      });
-    }
-
-    if (record.status === 'revoked') {
-      throw new ForbiddenException('Licence révoquée côté éditeur.');
-    }
-
-    const existing = await this.prisma.licenseActivation.findUnique({
-      where: { licenseId_machineId: { licenseId: record.id, machineId: input.machineId } },
+    const record = await this.prisma.licenseRecord.findUnique({
+      where: { publicId: parsed.licenseId },
+      include: { organization: true },
     });
+    if (!record || record.licenseKey !== parsed.licenseKey) {
+      throw new ForbiddenException('Licence non émise ou inconnue du registre Raqmi.');
+    }
+    if (!record.organization.active) throw new ForbiddenException('Organisation suspendue.');
+    if (record.organization.code !== parsed.organizationCode) {
+      throw new ForbiddenException('Organisation de licence incohérente.');
+    }
+    if (record.status !== 'active') throw new ForbiddenException('Licence révoquée côté éditeur.');
+    if (
+      record.edition !== parsed.edition ||
+      record.businessSector !== parsed.businessSector ||
+      record.expiresAt.toISOString().slice(0, 10) !== parsed.expiresAt ||
+      record.maxActivations !== parsed.maxActivations
+    ) {
+      throw new ForbiddenException('Données de licence incohérentes avec le registre central.');
+    }
 
-    if (!existing) {
-      const count = await this.prisma.licenseActivation.count({
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.licenseActivation.findUnique({
+        where: { licenseId_machineId: { licenseId: record.id, machineId: input.machineId } },
+      });
+      if (existing?.revokedAt) throw new ForbiddenException('Activation révoquée pour ce poste.');
+      if (existing) {
+        await tx.licenseActivation.update({
+          where: { id: existing.id },
+          data: { lastSeenAt: new Date(), deviceLabel: input.deviceLabel ?? existing.deviceLabel },
+        });
+        return;
+      }
+      const count = await tx.licenseActivation.count({
         where: { licenseId: record.id, revokedAt: null },
       });
       if (count >= record.maxActivations) {
-        throw new ForbiddenException(`Nombre max d'activations atteint (${record.maxActivations}).`);
+        throw new ForbiddenException(`Nombre maximal d'activations atteint (${record.maxActivations}).`);
       }
-      await this.prisma.licenseActivation.create({
+      await tx.licenseActivation.create({
         data: {
           licenseId: record.id,
           machineId: input.machineId,
           deviceLabel: input.deviceLabel ?? null,
         },
       });
-    } else if (existing.revokedAt) {
-      throw new ForbiddenException('Activation révoquée pour ce poste.');
-    } else {
-      await this.prisma.licenseActivation.update({
-        where: { id: existing.id },
-        data: { lastSeenAt: new Date(), deviceLabel: input.deviceLabel ?? existing.deviceLabel },
-      });
-    }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    await this.audit('activate', record.publicId, null, {
+      organizationCode: record.organization.code,
+      machineId: input.machineId,
+    });
 
     return {
       ok: true,
-      edition: parsed.edition,
-      expiresAt: parsed.expiresAt,
-      holder: legalName,
-      organizationCode: organization.code,
-      businessSector: (record.businessSector || parsed.businessSector) as BusinessSectorId,
-      message: `Licence ${parsed.edition} activée pour ${organization.code}.`,
-    };
-  }
-
-  async validate(input: { key: string; machineId: string; organizationCode?: string | null }) {
-    const parsed = parseLicenseKey(input.key);
-    if (!parsed) {
-      return {
-        ok: false,
-        state: 'invalid' as const,
-        edition: null,
-        expiresAt: null,
-        holder: null,
-        organizationCode: null,
-        message: 'Clé invalide.',
-        businessSector: null,
-      };
-    }
-
-    const record = await this.prisma.licenseRecord.findUnique({
-      where: { licenseKey: parsed.licenseKey },
-      include: { organization: true, activations: true },
-    });
-
-    if (!record || record.status === 'revoked') {
-      return {
-        ok: false,
-        state: 'revoked' as const,
-        edition: parsed.edition,
-        expiresAt: parsed.expiresAt,
-        holder: record?.organization.legalName ?? null,
-        organizationCode: record?.organization.code ?? null,
-        message: 'Licence révoquée.',
-        businessSector: (record?.businessSector ?? parsed.businessSector) as BusinessSectorId | null,
-      };
-    }
-
-    if (record.expiresAt.getTime() < Date.now()) {
-      return {
-        ok: false,
-        state: 'expired' as const,
-        edition: record.edition as LicenseEdition,
-        expiresAt: parsed.expiresAt,
-        holder: record.organization.legalName,
-        organizationCode: record.organization.code,
-        message: 'Licence expirée.',
-        businessSector: record.businessSector as BusinessSectorId,
-      };
-    }
-
-    const activation = record.activations.find(
-      (a) => a.machineId === input.machineId && !a.revokedAt,
-    );
-    if (!activation) {
-      return {
-        ok: false,
-        state: 'invalid' as const,
-        edition: record.edition as LicenseEdition,
-        expiresAt: parsed.expiresAt,
-        holder: record.organization.legalName,
-        organizationCode: record.organization.code,
-        message: 'Poste non activé pour cette licence.',
-        businessSector: record.businessSector as BusinessSectorId,
-      };
-    }
-
-    await this.prisma.licenseActivation.update({
-      where: { id: activation.id },
-      data: { lastSeenAt: new Date() },
-    });
-
-    if (input.organizationCode?.trim() && record.organization.code !== input.organizationCode.trim().toUpperCase()) {
-      return {
-        ok: false,
-        state: 'invalid' as const,
-        edition: record.edition as LicenseEdition,
-        expiresAt: parsed.expiresAt,
-        holder: record.organization.legalName,
-        organizationCode: record.organization.code,
-        message: 'Code organisation incorrect.',
-        businessSector: record.businessSector as BusinessSectorId,
-      };
-    }
-
-    return {
-      ok: true,
-      state: 'active' as const,
+      licenseId: record.publicId,
       edition: record.edition as LicenseEdition,
       expiresAt: parsed.expiresAt,
       holder: record.organization.legalName,
       organizationCode: record.organization.code,
       businessSector: record.businessSector as BusinessSectorId,
-      message: 'Licence active.',
+      message: `Licence ${record.edition} activée pour ${record.organization.code}.`,
+    };
+  }
+
+  async validate(input: { key: string; machineId: string; organizationCode?: string | null }) {
+    const parsed = parseLicenseKey(input.key);
+    if (!parsed || parsed.mode !== 'remote') return this.invalidResponse('Clé invalide.');
+
+    const record = await this.prisma.licenseRecord.findUnique({
+      where: { publicId: parsed.licenseId },
+      include: { organization: true, activations: true },
+    });
+    if (!record || record.licenseKey !== parsed.licenseKey) {
+      return this.invalidResponse('Licence inconnue du registre central.', parsed.licenseId);
+    }
+    if (
+      record.organization.code !== parsed.organizationCode ||
+      record.edition !== parsed.edition ||
+      record.businessSector !== parsed.businessSector ||
+      record.expiresAt.toISOString().slice(0, 10) !== parsed.expiresAt ||
+      record.maxActivations !== parsed.maxActivations
+    ) {
+      return this.invalidResponse('Licence incohérente avec le registre central.', parsed.licenseId);
+    }
+    const base = {
+      licenseId: record.publicId,
+      edition: record.edition as LicenseEdition,
+      expiresAt: record.expiresAt.toISOString().slice(0, 10),
+      holder: record.organization.legalName,
+      organizationCode: record.organization.code,
+      businessSector: record.businessSector as BusinessSectorId,
+    };
+    if (!record.organization.active || record.status !== 'active') {
+      return { ok: false, state: 'revoked' as const, ...base, message: 'Licence ou organisation révoquée.' };
+    }
+    if (record.expiresAt.getTime() < Date.now()) {
+      return { ok: false, state: 'expired' as const, ...base, message: 'Licence expirée.' };
+    }
+    if (
+      input.organizationCode?.trim() &&
+      record.organization.code !== input.organizationCode.trim().toUpperCase()
+    ) {
+      return { ok: false, state: 'invalid' as const, ...base, message: 'Code organisation incorrect.' };
+    }
+    const activation = record.activations.find(
+      (item) => item.machineId === input.machineId && !item.revokedAt,
+    );
+    if (!activation) {
+      return { ok: false, state: 'invalid' as const, ...base, message: 'Poste non activé pour cette licence.' };
+    }
+    await this.prisma.licenseActivation.update({
+      where: { id: activation.id },
+      data: { lastSeenAt: new Date() },
+    });
+    return { ok: true, state: 'active' as const, ...base, message: 'Licence active.' };
+  }
+
+  private invalidResponse(message: string, licenseId: string | null = null) {
+    return {
+      ok: false,
+      state: 'invalid' as const,
+      licenseId,
+      edition: null,
+      expiresAt: null,
+      holder: null,
+      organizationCode: null,
+      businessSector: null,
+      message,
     };
   }
 
@@ -203,53 +216,74 @@ export class LicensesService {
     expiresAt: string;
     businessSector?: BusinessSectorId;
     maxActivations?: number;
-  }) {
+  }, actor: AuditActor) {
+    try {
+      assertFutureExpiry(input.expiresAt);
+    } catch (error) {
+      throw new BadRequestException(error instanceof Error ? error.message : 'Expiration invalide.');
+    }
     const orgCode = input.organizationCode.trim().toUpperCase();
     const sector = input.businessSector ?? 'hotel';
-    const key = formatLicenseKey(input.edition, input.expiresAt, sector);
+    const maxActivations = input.maxActivations ?? 3;
 
-    let organization = await this.prisma.licenseOrganization.findUnique({ where: { code: orgCode } });
-    if (!organization) {
-      organization = await this.prisma.licenseOrganization.create({
-        data: { code: orgCode, legalName: input.legalName.trim() },
+    const organization = await this.prisma.licenseOrganization.upsert({
+      where: { code: orgCode },
+      create: { code: orgCode, legalName: input.legalName.trim() },
+      update: { legalName: input.legalName.trim() },
+    });
+    if (!organization.active) throw new ForbiddenException('Organisation suspendue.');
+
+    let issued;
+    try {
+      issued = issueLicenseKey({
+        organizationCode: orgCode,
+        edition: input.edition,
+        expiresAt: input.expiresAt,
+        businessSector: sector,
+        maxActivations,
+        mode: 'remote',
       });
+    } catch (error) {
+      throw new ServiceUnavailableException(
+        error instanceof Error ? error.message : 'Clé privée de licence indisponible.',
+      );
     }
 
-    await this.prisma.licenseRecord.upsert({
-      where: { licenseKey: key },
-      create: {
-        licenseKey: key,
+    const record = await this.prisma.licenseRecord.create({
+      data: {
+        publicId: issued.payload.licenseId,
+        licenseKey: issued.licenseKey,
         organizationId: organization.id,
         edition: input.edition,
         businessSector: sector,
-        expiresAt: new Date(`${input.expiresAt}T23:59:59`),
-        maxActivations: input.maxActivations ?? 3,
+        expiresAt: new Date(`${input.expiresAt}T23:59:59.999Z`),
+        maxActivations,
         status: 'active',
       },
-      update: {
-        status: 'active',
-        businessSector: sector,
-        expiresAt: new Date(`${input.expiresAt}T23:59:59`),
-        maxActivations: input.maxActivations ?? 3,
-      },
+    });
+    await this.audit('issue', record.publicId, actor, {
+      organizationCode: orgCode,
+      edition: input.edition,
+      businessSector: sector,
+      expiresAt: input.expiresAt,
+      maxActivations,
     });
 
     return {
-      licenseKey: key,
+      licenseId: record.publicId,
+      licenseKey: issued.licenseKey,
       organizationCode: orgCode,
       edition: input.edition,
       expiresAt: input.expiresAt,
       businessSector: sector,
-      maxActivations: input.maxActivations ?? 3,
+      maxActivations,
     };
   }
 
   async listOrganizations() {
     const rows = await this.prisma.licenseOrganization.findMany({
       orderBy: { code: 'asc' },
-      include: {
-        _count: { select: { licenses: true } },
-      },
+      include: { _count: { select: { licenses: true } } },
     });
     return rows.map((org) => ({
       id: org.id,
@@ -263,9 +297,13 @@ export class LicensesService {
 
   async listLicenses(filters?: { organizationCode?: string; status?: string }) {
     const orgCode = filters?.organizationCode?.trim().toUpperCase();
+    const status = filters?.status?.trim().toLowerCase();
+    if (status && status !== 'active' && status !== 'revoked') {
+      throw new BadRequestException('Filtre de statut invalide.');
+    }
     const rows = await this.prisma.licenseRecord.findMany({
       where: {
-        ...(filters?.status ? { status: filters.status } : {}),
+        ...(status ? { status } : {}),
         ...(orgCode ? { organization: { code: orgCode } } : {}),
       },
       orderBy: { createdAt: 'desc' },
@@ -274,24 +312,25 @@ export class LicensesService {
         activations: { where: { revokedAt: null } },
       },
     });
-    return rows.map((r) => ({
-      id: r.id,
-      licenseKey: r.licenseKey,
-      organizationCode: r.organization.code,
-      legalName: r.organization.legalName,
-      edition: r.edition,
-      businessSector: r.businessSector,
-      expiresAt: r.expiresAt.toISOString().slice(0, 10),
-      maxActivations: r.maxActivations,
-      activeActivations: r.activations.length,
-      status: r.status,
-      createdAt: r.createdAt,
-      activations: r.activations.map((a) => ({
-        id: a.id,
-        machineId: a.machineId,
-        deviceLabel: a.deviceLabel,
-        activatedAt: a.activatedAt,
-        lastSeenAt: a.lastSeenAt,
+    return rows.map((record) => ({
+      id: record.id,
+      licenseId: record.publicId,
+      licenseKey: record.licenseKey,
+      organizationCode: record.organization.code,
+      legalName: record.organization.legalName,
+      edition: record.edition,
+      businessSector: record.businessSector,
+      expiresAt: record.expiresAt.toISOString().slice(0, 10),
+      maxActivations: record.maxActivations,
+      activeActivations: record.activations.length,
+      status: record.status,
+      createdAt: record.createdAt,
+      activations: record.activations.map((activation) => ({
+        id: activation.id,
+        machineId: activation.machineId,
+        deviceLabel: activation.deviceLabel,
+        activatedAt: activation.activatedAt,
+        lastSeenAt: activation.lastSeenAt,
       })),
     }));
   }
@@ -300,40 +339,47 @@ export class LicensesService {
     licenseKey?: string;
     activationId?: number;
     revokeAllActivations?: boolean;
-  }) {
+  }, actor: AuditActor) {
     if (input.activationId) {
-      await this.prisma.licenseActivation.update({
+      const activation = await this.prisma.licenseActivation.findUnique({
         where: { id: input.activationId },
+        include: { license: true },
+      });
+      if (!activation) throw new BadRequestException('Activation introuvable.');
+      await this.prisma.licenseActivation.update({
+        where: { id: activation.id },
         data: { revokedAt: new Date() },
+      });
+      await this.audit('revoke-activation', activation.license.publicId, actor, {
+        activationId: activation.id,
+        machineId: activation.machineId,
       });
       return { ok: true, message: 'Activation poste révoquée.' };
     }
 
-    const key = input.licenseKey?.trim().toUpperCase();
-    if (!key) {
-      throw new BadRequestException('licenseKey ou activationId requis.');
-    }
-
+    const key = input.licenseKey?.trim();
+    if (!key) throw new BadRequestException('licenseKey ou activationId requis.');
     const record = await this.prisma.licenseRecord.findUnique({
       where: { licenseKey: key },
       include: { activations: true },
     });
-    if (!record) {
-      throw new BadRequestException('Licence introuvable.');
-    }
+    if (!record) throw new BadRequestException('Licence introuvable.');
 
-    if (input.revokeAllActivations) {
-      await this.prisma.licenseActivation.updateMany({
-        where: { licenseId: record.id, revokedAt: null },
-        data: { revokedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      if (input.revokeAllActivations) {
+        await tx.licenseActivation.updateMany({
+          where: { licenseId: record.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
+      await tx.licenseRecord.update({
+        where: { id: record.id },
+        data: { status: 'revoked' },
       });
-    }
-
-    await this.prisma.licenseRecord.update({
-      where: { id: record.id },
-      data: { status: 'revoked' },
     });
-
+    await this.audit('revoke-license', record.publicId, actor, {
+      revokeAllActivations: Boolean(input.revokeAllActivations),
+    });
     return { ok: true, message: 'Licence révoquée côté éditeur.' };
   }
 }

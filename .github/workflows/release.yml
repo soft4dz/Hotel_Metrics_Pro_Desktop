@@ -17,7 +17,10 @@ jobs:
       - run: npm ci
       - run: npm run rebuild:native
       - run: npm run validate:certification
-      - run: npm run dist:installer
+      - name: Build signed-license installer
+        run: npm run dist:installer
+        env:
+          HMP_LICENSE_PUBLIC_KEYS: ${{ secrets.HMP_LICENSE_PUBLIC_KEYS }}
       - uses: actions/upload-artifact@v4
         with:
           name: raqmi-system-installer

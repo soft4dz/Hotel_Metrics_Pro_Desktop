@@ -18,6 +18,8 @@ function licenseBadgeClass(state: LicenseStatusDto['state']): string {
     case 'trial':
       return 'bg-amber-500/15 text-amber-700 dark:text-amber-400';
     case 'expired':
+    case 'revoked':
+    case 'invalid':
       return 'bg-destructive/15 text-destructive';
     default:
       return 'bg-muted text-muted-foreground';
@@ -198,8 +200,8 @@ export function LicenseSettingsPage() {
               <Input
                 id="licenseKey"
                 value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
-                placeholder="RS-PRO-20271231-COMM-XXXXXXXX"
+                onChange={(e) => setLicenseKey(e.target.value)}
+                placeholder="RS2.eyJ2IjoyLC4uLn0.signature"
                 disabled={licenseBusy}
               />
             </div>

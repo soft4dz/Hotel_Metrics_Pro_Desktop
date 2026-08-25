@@ -1,4 +1,5 @@
 node_modules/
+.license-keys/
 dist/
 dist-electron/
 release/
@@ -8,6 +9,7 @@ installers/
 Thumbs.db
 .env
 .env.*
+!server/.env.example
 *.local
 .vscode/*
 !.vscode/extensions.json

@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
+env.VITE_AUTO_LOGIN ??= 'true';
+env.HMP_DEV_AUTO_ADMIN ??= '1';
+env.VITE_DEV_ADMIN_PASSWORD ??= 'Admin@2026!';
+env.HMP_DEV_ADMIN_PASSWORD ??= env.VITE_DEV_ADMIN_PASSWORD;
 
 if (process.env.ELECTRON_RUN_AS_NODE) {
   console.warn(

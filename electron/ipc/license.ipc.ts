@@ -22,7 +22,7 @@ export function registerLicenseIpc(): void {
 
   Electron.ipcMain.handle('license:activate', (event, key: unknown) =>
     wrapIpcAsync(event, (uid) =>
-      svc.activateLicense(uid, assertText(key, 'key', { required: true, maxLength: 80 })),
+      svc.activateLicense(uid, assertText(key, 'key', { required: true, maxLength: 4096 })),
     ),
   );
 
