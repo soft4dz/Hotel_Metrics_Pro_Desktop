@@ -66,6 +66,9 @@ export function App() {
   const [organizationCode, setOrganizationCode] = useState('');
   const [legalName, setLegalName] = useState('');
   const [maxActivations, setMaxActivations] = useState(3);
+  const [machineId, setMachineId] = useState('');
+  const [privateKeyPem, setPrivateKeyPem] = useState('');
+  const [keyId, setKeyId] = useState('raqmi-root-2026');
 
   const [serverUrl, setServerUrl] = useState(getSavedServerUrl);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
@@ -98,6 +101,14 @@ export function App() {
       setError('Code organisation requis (ex. ORG-ACME).');
       return;
     }
+    if (!machineId.trim()) {
+      setError('Identifiant du poste client requis pour une licence offline.');
+      return;
+    }
+    if (!privateKeyPem.trim()) {
+      setError('Clé privée Ed25519 requise. Elle ne sera pas enregistrée.');
+      return;
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
       setError('Date d\'expiration invalide.');
       return;
@@ -109,19 +120,30 @@ export function App() {
 
     setBusy(true);
     try {
-      const key = await formatLicenseKey(edition, expiresAt, sector);
-      setLastKey(key);
+      const issued = await formatLicenseKey({
+        organizationCode: organizationCode.trim().toUpperCase(),
+        edition,
+        expiresAt,
+        businessSector: sector,
+        maxActivations: 1,
+        machineId: machineId.trim().toUpperCase(),
+        keyId: keyId.trim(),
+      }, privateKeyPem);
+      setLastKey(issued.licenseKey);
       const record = saveToHistory({
-        licenseKey: key,
+        licenseId: issued.payload.licenseId,
+        licenseKey: issued.licenseKey,
         edition,
         expiresAt,
         businessSector: sector,
         organizationCode: organizationCode.trim().toUpperCase(),
         legalName: legalName.trim() || organizationCode.trim().toUpperCase(),
         mode: 'offline',
+        machineId: issued.payload.machineId,
       });
       setHistory((h) => [record, ...h.filter((x) => x.id !== record.id)].slice(0, 200));
-      setSuccess('Clé générée localement — prête à envoyer au client.');
+      setPrivateKeyPem('');
+      setSuccess('Licence V2 signée et liée à ce poste. La clé privée a été effacée du formulaire.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Génération impossible.');
     } finally {
@@ -153,6 +175,7 @@ export function App() {
       });
       setLastKey(result.licenseKey);
       const record = saveToHistory({
+        licenseId: result.licenseId,
         licenseKey: result.licenseKey,
         edition: result.edition,
         expiresAt: result.expiresAt,
@@ -416,6 +439,43 @@ export function App() {
                   />
                 </label>
               )}
+
+              {tab === 'offline' && (
+                <>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">Identifiant poste client</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm uppercase outline-none ring-brand/30 focus:ring-2"
+                      value={machineId}
+                      onChange={(e) => setMachineId(e.target.value.toUpperCase())}
+                      placeholder="A1B2C3D4E5F60708"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">Identifiant de clé publique</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm outline-none ring-brand/30 focus:ring-2"
+                      value={keyId}
+                      onChange={(e) => setKeyId(e.target.value)}
+                      placeholder="raqmi-root-2026"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">Clé privée Ed25519 — usage ponctuel</span>
+                    <textarea
+                      className="min-h-32 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs outline-none ring-brand/30 focus:ring-2"
+                      value={privateKeyPem}
+                      onChange={(e) => setPrivateKeyPem(e.target.value)}
+                      placeholder="-----BEGIN PRIVATE KEY-----"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <p className="mt-1 text-xs text-amber-700">
+                      Jamais stockée dans le navigateur. Pour la production courante, privilégiez l’émission via serveur.
+                    </p>
+                  </label>
+                </>
+              )}
             </div>
 
             {(error || success) && (
@@ -476,8 +536,8 @@ export function App() {
 
             {tab === 'offline' && (
               <p className="mt-3 text-xs text-slate-500">
-                Mode local : la clé est signée sur ce poste (secret <code className="rounded bg-slate-100 px-1">HMP_LICENSE_SECRET</code>).
-                Aucune base PostgreSQL requise.
+                Mode local sécurisé : signature Ed25519 et liaison obligatoire à l’identifiant du poste client.
+                La clé privée reste sous le contrôle exclusif de Raqmi.
               </p>
             )}
           </section>
@@ -517,6 +577,7 @@ export function App() {
                   </div>
                   <p className="text-slate-600">{item.legalName}</p>
                   <p className="mt-1 font-mono text-[11px] text-slate-700">{item.licenseKey}</p>
+                  <p className="mt-1 font-mono text-[10px] text-slate-500">ID {item.licenseId}</p>
                   <p className="mt-1 text-slate-500">
                     {item.edition} · {sectorLabelFor(item.businessSector)} · {item.expiresAt}
                   </p>

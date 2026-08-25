@@ -6,7 +6,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}', 'electron/**/*.test.ts'],
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      'electron/**/*.test.ts',
+      'server/src/**/*.test.ts',
+      'license-manager/src/**/*.test.ts',
+    ],
   },
   resolve: {
     alias: {

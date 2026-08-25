@@ -24,7 +24,11 @@ cp .env.example .env
 `.env` minimal :
 ```
 DATABASE_URL="postgresql://postgres:votre_mdp@localhost:5432/hotel_metrics_pro"
-JWT_SECRET="votre-secret-jwt-tres-long"
+JWT_SECRET="secret-aleatoire-de-32-octets-minimum"
+ADMIN_INITIAL_PASSWORD="mot-de-passe-initial-unique"
+HMP_LICENSE_KEY_ID="raqmi-root-2026"
+HMP_LICENSE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n..."
+HMP_LICENSE_PUBLIC_KEYS='{"raqmi-root-2026":"-----BEGIN PUBLIC KEY-----\\n..."}'
 ```
 
 ### 3. Créer la base PostgreSQL
@@ -39,7 +43,7 @@ CREATE DATABASE hotel_metrics_pro;
 npx prisma migrate dev --name init
 npx prisma generate
 npm run db:seed
-# → admin@raqmi.local / Admin@2025! (à changer à la 1ère connexion)
+# → admin@raqmi.local ; le mot de passe provient de ADMIN_INITIAL_PASSWORD
 ```
 
 ### 5. Démarrer

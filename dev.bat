@@ -93,6 +93,8 @@ echo.
 
 set VITE_AUTO_LOGIN=true
 set HMP_DEV_AUTO_ADMIN=1
+set VITE_DEV_ADMIN_PASSWORD=Admin@2026!
+set HMP_DEV_ADMIN_PASSWORD=Admin@2026!
 
 echo [INFO] Demarrage Electron + Vite ^(npm run dev^)...
 echo.

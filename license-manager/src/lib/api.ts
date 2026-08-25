@@ -3,21 +3,36 @@ import type { BusinessSectorId, LicenseEdition } from './sectors';
 const TOKEN_KEY = 'raqmi-license-manager-token';
 const SERVER_KEY = 'raqmi-license-manager-server';
 
+function normalizeServerUrl(value: string): string {
+  const normalized = value.trim().replace(/\/+$/, '');
+  let url: URL;
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw new Error('URL du serveur invalide.');
+  }
+  const localhost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && localhost)) {
+    throw new Error('HTTPS est obligatoire, sauf pour localhost en développement.');
+  }
+  return normalized;
+}
+
 export function getSavedServerUrl(): string {
   return localStorage.getItem(SERVER_KEY) ?? 'http://localhost:3001/api/v1';
 }
 
 export function saveServerUrl(url: string): void {
-  localStorage.setItem(SERVER_KEY, url.trim().replace(/\/+$/, ''));
+  localStorage.setItem(SERVER_KEY, normalizeServerUrl(url));
 }
 
 export function getSavedToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function saveToken(token: string | null): void {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+  if (token) sessionStorage.setItem(TOKEN_KEY, token);
+  else sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export async function login(
@@ -25,7 +40,7 @@ export async function login(
   email: string,
   password: string,
 ): Promise<{ accessToken: string }> {
-  const base = serverUrl.trim().replace(/\/+$/, '');
+  const base = normalizeServerUrl(serverUrl);
   const res = await fetch(`${base}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -48,6 +63,7 @@ export interface RemoteIssueInput {
 }
 
 export interface RemoteIssueResult {
+  licenseId: string;
   licenseKey: string;
   organizationCode: string;
   edition: LicenseEdition;
@@ -60,7 +76,7 @@ export async function issueRemoteLicense(
   token: string,
   input: RemoteIssueInput,
 ): Promise<RemoteIssueResult> {
-  const base = serverUrl.trim().replace(/\/+$/, '');
+  const base = normalizeServerUrl(serverUrl);
   const res = await fetch(`${base}/licenses/admin/issue`, {
     method: 'POST',
     headers: {
@@ -79,7 +95,7 @@ export async function issueRemoteLicense(
 
 export async function probeServer(serverUrl: string): Promise<boolean> {
   try {
-    const base = serverUrl.trim().replace(/\/+$/, '');
+    const base = normalizeServerUrl(serverUrl);
     const res = await fetch(`${base}/licenses/health`, { headers: { Accept: 'application/json' } });
     return res.ok;
   } catch {
@@ -88,7 +104,7 @@ export async function probeServer(serverUrl: string): Promise<boolean> {
 }
 
 async function authFetch<T>(serverUrl: string, token: string, path: string, init?: RequestInit): Promise<T> {
-  const base = serverUrl.trim().replace(/\/+$/, '');
+  const base = normalizeServerUrl(serverUrl);
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
@@ -106,6 +122,7 @@ async function authFetch<T>(serverUrl: string, token: string, path: string, init
 
 export interface RemoteLicenseRow {
   id: number;
+  licenseId: string;
   licenseKey: string;
   organizationCode: string;
   legalName: string;

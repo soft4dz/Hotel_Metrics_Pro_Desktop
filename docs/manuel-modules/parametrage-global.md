@@ -20,7 +20,7 @@ Composants : `src/pages/system/SettingsPage.tsx` (`/settings`), `InterfaceThemeP
 ### Paramètres généraux (`SettingsPage.tsx` / `/settings`)
 - Carte « Mon compte » : nom, e-mail, rôle de l'utilisateur connecté (lecture seule).
 - Carte « Application » : version, chemin de la base SQLite locale, raccourcis « Modules activés » et « Synchronisation ».
-- Carte « Licence Raqmi System » (admin uniquement) : état (`active`/`trial`/`expired`/`development`), édition, date d'expiration, identifiant poste (`machineId`), champ de saisie de clé de licence (format `RS-PRO-AAAAMMJJ-XXXXXXXX`) et bouton « Activer la licence ».
+- Carte « Licence Raqmi System » (admin uniquement) : état (`active`/`trial`/`expired`/`revoked`/`invalid`/`development`), édition, expiration, organisation, identifiant poste et activation d'un jeton signé V2 (`RS2.payload.signature`).
 - Formulaire « Informations entreprise » : nom court, raison sociale, adresse, téléphone, e-mail officiel, logo entreprise (upload/suppression, stocké `data/logos/company/`).
 - Formulaire « Exploitation & finances » : page d'accueil par défaut, devise par défaut (`DZD`), nombre de décimales, heure limite de saisie du CA quotidien, taux TVA port (%).
 - Formulaire « Validation » : case « Validation obligatoire » des recettes, case « Motif obligatoire en cas de correction ».

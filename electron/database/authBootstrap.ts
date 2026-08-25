@@ -2,19 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { bcrypt } from '../utils/bcrypt';
 import { verifyStoredPassword } from '../utils/legacyPassword';
 import { getDatabase } from './sqlite';
-import { DEFAULT_ADMIN_PASSWORD } from './seed';
 import { logger } from '../utils/logger';
 
 /** Comptes de confort réservés au développement local. */
 const BOOTSTRAP_ACCOUNTS: Array<{
   email: string;
-  password: string;
   fullName: string;
   roleCode: string;
 }> = [
   {
     email: 'admin@raqmi.local',
-    password: DEFAULT_ADMIN_PASSWORD,
     fullName: 'Super Administrateur',
     roleCode: 'SUPERADMIN',
   },
@@ -85,11 +82,16 @@ export function ensureBootstrapAuthAccounts(developmentMode: boolean): void {
     logger.debug('Bootstrap administrateur ignoré dans une application packagée.');
     return;
   }
+  const developmentPassword = process.env.HMP_DEV_ADMIN_PASSWORD?.trim();
+  if (!developmentPassword) {
+    logger.warn('HMP_DEV_ADMIN_PASSWORD absent — bootstrap administrateur dev ignoré.');
+    return;
+  }
 
   const db = getDatabase();
 
   for (const spec of BOOTSTRAP_ACCOUNTS) {
-    const targetHash = bcrypt.hashSync(spec.password, 12);
+    const targetHash = bcrypt.hashSync(developmentPassword, 12);
     const userId = ensureUserExists(spec, targetHash);
     if (!userId) continue;
 
@@ -97,7 +99,7 @@ export function ensureBootstrapAuthAccounts(developmentMode: boolean): void {
       .prepare(`SELECT password_hash FROM users WHERE id = ?`)
       .get(userId) as { password_hash: string };
 
-    const acceptsKnownPassword = verifyStoredPassword(spec.password, row.password_hash);
+    const acceptsKnownPassword = verifyStoredPassword(developmentPassword, row.password_hash);
     if (!acceptsKnownPassword) {
       db.prepare(
         `

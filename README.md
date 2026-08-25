@@ -134,13 +134,15 @@ Electron est fixé en **36.x** pour bénéficier des binaires précompilés sans
 
 ## Première utilisation
 
-### Connexion par défaut (base neuve)
+### Connexion de développement (base neuve)
 
 | E-mail | Mot de passe | Rôle |
 |--------|--------------|------|
 | `admin@raqmi.local` | `Admin@2026!` | SUPERADMIN |
 
-Ce compte est recréé/garanti au démarrage si absent (`electron/database/authBootstrap.ts`).
+Cette valeur est injectée uniquement par `npm run dev` / `dev.bat`. Dans un installateur
+commercial, un mot de passe aléatoire est créé dans
+`INITIAL_ADMIN_CREDENTIALS.txt` et son changement est obligatoire.
 
 ### Réinitialiser complètement la base
 
@@ -525,7 +527,7 @@ SQLite (better-sqlite3)  ──optionnel──▶  API centrale / sync_queue
 | `better-sqlite3` ne s'installe pas | `npm run rebuild:native` — installer Visual Studio Build Tools |
 | Page blanche en navigateur seul | Lancer via `npm run dev` ou l'exe Electron, pas Vite seul |
 | Connexion refusée / compte verrouillé | Attendre 15 min ou `npm run reset:db` (perte des données) |
-| Mot de passe admin inconnu | `npm run reset:db` → `Admin@2026!` |
+| Mot de passe admin inconnu | Développement : `npm run reset:db` (efface la base). Production : procédure de récupération sécurisée. |
 | Port 5173 occupé | `set HMP_DEV_PORT=5174` puis relancer |
 | Sync en échec (401) | Aligner `HMP_SYNC_API_KEY` client et serveur |
 | Base corrompue | Restaurer depuis sauvegarde (`docs/PROCEDURE_SAUVEGARDE_RESTAURATION.md`) |

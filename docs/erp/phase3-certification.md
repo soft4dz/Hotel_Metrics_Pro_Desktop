@@ -192,7 +192,7 @@ Installateur Windows NSIS, gestion de licence offline et checklist certification
 
 | Fichier | Rôle |
 |---------|------|
-| `electron/services/license.service.ts` | Essai 30 j, activation clé RS-{edition}-{date}-{sig}, empreinte poste |
+| `electron/services/license.service.ts` | Essai 30 j, licence V2 Ed25519, liaison poste, révocation et grâce distante |
 | `electron/ipc/license.ipc.ts` | `license:getStatus`, `activate`, `getMachineId`, `clear` |
 | `scripts/generate-license-key.mjs` | Génération clés éditeur (`npm run generate:license`) |
 | `scripts/validate-packaging.mjs` | Contrôles pré-release (migrations 059–061, EULA, builder) |
@@ -202,11 +202,11 @@ Installateur Windows NSIS, gestion de licence offline et checklist certification
 
 ### Format clé
 
-```
-RS-{STANDARD|PRO|ENTERPRISE}-{YYYYMMDD}-{SIG8}
+```text
+RS2.{payload-base64url}.{signature-ed25519-base64url}
 ```
 
-Signature HMAC-SHA256 (secret `HMP_LICENSE_SECRET` au build release).
+La clé privée reste chez Raqmi ; l'ERP embarque seulement les clés publiques.
 
 ### Commandes
 
@@ -214,7 +214,8 @@ Signature HMAC-SHA256 (secret `HMP_LICENSE_SECRET` au build release).
 npm run validate:packaging     # contrôles packaging
 npm run validate:certification # tests + audit IPC + packaging + tsc
 npm run dist:installer         # installateur dans installers/
-npm run generate:license PRO 2027-12-31
+npm run setup:license-keys
+npm run generate:license PRO 2027-12-31 commerce ORG-ACME MACHINEID123
 ```
 
 Release : pousser un tag `v0.8.0` déclenche le workflow release (artefact `.exe`).

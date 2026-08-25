@@ -1,5 +1,5 @@
 export type LicenseEdition = 'STANDARD' | 'PRO' | 'ENTERPRISE' | 'TRIAL' | 'DEVELOPMENT';
-export type LicenseState = 'active' | 'trial' | 'expired' | 'invalid' | 'development';
+export type LicenseState = 'active' | 'trial' | 'expired' | 'revoked' | 'invalid' | 'development';
 export type LicenseSource = 'offline' | 'remote' | 'development';
 export type LicenseMode = 'offline' | 'remote';
 export type LicenseAlertLevel = 'none' | 'info' | 'warning' | 'urgent' | 'expired';

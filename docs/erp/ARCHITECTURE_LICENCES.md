@@ -1,84 +1,80 @@
-# Architecture licences — ERP multi-sociétés
+# Architecture licences V2 — Raqmi System
 
-## Principe
+## Principe de sécurité
 
-Trois composants distincts :
+La licence V2 utilise une signature **Ed25519 asymétrique** :
 
-```
-┌─────────────────────┐     HTTPS      ┌──────────────────────────┐
-│  ERP Desktop        │ ◄────────────► │  Serveur licences Raqmi   │
-│  (client / société) │   activate     │  (PostgreSQL, multi-org)  │
-│                     │   validate     │                           │
-└─────────────────────┘                └──────────────────────────┘
-         │                                         ▲
-         │ modules, données, terminologie            │ émission / révocation
-         ▼                                         │ (+ secteur métier)
-┌─────────────────────┐                ┌──────────────────────────┐
-│  SQLite locale      │                │  Portail éditeur (futur)  │
-└─────────────────────┘                │  ou CLI generate-license  │
-                                       └──────────────────────────┘
+- la clé privée reste uniquement sur le serveur ou le poste éditeur Raqmi ;
+- l’ERP embarque seulement une ou plusieurs clés publiques ;
+- le client peut vérifier une licence, mais ne peut pas en fabriquer une ;
+- aucune clé privée ni secret HMAC n’est livré dans JavaScript ou Electron.
+
+Format compact :
+
+```text
+RS2.{payload-base64url}.{signature-ed25519-base64url}
 ```
 
-| Composant | Rôle | Déployé chez |
-|-----------|------|--------------|
-| **ERP Desktop** | Métier, activation licence, cache local | Chaque client |
-| **Serveur licences** | Organisations, clés, activations poste, révocation | Raqmi (cloud/VPS) |
-| **Profil métier** | Secteur, terminologie, pack modules | **Embarqué dans la clé — géré par Raqmi uniquement** |
+Le payload signé contient notamment : `licenseId`, `organizationCode`, `edition`,
+`businessSector`, `expiresAt`, `maxActivations`, `mode`, `keyId` et, en mode
+offline, le `machineId` autorisé.
 
-Le **profil métier** n'est plus configurable chez le client : il est choisi par l'éditeur à l'émission de la licence et appliqué automatiquement à l'activation.
+Les anciennes clés HMAC `RS-*` ne sont plus acceptées.
 
-## Format de clé (offline et serveur)
+## Modes
 
-```
-RS-{EDITION}-{YYYYMMDD}-{SECTEUR}-{SIG8}
-```
+| Mode | Contrôle |
+|---|---|
+| `offline` | Licence signée et obligatoirement liée à l’empreinte du poste |
+| `remote` | Activation centrale, quota de postes, validation automatique et révocation |
 
-| Segment | Exemple | Description |
-|---------|---------|-------------|
-| EDITION | PRO | STANDARD, PRO, ENTERPRISE |
-| YYYYMMDD | 20271231 | Date d'expiration |
-| SECTEUR | COMM | HOTL, REST, COMM, SERV, INDU, PORT, GENR |
-| SIG8 | A1B2C3D4 | Signature HMAC (secret partagé) |
+Le mode remote conserve une validation locale pendant sept jours au maximum en
+cas de panne réseau. Passé ce délai, ou après une révocation confirmée, l’ERP
+passe en lecture seule.
 
-Clés legacy `RS-{EDITION}-{YYYYMMDD}-{SIG8}` restent valides → secteur **hôtel** par défaut.
+## Gestion des clés
 
-Génération côté éditeur :
+Générer une paire Ed25519 sur un poste éditeur sécurisé :
 
 ```bash
-node scripts/generate-license-key.mjs PRO 2027-12-31 commerce
-# → RS-PRO-20271231-COMM-XXXXXXXX
+npm run setup:license-keys -- raqmi-root-2026
 ```
 
-## Modes client
+Le dossier `.license-keys/` est ignoré par Git. Le fichier privé doit être placé
+dans un coffre-fort et injecté uniquement sur le serveur :
 
-| Mode | `license_mode` | Comportement |
-|------|----------------|--------------|
-| **offline** | `offline` | Clé RS-* signée HMAC, sans serveur |
-| **remote** | `remote` | Activation + validation via `license_server_url` |
-| **hybrid** | `remote` + cache | Validation périodique ; grâce si serveur injoignable (à configurer) |
+```text
+HMP_LICENSE_PRIVATE_KEY
+HMP_LICENSE_KEY_ID=raqmi-root-2026
+```
 
-## Endpoints serveur (`/api/v1/licenses`)
+Le JSON des clés publiques est fourni au build de l’ERP :
 
-| Méthode | Route | Auth | Description |
-|---------|-------|------|-------------|
-| POST | `/activate` | Public | Active une clé sur un poste (`machineId`) — retourne `businessSector` |
-| GET | `/validate` | Public | Vérifie qu'une activation est toujours valide |
-| POST | `/admin/issue` | JWT admin | Émet une clé pour une organisation (+ `businessSector`) |
-| POST | `/admin/revoke` | JWT admin | Révoque une clé ou une activation |
+```text
+HMP_LICENSE_PUBLIC_KEYS={"raqmi-root-2026":"-----BEGIN PUBLIC KEY-----..."}
+```
 
-## Configuration ERP (admin)
+La construction d’un installateur commercial échoue si aucune clé publique
+Ed25519 n’est fournie ou si une clé privée est présente dans l’environnement.
 
-- `/settings/licence` — activation, URL serveur, code organisation, synchronisation, **profil métier (lecture seule)**
+## API
 
-Variables d'environnement :
+| Méthode | Route | Accès |
+|---|---|---|
+| `POST` | `/licenses/activate` | Public, limité en fréquence |
+| `POST` | `/licenses/validate` | Public, limité en fréquence ; aucune clé dans l’URL |
+| `POST` | `/licenses/admin/issue` | `GLOBAL_ADMIN` uniquement |
+| `GET` | `/licenses/admin/licenses` | `GLOBAL_ADMIN` uniquement |
+| `POST` | `/licenses/admin/revoke` | `GLOBAL_ADMIN` uniquement |
 
-- `LICENSE_SERVER_URL` — URL par défaut (ex. `https://licences.raqmi.dz/api/v1`)
-- `HMP_LICENSE_SECRET` — secret partagé éditeur (offline + signature serveur)
+Le serveur exige également un `JWT_SECRET` explicite. Le mot de passe initial est
+fourni par `ADMIN_INITIAL_PASSWORD` et n’est jamais imprimé dans les journaux.
 
-## Déploiement recommandé
+## Défense côté ERP
 
-1. **Phase actuelle** : script CLI + mode offline par client
-2. **Multi-clients** : déployer le module `licenses` du dossier `server/` sur un VPS dédié
-3. **Scale** : portail web éditeur (React) branché sur la même API — pas une 2ᵉ app desktop
-
-Le serveur NestJS existant peut héberger le module licences **ou** être scindé en micro-service `raqmi-license-server` plus tard (même API).
+- jeton stocké avec `Electron.safeStorage` ;
+- signature, organisation, expiration et poste revérifiés à chaque lecture ;
+- détection basique d’un retour de l’horloge ;
+- synchronisation distante au démarrage puis toutes les douze heures ;
+- blocage des canaux IPC des modules hors pack dans le processus principal ;
+- politique lecture seule *fail-closed* pour les opérations non reconnues comme lectures.

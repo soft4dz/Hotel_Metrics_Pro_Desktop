@@ -22,3 +22,16 @@ jobs:
       - run: npm run audit:ipc
       - run: npm run validate:packaging
       - run: npm run build
+      - name: Build License Manager
+        shell: bash
+        run: |
+          cd license-manager
+          npm ci --ignore-scripts
+          npm run build
+      - name: Build central server
+        shell: bash
+        run: |
+          cd server
+          npm ci --ignore-scripts
+          npm run prisma:generate
+          npm run build

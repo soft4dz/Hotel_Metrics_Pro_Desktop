@@ -41,7 +41,11 @@ async function main() {
   const globalAdminRole = roles[0];
 
   // Utilisateur superadmin
-  const hash = await bcrypt.hash('Admin@2025!', 12);
+  const initialPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  if (!initialPassword || initialPassword.length < 14 || Buffer.byteLength(initialPassword, 'utf8') > 72) {
+    throw new Error('ADMIN_INITIAL_PASSWORD doit contenir entre 14 caractères et 72 octets.');
+  }
+  const hash = await bcrypt.hash(initialPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@raqmi.local' },
     update: {},
@@ -56,10 +60,13 @@ async function main() {
   });
 
   console.log(`✓ Roles: ${roles.length}`);
-  console.log(`✓ Admin: ${admin.email} (mot de passe: Admin@2025!)`);
-  console.log('⚠ Changez le mot de passe à la première connexion');
+  console.log(`✓ Admin initialisé: ${admin.email}`);
+  console.log('⚠ Changez le mot de passe à la première connexion.');
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
   .finally(() => prisma.$disconnect());

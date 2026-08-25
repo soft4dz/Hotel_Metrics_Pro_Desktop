@@ -9,7 +9,7 @@ export type AuthUser = AuthUserDto;
 const DEV_AUTO_ADMIN_LOGIN = import.meta.env.DEV && import.meta.env.VITE_AUTO_LOGIN === 'true';
 
 const DEV_ADMIN_EMAIL = 'admin@raqmi.local';
-const DEV_ADMIN_PASSWORD = 'Admin@2026!';
+const DEV_ADMIN_PASSWORD = import.meta.env.VITE_DEV_ADMIN_PASSWORD ?? '';
 
 interface AuthState {
   user: AuthUser | null;
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       restoreSession: async () => {
-        if (DEV_AUTO_ADMIN_LOGIN) {
+        if (DEV_AUTO_ADMIN_LOGIN && DEV_ADMIN_PASSWORD) {
           if (!get().isAuthenticated) {
             try {
               await get().login(DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD, false);

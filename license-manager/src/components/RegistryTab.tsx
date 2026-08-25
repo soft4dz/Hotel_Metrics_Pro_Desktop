@@ -44,6 +44,19 @@ export function RegistryTab({ serverUrl, token }: RegistryTabProps) {
     }
   };
 
+  const handleRevokeActivation = async (activationId: number, machineId: string) => {
+    if (!token || !confirm(`Révoquer uniquement le poste ${machineId} ?`)) return;
+    setBusyKey(`activation:${activationId}`);
+    try {
+      await revokeRemoteLicense(serverUrl, token, { activationId });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Révocation du poste impossible.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   if (!token) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -106,11 +119,21 @@ export function RegistryTab({ serverUrl, token }: RegistryTabProps) {
               {row.activations.length > 0 && (
                 <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
                   {row.activations.map((a) => (
-                    <li key={a.id} className="font-mono">
-                      {a.machineId}
-                      {a.deviceLabel ? ` (${a.deviceLabel})` : ''}
-                      {' · vu '}
-                      {new Date(a.lastSeenAt).toLocaleString('fr-FR')}
+                    <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 font-mono">
+                      <span>
+                        {a.machineId}
+                        {a.deviceLabel ? ` (${a.deviceLabel})` : ''}
+                        {' · vu '}
+                        {new Date(a.lastSeenAt).toLocaleString('fr-FR')}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busyKey === `activation:${a.id}`}
+                        onClick={() => void handleRevokeActivation(a.id, a.machineId)}
+                        className="font-sans text-red-600 hover:underline disabled:opacity-50"
+                      >
+                        Révoquer ce poste
+                      </button>
                     </li>
                   ))}
                 </ul>

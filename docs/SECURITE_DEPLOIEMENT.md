@@ -10,7 +10,7 @@ requises au titre de la protection des données personnelles.
 
 Lorsqu'une base vide est initialisée :
 
-1. un compte `admin@hotelmetrics.local` est créé ;
+1. un compte `admin@raqmi.local` est créé ;
 2. un mot de passe aléatoire propre à l'installation est généré ;
 3. le changement de mot de passe est obligatoire à la première connexion ;
 4. les identifiants temporaires sont écrits dans :
@@ -23,7 +23,7 @@ réintroduit dans les scripts.
 ## 2. Authentification
 
 - Une session authentifiée est obligatoire pour tout IPC métier protégé.
-- L'auto-connexion administrateur est interdite, y compris en développement.
+- L'auto-connexion administrateur est interdite dans tout binaire empaqueté ; elle reste disponible dans le lanceur local de développement.
 - La session n'est pas restaurée après redémarrage tant qu'un stockage natif chiffré
   n'est pas intégré.
 - Un compte désactivé ne doit jamais être réactivé automatiquement au démarrage.
